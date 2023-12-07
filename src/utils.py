@@ -1,4 +1,3 @@
-from ctypes import c_void_p
 from mplfinance import plot
 import pandas as pd
 
@@ -54,10 +53,8 @@ def isHeadAndShoulders(a, b, c, d, e, f, avgCandleLength):
      /      B         D     \
     /                        \
     '''
-    neckline = min(b, d)
-
-    return c > max(a, e) and abs(b - d) <= avgCandleLength and neckline < min(
-        a, e) and e > f < neckline
+    return c > max(a, b, d, e) and max(b, d) < min(
+        a, e) and abs(b - d) <= avgCandleLength and d < f < e
 
 
 def isReverseHeadAndShoulders(a, b, c, d, e, f, avgCandleLength):
@@ -72,10 +69,8 @@ def isReverseHeadAndShoulders(a, b, c, d, e, f, avgCandleLength):
               \/
               C
     '''
-    neckline = min(b, d)
-
-    return c < min(a, e) and abs(b - d) <= avgCandleLength and neckline > max(
-        a, e) and f > e and f < neckline
+    return c < min(a, b, d, e) and min(b, d) > max(
+        a, e) and abs(b - d) <= avgCandleLength and d > f > e
 
 
 def isDoubleTop(a, b, c, d, aVol, cVol, avgCandleLength):
@@ -200,14 +195,20 @@ def generate_trend_line(series, date1, date2):
     d1 = float(index.get_loc(date1))
     d2 = float(index.get_loc(date2))
 
+    # y = mx + b
+    # b = y - mx
+    # where m is slope, b is y intercept
     # slope m = change in y / change in x
     slope = (p2 - p1) / (d2 - d1)
+
+    # b = y - mx
     yintercept = ((p1 - slope * d1) + (p2 - slope * d2)) / 2.0
 
-    # y = mx + b
-    # where m is slope, b is y coordinate
-    return ((date1, slope * index.get_loc(date1) + yintercept),
-            (index[-1], slope * index.get_loc(index[-1]) + yintercept))
+    upper_line_coords = (date1, slope * index.get_loc(date1) + yintercept)
+    lower_line_coords = (index[-1],
+                         slope * index.get_loc(index[-1]) + yintercept)
+
+    return (upper_line_coords, lower_line_coords)
 
 
 def findBullishVCP(sym, df, pivots):
@@ -635,7 +636,7 @@ def find(sym, df, pivots, pattern):
         df_slice = df.loc[a_idx:d_idx]
         avgCandleLength = (df_slice['High'] - df_slice['Low']).mean()
 
-        if pattern == 'HeadAndShoulders' and isHeadAndShoulders(
+        if pattern == 'HeadAndShoulder' and isHeadAndShoulders(
                 a, b, c, d, e, f, avgCandleLength):
 
             plot_args['title'] = f'{sym} - Bearish Head & Shoulders'
@@ -648,7 +649,7 @@ def find(sym, df, pivots, pattern):
             plot(df, **plot_args)
             break
 
-        if pattern == 'ReverseHeadAndShoulders' and isReverseHeadAndShoulders(
+        if pattern == 'ReverseHeadAndShoulder' and isReverseHeadAndShoulders(
                 a, b, c, d, e, f, avgCandleLength):
 
             plot_args['title'] = f'{sym} - Reverse Bullish Head & Shoulders'
@@ -657,7 +658,7 @@ def find(sym, df, pivots, pattern):
                                              ((c_idx, c), (d_idx, d)),
                                              ((d_idx, d), (e_idx, e)))
 
-            print(sym)
+            print(sym, pivots.shape[0])
             plot(df, **plot_args)
             break
 
