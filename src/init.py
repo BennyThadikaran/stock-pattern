@@ -1,6 +1,5 @@
 import utils
 import pandas as pd
-import functools
 from argparse import ArgumentParser
 from datetime import datetime
 
@@ -19,6 +18,9 @@ parser.add_argument('-p',
                     help='A number (1-7) representing the pattern')
 
 args = parser.parse_args()
+
+if args.date.weekday() in (5, 6):
+    exit('Date falls on weekend (Sat / Sun)')
 
 # SET YOUR STOCK DATA SOURCE HERE
 data_path = '/home/benny/Documents/python/eod2/src/eod2_data/daily/'
@@ -41,8 +43,8 @@ else:
     3. Double Bottom (Bullish)
     4. Double Top (Bearish)
     5. Head and Shoulder
-    6. Reverse Head and Shoulder (Untested)
-    7. Pennant (Ascending, Descending, Wedges)
+    6. Reverse Head and Shoulder
+    7. Pennant (Triangle - Ascending, Descending, Wedges)
     ''')
 
         try:
@@ -62,10 +64,12 @@ fn_dict = {
     2: utils.findBearishVCP,
     3: utils.findDoubleBottom,
     4: utils.findDoubleTop,
-    5: functools.partial(utils.find, pattern='HeadAndShoulder'),
-    6: functools.partial(utils.find, pattern='ReverseHeadAndShoulder'),
-    7: functools.partial(utils.find, pattern='Pennant'),
+    5: utils.findHNS,
+    6: utils.findReverseHNS,
+    7: utils.findPennant,
 }
+
+holiday_warn = False
 
 try:
     for sym in data:
@@ -74,12 +78,18 @@ try:
                          parse_dates=True)
 
         if args.date:
+            if args.date not in df.index:
+                if not holiday_warn:
+                    holiday_warn = True
+                    print('WARN: Specified date could be a trading holiday')
+                continue
+
             end = df.index.get_loc(args.date)
             df = df[end - 160:end + 1]
         else:
             df = df[-160:]
 
-        pivots = utils.getMaxMin(df)[-15:]
+        pivots = utils.getMaxMin(df)
 
         if not pivots.shape[0]:
             continue
