@@ -7,7 +7,10 @@ If you :heart: my work so far, please :star2: this repo.
 
 These were a series of pattern scanners I wrote for experimentation and fun in 2022. My inspiration was this Medium article [Algorithmically Detecting (and Trading) Technical Chart Patterns with Python](https://medium.com/automation-generation/algorithmically-detecting-and-trading-technical-chart-patterns-with-python-c577b3a396ed)
 
-The patterns should be 95% accurate. (Head and Shoulder pattern is still being tested). I will provide a write-up soon on how the patterns are detected.
+See Wiki to understand how the code works: [Pattern Algorithms](https://github.com/BennyThadikaran/stock-pattern/wiki/Pattern-Algorithms
+)
+
+Stock-Pattern is not aimed at replacing a trader's trained eye. It is merely an assistance and learning tool. There are still some tweaks required and changes will be rolled out over the coming weeks.
 
 ## Installation
 
