@@ -19,7 +19,7 @@ parser.add_argument('-p',
 
 args = parser.parse_args()
 
-if args.date.weekday() in (5, 6):
+if args.date and args.date.weekday() in (5, 6):
     exit('Date falls on weekend (Sat / Sun)')
 
 # SET YOUR STOCK DATA SOURCE HERE
