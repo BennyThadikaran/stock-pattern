@@ -6,10 +6,10 @@ plot_args = {
     "style": 'tradingview',
     'figscale': 2,
     "alines": {
-        'colors': ['crimson'],
+        'colors': 'royalblue',
         'alines': None,
-        'linewidths': (0.5, ),
-        'alpha': 0.4,
+        'linewidths': 0.8,
+        'alpha': 0.7,
     }
 }
 
@@ -41,7 +41,7 @@ def isPennant(a, b, c, d, e, f, avgBarLength):
     return b_d and a > c > e > f and f > d
 
 
-def isHNS(a, b, c, d, e, f):
+def isHNS(a, b, c, d, e, f, avgBarLength):
     r'''
     Head and Shoulders
                 C
@@ -53,10 +53,11 @@ def isHNS(a, b, c, d, e, f):
      /      B         D     \
     /                        \
     '''
-    return c > max(a, e) and max(b, d) < min(a, e) and f < e
+    return c > max(a, e) and max(b, d) < min(
+        a, e) and f < e and abs(b - d) < avgBarLength
 
 
-def isReverseHNS(a, b, c, d, e, f):
+def isReverseHNS(a, b, c, d, e, f, avgBarLength):
     r'''
     Reverse Head and Shoulders
     \
@@ -68,7 +69,8 @@ def isReverseHNS(a, b, c, d, e, f):
               \/
               C
     '''
-    return c < min(a, e) and min(b, d) > max(a, e) and f > e
+    return c < min(a, e) and min(b, d) > max(
+        a, e) and f > e and abs(b - d) < avgBarLength
 
 
 def isDoubleTop(a, b, c, d, aVol, cVol, avgBarLength):
@@ -219,7 +221,7 @@ def generate_trend_line(series, date1, date2) -> tuple:
     return ((upper_line_coords, lower_line_coords), slope, yintercept)
 
 
-def findBullishVCP(sym, df, pivots):
+def findBullishVCP(sym, df, pivots, silent=False):
     pivot_len = pivots.shape[0]
     a_idx = pivots['P'].idxmax()
     a = pivots.loc[a_idx, 'P']
@@ -301,6 +303,10 @@ def findBullishVCP(sym, df, pivots):
 
         if bullishVCP(a, b, c, d, last, avgBarLength):
 
+            if silent:
+                print(sym)
+                break
+
             if df.loc[d_idx:, 'Close'].max() > c:
                 a_idx = c_idx
                 a = c
@@ -322,7 +328,7 @@ def findBullishVCP(sym, df, pivots):
         a = c
 
 
-def findBearishVCP(sym, df, pivots):
+def findBearishVCP(sym, df, pivots, silent=False):
 
     pivot_len = pivots.shape[0]
     a_idx = pivots['P'].idxmin()
@@ -402,6 +408,10 @@ def findBearishVCP(sym, df, pivots):
         last = df.at[df.index[-1], 'Close']
 
         if bearishVCP(a, b, c, d, last, avgBarLength):
+            if silent:
+                print(sym)
+                break
+
             if df.loc[d_idx:, 'Close'].max() < c:
                 a_idx = c_idx
                 a = c
@@ -425,7 +435,7 @@ def findBearishVCP(sym, df, pivots):
         a = c
 
 
-def findDoubleBottom(sym, df, pivots):
+def findDoubleBottom(sym, df, pivots, silent=False):
     pivot_len = pivots.shape[0]
     a_idx = pivots['P'].idxmin()
     a, aVol = pivots.loc[a_idx, ['P', 'V']]
@@ -482,6 +492,10 @@ def findDoubleBottom(sym, df, pivots):
 
         if isDoubleBottom(a, b, c, last, aVol, cVol, avgBarLength):
 
+            if silent:
+                print(sym)
+                break
+
             if df.loc[c_idx:, 'Close'].max() > b:
                 a_idx, a, aVol = c_idx, c, cVol
                 continue
@@ -505,7 +519,7 @@ def findDoubleBottom(sym, df, pivots):
         a_idx, a, aVol = c_idx, c, cVol
 
 
-def findDoubleTop(sym, df, pivots):
+def findDoubleTop(sym, df, pivots, silent=False):
     pivot_len = pivots.shape[0]
     a_idx = pivots['P'].idxmax()
     a, aVol = pivots.loc[a_idx, ['P', 'V']]
@@ -563,6 +577,10 @@ def findDoubleTop(sym, df, pivots):
 
         if isDoubleTop(a, b, c, last, aVol, cVol, avgBarLength):
 
+            if silent:
+                print(sym)
+                break
+
             idx = df.loc[:a_idx, 'Low'].idxmin()
 
             plot_args['title'] = f'{sym} - Double Top'
@@ -580,7 +598,7 @@ def findDoubleTop(sym, df, pivots):
         a_idx, a, aVol = c_idx, c, cVol
 
 
-def findPennant(sym, df, pivots):
+def findPennant(sym, df, pivots, silent=False):
     pivot_len = pivots.shape[0]
     a_idx = pivots['P'].idxmax()
     a = pivots.loc[a_idx, 'P']
@@ -645,6 +663,10 @@ def findPennant(sym, df, pivots):
 
         if isPennant(a, b, c, d, e, f, avgBarLength):
 
+            if silent:
+                print(sym)
+                break
+
             if c_idx != df.loc[c_idx:, 'Close'].idxmax():
                 a_idx, a = c_idx, c
                 continue
@@ -670,17 +692,19 @@ def findPennant(sym, df, pivots):
         a_idx, c = c_idx, c
 
 
-def findHNS(sym, df, pivots):
+def findHNS(sym, df, pivots, silent=False):
     pivot_len = pivots.shape[0]
-    f = df.at[df.index[-1], 'Close']
+    f_idx = df.index[-1]
+    f = df.at[f_idx, 'Close']
 
     c_idx = pivots['P'].idxmax()
     c = pivots.at[c_idx, 'P']
 
     while True:
         pos = getPrevIndex(pivots.index, c_idx)
+        idx_before_c = pivots.index[pos]
 
-        a_idx = pivots.loc[:pivots.index[pos], 'P'].idxmax()
+        a_idx = pivots.loc[:idx_before_c, 'P'].idxmax()
         a = pivots.loc[a_idx, 'P']
 
         b_idx = pivots.loc[a_idx:c_idx, 'P'].idxmin()
@@ -691,10 +715,12 @@ def findHNS(sym, df, pivots):
         if pos >= pivot_len:
             break
 
-        e_idx = pivots.loc[pivots.index[pos]:, 'P'].idxmax()
+        idx_after_c = pivots.index[pos]
+
+        e_idx = pivots.loc[idx_after_c:, 'P'].idxmax()
         e = pivots.loc[e_idx, 'P']
 
-        d_idx = pivots.loc[c_idx:e_idx, 'P'].idxmax()
+        d_idx = pivots.loc[c_idx:e_idx, 'P'].idxmin()
         d = pivots.loc[d_idx, 'P']
 
         if pivots.index.has_duplicates:
@@ -713,54 +739,72 @@ def findHNS(sym, df, pivots):
             if isinstance(e, pd.Series | str):
                 e = pivots.loc[e_idx, 'P'].iloc[0]
 
-        if isHNS(a, b, c, d, e, f):
-            neckline, m, y_int = generate_trend_line(df['Low'], b_idx, d_idx)
+        df_slice = df.loc[b_idx:d_idx]
+        avgBarLength = (df_slice['High'] - df_slice['Low']).mean()
+
+        if isHNS(a, b, c, d, e, f, avgBarLength):
+
+            if silent:
+                print(sym)
+                break
+
+            neckline_price = min(b, d)
+
+            lowest_after_e = df.loc[e_idx:, 'Low'].min()
+
+            if lowest_after_e < neckline_price and abs(
+                    lowest_after_e - neckline_price) > avgBarLength:
+                c_idx, c = e_idx, e
+                continue
+
+            # bd is the line coordinate for points B and D
+            bd, m, y_intercept = generate_trend_line(df['Low'], b_idx, d_idx)
 
             # Get the y coordinate of the trendline at the end of the chart
             # With the given slope(m) and y-intercept(b) as y_int,
             # Get the x coordinate (index position of last date in DataFrame)
             # and calculate value of y coordinate using y = mx + b
             x = df.index.get_loc(df.index[-1])
-            y = m * x + y_int
+            y = m * x + y_intercept
 
             # if the close price is below the neckline (trendline), skip
             if f < y:
+                c_idx, c = e_idx, e
                 continue
 
-            plot_args['title'] = f'{sym} - Reverse Head & Shoulders - Bullish'
-
-            pos = getPrevIndex(pivots.index, a_idx)
-            idx = pivots.index[pos]
+            plot_args['title'] = f'{sym} - Head & Shoulders - Bearish'
 
             # lines
-            init_line = ((idx, pivots.loc[idx, 'P']), (a_idx, a))
             ab = ((a_idx, a), (b_idx, b))
             bc = ((b_idx, b), (c_idx, c))
             cd = ((c_idx, c), (d_idx, d))
             de = ((d_idx, d), (e_idx, e))
-            ef = ((e_idx, e), (df.index[-1], f))
+            ef = ((e_idx, e), (f_idx, f))
 
-            plot_args['alines']['alines'] = (neckline, init_line, ab, bc, cd,
-                                             de, ef)
+            plot_args['alines']['alines'] = (bd, ab, bc, cd, de, ef)
+            plot_args['alines']['colors'] = (('crimson', ) +
+                                             ('midnightblue', ) * 5)
 
-            print(sym, pivots.shape[0])
+            print(sym)
             plot(df, **plot_args)
             break
 
         c_idx, c = e_idx, e
 
 
-def findReverseHNS(sym, df, pivots):
+def findReverseHNS(sym, df, pivots, silent=False):
     pivot_len = pivots.shape[0]
-    f = df.at[df.index[-1], 'Close']
+    f_idx = df.index[-1]
+    f = df.at[f_idx, 'Close']
 
     c_idx = pivots['P'].idxmin()
     c = pivots.at[c_idx, 'P']
 
     while True:
         pos = getPrevIndex(pivots.index, c_idx)
+        idx_before_c = pivots.index[pos]
 
-        a_idx = pivots.loc[:pivots.index[pos], 'P'].idxmin()
+        a_idx = pivots.loc[:idx_before_c, 'P'].idxmin()
         a = pivots.at[a_idx, 'P']
 
         b_idx = pivots.loc[a_idx:c_idx, 'P'].idxmax()
@@ -771,7 +815,9 @@ def findReverseHNS(sym, df, pivots):
         if pos >= pivot_len:
             break
 
-        e_idx = pivots.loc[pivots.index[pos]:, 'P'].idxmin()
+        idx_after_c = pivots.index[pos]
+
+        e_idx = pivots.loc[idx_after_c:, 'P'].idxmin()
         e = pivots.at[e_idx, 'P']
 
         d_idx = pivots.loc[c_idx:e_idx, 'P'].idxmax()
@@ -793,38 +839,53 @@ def findReverseHNS(sym, df, pivots):
             if isinstance(e, pd.Series | str):
                 e = pivots.loc[e_idx, 'P'].iloc[1]
 
-        if isReverseHNS(a, b, c, d, e, f):
+        df_slice = df.loc[b_idx:d_idx]
+        avgBarLength = (df_slice['High'] - df_slice['Low']).mean()
 
-            neckline, m, y_int = generate_trend_line(df['High'], b_idx, d_idx)
+        if isReverseHNS(a, b, c, d, e, f, avgBarLength):
+
+            if silent:
+                print(sym)
+                break
+
+            neckline_price = min(b, d)
+
+            highest_after_e = df.loc[e_idx:, 'High'].max()
+
+            if highest_after_e > neckline_price and abs(
+                    highest_after_e - neckline_price) > avgBarLength:
+                c_idx, c = e_idx, e
+                continue
+
+            # bd is the trendline coordinates from B to D (neckline)
+            bd, m, y_intercept = generate_trend_line(df['High'], b_idx, d_idx)
 
             # Get the y coordinate of the trendline at the end of the chart
             # With the given slope(m) and y-intercept(b) as y_int,
             # Get the x coordinate (index position of last date in DataFrame)
             # and calculate value of y coordinate using y = mx + b
             x = df.index.get_loc(df.index[-1])
-            y = m * x + y_int
+            y = m * x + y_intercept
 
             # if close price is greater than neckline (trendline), skip
             if f > y:
+                c_idx, c = e_idx, e
                 continue
 
             plot_args['title'] = f'{sym} - Reverse Head & Shoulders - Bullish'
 
-            pos = getPrevIndex(pivots.index, a_idx)
-            idx = pivots.index[pos]
-
             # lines
-            init_line = ((idx, pivots.loc[idx, 'P']), (a_idx, a))
             ab = ((a_idx, a), (b_idx, b))
             bc = ((b_idx, b), (c_idx, c))
             cd = ((c_idx, c), (d_idx, d))
             de = ((d_idx, d), (e_idx, e))
-            ef = ((e_idx, e), (df.index[-1], f))
+            ef = ((e_idx, e), (f_idx, f))
 
-            plot_args['alines']['alines'] = (neckline, init_line, ab, bc, cd,
-                                             de, ef)
+            plot_args['alines']['alines'] = (bd, ab, bc, cd, de, ef)
+            plot_args['alines']['colors'] = (('crimson', ) +
+                                             ('midnightblue', ) * 5)
 
-            print(sym, pivots.shape[0])
+            print(sym)
             plot(df, **plot_args)
             break
 

@@ -1,9 +1,29 @@
 import utils
 import pandas as pd
+import pathlib
 from argparse import ArgumentParser
 from datetime import datetime
 
-parser = ArgumentParser(prog='init.py')
+# # SET YOUR STOCK DATA SOURCE HERE
+data_path = ''
+
+#
+# #                           ###
+# # DO NOT EDIT BELOW THIS LINE #
+# #                           ###
+if data_path == '':
+    exit("Set `data_path` in init.py before` scanning")
+
+version = '0.2.2-alpha'
+
+parser = ArgumentParser(
+    description='Python CLI tool to identify common Chart patterns',
+    epilog='https://github.com/BennyThadikaran/stock-pattern')
+
+parser.add_argument('-s',
+                    '--silent',
+                    action='store_true',
+                    help='Only print symbols. No chart plots')
 
 parser.add_argument('-d',
                     '--date',
@@ -17,19 +37,55 @@ parser.add_argument('-p',
                     metavar='int',
                     help='A number (1-7) representing the pattern')
 
+parser.add_argument('-l',
+                    '--left',
+                    type=int,
+                    metavar='int',
+                    default=6,
+                    help='Number of candle bars on left side of pivot')
+
+parser.add_argument('-r',
+                    '--right',
+                    type=int,
+                    metavar='int',
+                    default=6,
+                    help='Number of candle bars on right side of pivot')
+
+group = parser.add_mutually_exclusive_group(required=True)
+
+group.add_argument('-f',
+                   '--file',
+                   type=pathlib.Path,
+                   metavar='filepath',
+                   help='File containing list of stocks. One on each line')
+
+group.add_argument('--sym',
+                   nargs='+',
+                   metavar='SYM',
+                   help='Space separated list of stock symbols.')
+
+group.add_argument('-v',
+                   '--version',
+                   action='store_true',
+                   help='Print the current version.')
+
 args = parser.parse_args()
+
+if args.version:
+    exit(f'''
+    Stock-Pattern | Version {version}
+    Copyright (C) 2023 Benny Thadikaran 
+
+    Github: https://github.com/BennyThadikaran/stock-pattern
+
+    This program comes with ABSOLUTELY NO WARRANTY.
+    This is free software, and you are welcome to redistribute it
+    under certain conditions.
+    See license: https://www.gnu.org/licenses/gpl-3.0.en.html#license-text
+    ''')
 
 if args.date and args.date.weekday() in (5, 6):
     exit('Date falls on weekend (Sat / Sun)')
-
-# SET YOUR STOCK DATA SOURCE HERE
-data_path = '/home/benny/Documents/python/eod2/src/eod2_data/daily/'
-
-# SET YOUR WATCHLIST FILE HERE
-file = '/home/benny/Desktop/data.csv'
-
-if data_path == '' and file == '':
-    exit("Set `data_path` and `file before` scanning")
 
 if args.pattern:
     key = args.pattern
@@ -45,7 +101,7 @@ else:
     5. Head and Shoulder
     6. Reverse Head and Shoulder
     7. Pennant (Triangle - Ascending, Descending, Wedges)
-    ''')
+    > ''')
 
         try:
             key = int(key)
@@ -56,8 +112,7 @@ else:
 
 print('Scanning stocks. Press Ctrl - C to exit')
 
-with open(file) as f:
-    data = f.read().strip().split('\n')
+data = args.file.read_text().strip().split('\n') if args.file else args.sym
 
 fn_dict = {
     1: utils.findBullishVCP,
@@ -69,19 +124,23 @@ fn_dict = {
     7: utils.findPennant,
 }
 
-holiday_warn = False
-
 try:
     for sym in data:
-        df = pd.read_csv(f'{data_path}/{sym.lower()}.csv',
-                         index_col='Date',
-                         parse_dates=True)
+
+        sym_file = f'{data_path}/{sym.lower()}.csv'
+
+        try:
+            df = pd.read_csv(sym_file, index_col='Date', parse_dates=True)
+        except FileNotFoundError:
+            print(f'File not found: {sym_file}')
+            continue
 
         if args.date:
+            # Date is out of bounds
+            if args.date < df.index[0] or args.date > df.index[-1]:
+                continue
+
             if args.date not in df.index:
-                if not holiday_warn:
-                    holiday_warn = True
-                    print('WARN: Specified date could be a trading holiday')
                 continue
 
             end = df.index.get_loc(args.date)
@@ -89,12 +148,12 @@ try:
         else:
             df = df[-160:]
 
-        pivots = utils.getMaxMin(df)
+        pivots = utils.getMaxMin(df, barsLeft=args.left, barsRight=args.right)
 
         if not pivots.shape[0]:
             continue
 
-        fn_dict[key](sym, df, pivots)
+        fn_dict[key](sym, df, pivots, args.silent)
 except KeyboardInterrupt:
     # silent exit without ugly erorr trace
     exit()
