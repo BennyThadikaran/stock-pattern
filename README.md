@@ -4,7 +4,7 @@ A Python CLI scanner to detect and plot common chart patterns
 
 If you :heart: my work so far, please :star2: this repo.
 
-![stock-pattern-cli](https://res.cloudinary.com/doyu4uovr/image/upload/s--4F0qsf2E--/c_scale,f_auto,w_600/v1702918851/stock-pattern/stock-pattern-cli_bzd7ze.png)
+![stock-pattern-cli](https://res.cloudinary.com/doyu4uovr/image/upload/s--9HW6Yk6D--/c_scale,f_auto,w_700/v1702918851/stock-pattern/stock-pattern-cli_bzd7ze.png)
 
 These were a series of pattern scanners I wrote for experimentation and fun in 2022. My inspiration was this Medium article [Algorithmically Detecting (and Trading) Technical Chart Patterns with Python](https://medium.com/automation-generation/algorithmically-detecting-and-trading-technical-chart-patterns-with-python-c577b3a396ed)
 
@@ -64,32 +64,34 @@ py init.py -f data.csv -p 1
 **To run silent, without opening chart plots:**
 
 ```bash
+# Only symbol names are printed
 py init.py -f data.csv -p 1 -s
 ```
 
 There are other CLI options available for those wanting to tinker.
 
+## Screenshots
 **HUDCO - Double Bottom 16th June 2022**
 
-![HUDCO - Double Bottom](https://res.cloudinary.com/doyu4uovr/image/upload/s--UikJt-66--/c_scale,f_auto,w_600/v1702918851/stock-pattern/hudco-double-bottom_dtcvwj.png)
+![HUDCO - Double Bottom](https://res.cloudinary.com/doyu4uovr/image/upload/s--nQ10RsSG--/c_scale,f_auto,w_700/v1702918851/stock-pattern/hudco-double-bottom_dtcvwj.png)
 
 **GRAPHITE - Bear VCP 18th Oct 2022**
 
-![GRAPHITE - Bear VCP](https://res.cloudinary.com/doyu4uovr/image/upload/s--Z9cJ-WPU--/c_scale,f_auto,w_600/v1702918851/stock-pattern/graphite-bear-vcp_yi7cmv.png)
+![GRAPHITE - Bear VCP](https://res.cloudinary.com/doyu4uovr/image/upload/s--LLToQmNv--/c_scale,f_auto,w_700/v1702918851/stock-pattern/graphite-bear-vcp_yi7cmv.png)
 
 **MGL - Reverse Head & Shoulder 16th June 2022**
 
-![MGL - Reverse Head & Shoulder](https://res.cloudinary.com/doyu4uovr/image/upload/s--Ky-zcq2a--/c_scale,f_auto,w_600/v1702918852/stock-pattern/mgl-reverse-hns_pwkmel.png)
+![MGL - Reverse Head & Shoulder](https://res.cloudinary.com/doyu4uovr/image/upload/s--RsyvqU2E--/c_scale,f_auto,w_700/v1702918852/stock-pattern/mgl-reverse-hns_pwkmel.png)
 
 **GSFC - Triangle 13th March 2023**
 
-![GSFC - Triangle pattern](https://res.cloudinary.com/doyu4uovr/image/upload/s--syxerzqU--/c_scale,f_auto,w_600/v1702918851/stock-pattern/gsfc-triangle_j32yi3.png)
+![GSFC - Triangle pattern](https://res.cloudinary.com/doyu4uovr/image/upload/s--oiNVrg8u--/c_scale,f_auto,w_700/v1702918851/stock-pattern/gsfc-triangle_j32yi3.png)
 
 **RECLTD - Double Tops 13th Oct 2021**
 
-![RECLTD Double Top pattern](https://res.cloudinary.com/doyu4uovr/image/upload/s--xEKkEkPX--/c_scale,f_auto,w_600/v1702918852/stock-pattern/recltd-double-top_accoad.png)
+![RECLTD Double Top pattern](https://res.cloudinary.com/doyu4uovr/image/upload/s--lFTiRydt--/c_scale,f_auto,w_700/v1702918852/stock-pattern/recltd-double-top_accoad.png)
 
-# TODO
+## TODO
 
 As of Version 0.2.2-alpha
 
