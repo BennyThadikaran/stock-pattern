@@ -10,9 +10,13 @@ These were a series of pattern scanners I wrote for experimentation and fun in 2
 
 See Wiki to understand how the code works: [Pattern Algorithms](https://github.com/BennyThadikaran/stock-pattern/wiki/Pattern-Algorithms)
 
-**Update 18th Dec 2023:** All patterns are tested and working perfectly well as of **version 0.2.2-alpha**.
+## Important Info
 
-**All patterns are detected, prior to breakout.** So you can add to your watchlist and track the stock.
+**Update 18th Dec 2023:** All patterns are tested and working perfectly, as of **version 0.2.2-alpha**.
+
+**All patterns are detected, prior to breakout.** Patterns are detected at the last leg of the pattern. Allowing you to add the stock to your watchlist and track them further.
+
+This program does not provide any buy or sell signals. It only detects the pattern. It is upto you to decide, if a pattern is valid or tradeable.
 
 ## Installation
 
