@@ -75,7 +75,7 @@ def isReverseHNS(a, b, c, d, e, f, avgBarLength):
 
 def isDoubleTop(a, b, c, d, aVol, cVol, avgBarLength):
     r'''
-    Double Bottom
+    Double Top
           A     C
          /\    /\
         /  \  /  \
@@ -225,6 +225,9 @@ def findBullishVCP(sym, df, pivots, silent=False):
     pivot_len = pivots.shape[0]
     a_idx = pivots['P'].idxmax()
     a = pivots.loc[a_idx, 'P']
+
+    e_idx = df.index[-1]
+    e = df.loc[e_idx, 'Close']
     idx = None
 
     while True:
@@ -299,26 +302,29 @@ def findBullishVCP(sym, df, pivots, silent=False):
             if isinstance(d, pd.Series | str):
                 d = pivots.loc[d_idx, 'P'].iloc[1]
 
-        last = df.loc[df.index[-1], 'Close']
-
-        if bullishVCP(a, b, c, d, last, avgBarLength):
-
-            if silent:
-                print(sym)
-                break
+        if bullishVCP(a, b, c, d, e, avgBarLength):
 
             if df.loc[d_idx:, 'Close'].max() > c:
                 a_idx = c_idx
                 a = c
                 continue
 
+            if silent:
+                print(sym)
+                break
+
             plot_args['title'] = f'{sym} - Bull VCP'
 
-            plot_args['alines']['alines'] = (((a_idx, a), (b_idx, b)),
-                                             ((b_idx, b), (c_idx, c)),
-                                             ((c_idx, c), (d_idx, d)),
-                                             ((d_idx, d), (df.index[-1],
-                                                           last)))
+            plot_args['alines']['colors'] = (('green', ) +
+                                             ('midnightblue', ) * 4)
+
+            entryLine = ((c_idx, c), (e_idx, c))
+            ab = ((a_idx, a), (b_idx, b))
+            bc = ((b_idx, b), (c_idx, c))
+            cd = ((c_idx, c), (d_idx, d))
+            de = ((d_idx, d), (e_idx, e))
+
+            plot_args['alines']['alines'] = (entryLine, ab, bc, cd, de)
 
             print(sym)
             plot(df, **plot_args)
@@ -333,6 +339,9 @@ def findBearishVCP(sym, df, pivots, silent=False):
     pivot_len = pivots.shape[0]
     a_idx = pivots['P'].idxmin()
     a = pivots.loc[a_idx, 'P']
+
+    e_idx = df.index[-1]
+    e = df.loc[e_idx, 'Close']
     idx = None
 
     while True:
@@ -405,26 +414,29 @@ def findBearishVCP(sym, df, pivots, silent=False):
             if isinstance(d, pd.Series | str):
                 d = pivots.loc[d_idx, 'P'].iloc[0]
 
-        last = df.at[df.index[-1], 'Close']
-
-        if bearishVCP(a, b, c, d, last, avgBarLength):
-            if silent:
-                print(sym)
-                break
+        if bearishVCP(a, b, c, d, e, avgBarLength):
 
             if df.loc[d_idx:, 'Close'].max() < c:
                 a_idx = c_idx
                 a = c
                 continue
 
+            if silent:
+                print(sym)
+                break
+
             plot_args['title'] = f'{sym} - Bear VCP'
 
-            plot_args['alines']['alines'] = (((a_idx, a), (b_idx, b)),
-                                             ((b_idx, b), (c_idx, c)),
-                                             ((c_idx, c), (d_idx, d)),
-                                             ((d_idx, d), (df.index[-1],
-                                                           last)))
+            entryLine = ((c_idx, c), (e_idx, c))
+            ab = ((a_idx, a), (b_idx, b))
+            bc = ((b_idx, b), (c_idx, c))
+            cd = ((c_idx, c), (d_idx, d))
+            de = ((d_idx, d), (e_idx, e))
 
+            plot_args['alines']['alines'] = (entryLine, ab, bc, cd, de)
+
+            plot_args['alines']['colors'] = (('green', ) +
+                                             ('midnightblue', ) * 4)
             print(sym)
             plot(df, **plot_args)
             break
@@ -439,6 +451,8 @@ def findDoubleBottom(sym, df, pivots, silent=False):
     pivot_len = pivots.shape[0]
     a_idx = pivots['P'].idxmin()
     a, aVol = pivots.loc[a_idx, ['P', 'V']]
+    d_idx = df.index[-1]
+    d = df.loc[d_idx, 'Close']
 
     while True:
         pos = getNextIndex(pivots.index, a_idx)
@@ -488,29 +502,28 @@ def findDoubleBottom(sym, df, pivots, silent=False):
 
         df_slice = df.loc[a_idx:c_idx]
         avgBarLength = (df_slice['High'] - df_slice['Low']).mean()
-        last = df.loc[df.index[-1], 'Close']
 
-        if isDoubleBottom(a, b, c, last, aVol, cVol, avgBarLength):
-
-            if silent:
-                print(sym)
-                break
+        if isDoubleBottom(a, b, c, d, aVol, cVol, avgBarLength):
 
             if df.loc[c_idx:, 'Close'].max() > b:
                 a_idx, a, aVol = c_idx, c, cVol
                 continue
 
-            idx = df.loc[:a_idx, 'High'].idxmax()
+            if silent:
+                print(sym)
+                break
 
-            # idx = pivots.loc[:a_idx, 'P'].idxmax()
             plot_args['title'] = f'{sym} - Double bottom'
 
-            plot_args['alines']['alines'] = (((idx, df.loc[idx, 'High']),
-                                              (a_idx, a)), ((a_idx, a), (b_idx,
-                                                                         b)),
-                                             ((b_idx, b), (c_idx, c)),
-                                             ((c_idx, c), (df.index[-1],
-                                                           last)))
+            entryLine = ((b_idx, b), (d_idx, b))
+            ab = ((a_idx, a), (b_idx, b))
+            bc = ((b_idx, b), (c_idx, c))
+            cd = ((c_idx, c), (d_idx, d))
+
+            plot_args['alines']['alines'] = (entryLine, ab, bc, cd)
+
+            plot_args['alines']['colors'] = (('green', ) +
+                                             ('midnightblue', ) * 4)
 
             print(sym)
             plot(df, **plot_args)
@@ -523,6 +536,8 @@ def findDoubleTop(sym, df, pivots, silent=False):
     pivot_len = pivots.shape[0]
     a_idx = pivots['P'].idxmax()
     a, aVol = pivots.loc[a_idx, ['P', 'V']]
+    d_idx = df.index[-1]
+    d = df.loc[d_idx, 'Close']
 
     while True:
         idx = getNextIndex(pivots.index, a_idx)
@@ -573,25 +588,24 @@ def findDoubleTop(sym, df, pivots, silent=False):
 
         df_slice = df.loc[a_idx:c_idx]
         avgBarLength = (df_slice['High'] - df_slice['Low']).mean()
-        last = df.loc[df.index[-1], 'Close']
 
-        if isDoubleTop(a, b, c, last, aVol, cVol, avgBarLength):
+        if isDoubleTop(a, b, c, d, aVol, cVol, avgBarLength):
 
             if silent:
                 print(sym)
                 break
 
-            idx = df.loc[:a_idx, 'Low'].idxmin()
-
             plot_args['title'] = f'{sym} - Double Top'
 
-            plot_args['alines']['alines'] = (((idx, df.loc[idx, 'Low']),
-                                              (a_idx, a)), ((a_idx, a), (b_idx,
-                                                                         b)),
-                                             ((b_idx, b), (c_idx, c)),
-                                             ((c_idx, c), (df.index[-1],
-                                                           last)))
+            entryLine = ((b_idx, b), (d_idx, b))
+            ab = ((a_idx, a), (b_idx, b))
+            bc = ((b_idx, b), (c_idx, c))
+            cd = ((c_idx, c), (d_idx, d))
 
+            plot_args['alines']['alines'] = (entryLine, ab, bc, cd)
+
+            plot_args['alines']['colors'] = (('green', ) +
+                                             ('midnightblue', ) * 4)
             print(sym)
             plot(df, **plot_args)
 
@@ -663,10 +677,6 @@ def findPennant(sym, df, pivots, silent=False):
 
         if isPennant(a, b, c, d, e, f, avgBarLength):
 
-            if silent:
-                print(sym)
-                break
-
             if c_idx != df.loc[c_idx:, 'Close'].idxmax():
                 a_idx, a = c_idx, c
                 continue
@@ -679,6 +689,10 @@ def findPennant(sym, df, pivots, silent=False):
             lower_line, *_ = generate_trend_line(df['Low'], b_idx, d_idx)
 
             if upper_line[1][1] < lower_line[1][1]:
+                break
+
+            if silent:
+                print(sym)
                 break
 
             plot_args['alines'] = ((upper_line), (lower_line))
@@ -744,10 +758,6 @@ def findHNS(sym, df, pivots, silent=False):
 
         if isHNS(a, b, c, d, e, f, avgBarLength):
 
-            if silent:
-                print(sym)
-                break
-
             neckline_price = min(b, d)
 
             lowest_after_e = df.loc[e_idx:, 'Low'].min()
@@ -772,6 +782,10 @@ def findHNS(sym, df, pivots, silent=False):
                 c_idx, c = e_idx, e
                 continue
 
+            if silent:
+                print(sym)
+                break
+
             plot_args['title'] = f'{sym} - Head & Shoulders - Bearish'
 
             # lines
@@ -782,7 +796,7 @@ def findHNS(sym, df, pivots, silent=False):
             ef = ((e_idx, e), (f_idx, f))
 
             plot_args['alines']['alines'] = (bd, ab, bc, cd, de, ef)
-            plot_args['alines']['colors'] = (('crimson', ) +
+            plot_args['alines']['colors'] = (('green', ) +
                                              ('midnightblue', ) * 5)
 
             print(sym)
@@ -844,10 +858,6 @@ def findReverseHNS(sym, df, pivots, silent=False):
 
         if isReverseHNS(a, b, c, d, e, f, avgBarLength):
 
-            if silent:
-                print(sym)
-                break
-
             neckline_price = min(b, d)
 
             highest_after_e = df.loc[e_idx:, 'High'].max()
@@ -872,6 +882,10 @@ def findReverseHNS(sym, df, pivots, silent=False):
                 c_idx, c = e_idx, e
                 continue
 
+            if silent:
+                print(sym)
+                break
+
             plot_args['title'] = f'{sym} - Reverse Head & Shoulders - Bullish'
 
             # lines
@@ -882,7 +896,7 @@ def findReverseHNS(sym, df, pivots, silent=False):
             ef = ((e_idx, e), (f_idx, f))
 
             plot_args['alines']['alines'] = (bd, ab, bc, cd, de, ef)
-            plot_args['alines']['colors'] = (('crimson', ) +
+            plot_args['alines']['colors'] = (('green', ) +
                                              ('midnightblue', ) * 5)
 
             print(sym)
