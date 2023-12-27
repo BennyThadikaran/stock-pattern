@@ -22,13 +22,25 @@ This program does not provide any buy or sell signals. It only detects the patte
 
 1. Clone or download the repo: `git clone https://github.com/BennyThadikaran/stock-pattern.git`
 2. Install dependencies: `pip install -r requirements.txt`
-3. Open `src/init.py` in a text editor:
-   - Replace `data_path` with the full path to your data source. If using [EOD2](https://github.com/BennyThadikaran/eod2) point it to `src/eod2_data/daily`
-4. `cd` into `/src` folder, run the program (see usage below).
+3. `cd` into `/src` folder, run `py init.py`. It will generate a `user.json` file
+4. Open `user.json` and edit the `DATA_PATH` with the absolute path to your data source
+   - If using [EOD2](https://github.com/BennyThadikaran/eod2) point it to `src/eod2_data/daily`
+   - Optionally, add a `SYM_LIST` with an absolute file path (CSV or TXT file) containing a list of stock symbols to scan. (One on each line)
+   - This will serve as a default watchlist to scan. `SYM_LIST` can be overriden with `-f/--file` option. See [Usage](#usage)
+
+```json
+{
+  "_comment": "DATA_PATH: OHLC folder path, SYM_LIST: Optional stocklist filepath",
+  "DATA_PATH": "~/Documents/python/eod2/src/eod2_data/daily",
+  "SYM_LIST": "~/Documents/python/stock-pattern/src/data.csv"
+}
+```
 
 Every time a pattern is detected, the chart is plotted with lines marking the pattern.
 
 Press `q` to quit the chart and resume scanning.
+
+To quit the program, press `CTRL + C` in the terminal or `SHIFT + q` in the chart.
 
 ## Usage
 
@@ -50,6 +62,8 @@ py init.py -f data.csv
 ```bash
 py init.py --sym tcs astral datapattns
 ```
+
+**NOTE**: If `SYM_LIST` is specified in `user.json`, `-f` or `--sym` is not required unless you wish to override the default watchlist.
 
 **Identify chart patterns on a specific date.**:
 
@@ -75,6 +89,7 @@ py init.py -f data.csv -p 1 -s
 There are other CLI options available for those wanting to tinker.
 
 ## Screenshots
+
 **HUDCO - Double Bottom 16th June 2022**
 
 ![HUDCO - Double Bottom](https://res.cloudinary.com/doyu4uovr/image/upload/s--nQ10RsSG--/c_scale,f_auto,w_700/v1702918851/stock-pattern/hudco-double-bottom_dtcvwj.png)
@@ -97,15 +112,18 @@ There are other CLI options available for those wanting to tinker.
 
 ## TODO
 
+As of Version 1.0.0-alpha
+
+- ~~Add key binding to exit the program from the chart itself~~
+- ~~Add documentation for all pattern algorithms~~
+
 As of Version 0.2.2-alpha
 
 - ~~Allow the user to skip plotting and output the symbol names.~~
 - ~~Improve the user interface and ability to pass watchlist files as arguments.~~
 
-- Add key binding to exit the program from the chart itself
 - Reduce code duplication
 - Ability to scan all patterns in a single run.
-- Add documentation for all pattern algorithms [WIP]
 
 # Disclaimer
 

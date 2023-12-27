@@ -133,3 +133,7 @@ dmypy.json
 .pyre/
 
 # user defined
+src/*.json
+src/*.csv
+src/*.txt
+

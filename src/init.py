@@ -1,20 +1,31 @@
 import utils
 import pandas as pd
-import pathlib
+import json
+from pathlib import Path
 from argparse import ArgumentParser
 from datetime import datetime
+from sys import argv
 
-# # SET YOUR STOCK DATA SOURCE HERE
-data_path = ''
+DIR = Path(__file__).parent
+CONFIG_PATH = DIR / 'user.json'
 
-#
-# #                           ###
-# # DO NOT EDIT BELOW THIS LINE #
-# #                           ###
-if data_path == '':
-    exit("Set `data_path` in init.py before` scanning")
+version = '1.0.0-alpha'
 
-version = '0.2.2-alpha'
+if CONFIG_PATH.exists():
+    config = json.loads(CONFIG_PATH.read_bytes())
+    data_path = Path(config['DATA_PATH']).expanduser()
+else:
+    help = "DATA_PATH: OHLC folder path, SYM_LIST: Optional stocklist filepath"
+
+    json_content = {"_comment": help, "DATA_PATH": ""}
+
+    CONFIG_PATH.write_text(json.dumps(json_content, indent=2))
+    exit("user.json file generated. Edit `DATA_PATH` to add a data source")
+
+if config['DATA_PATH'] == '' or not data_path.exists():
+    exit("`DATA_PATH` not found or not provided. Edit user.json.")
+
+sym_list = Path(config['SYM_LIST']) if 'SYM_LIST' in config else None
 
 parser = ArgumentParser(
     description='Python CLI tool to identify common Chart patterns',
@@ -55,7 +66,7 @@ group = parser.add_mutually_exclusive_group(required=True)
 
 group.add_argument('-f',
                    '--file',
-                   type=pathlib.Path,
+                   type=Path,
                    metavar='filepath',
                    help='File containing list of stocks. One on each line')
 
@@ -68,6 +79,9 @@ group.add_argument('-v',
                    '--version',
                    action='store_true',
                    help='Print the current version.')
+
+if '-f' not in argv and sym_list is not None:
+    argv.extend(('-f', str(sym_list.expanduser())))
 
 args = parser.parse_args()
 
@@ -100,7 +114,7 @@ else:
     4. Double Top (Bearish)
     5. Head and Shoulder
     6. Reverse Head and Shoulder
-    7. Pennant (Triangle - Ascending, Descending, Wedges)
+    7. Pennant (Triangle - Symetrical, Ascending, Descending, Wedges)
     > ''')
 
         try:
@@ -127,10 +141,10 @@ fn_dict = {
 try:
     for sym in data:
 
-        sym_file = f'{data_path}/{sym.lower()}.csv'
+        sym_file = data_path / f'{sym.lower()}.csv'
 
         try:
-            df = pd.read_csv(sym_file, index_col='Date', parse_dates=True)
+            df = pd.read_csv(sym_file, index_col='Date', parse_dates=['Date'])
         except FileNotFoundError:
             print(f'File not found: {sym_file}')
             continue
