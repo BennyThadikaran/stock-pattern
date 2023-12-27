@@ -11,6 +11,7 @@ These were a series of pattern scanners I wrote for experimentation and fun in 2
 See Wiki to understand how the code works: [Pattern Algorithms](https://github.com/BennyThadikaran/stock-pattern/wiki/Pattern-Algorithms)
 
 ## Important Info
+**Update 27th Dec 2023:** Many UI improvements and other changes. See [all changes](https://github.com/BennyThadikaran/stock-pattern/commit/d7081c63c8ecfec9afaec15fcf237f43f4e28a74)
 
 **Update 18th Dec 2023:** All patterns are tested and working perfectly, as of **version 0.2.2-alpha**.
 
