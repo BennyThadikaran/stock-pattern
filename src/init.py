@@ -9,7 +9,7 @@ from sys import argv
 DIR = Path(__file__).parent
 CONFIG_PATH = DIR / 'user.json'
 
-version = '1.0.0-alpha'
+version = '1.0.1-alpha'
 
 if CONFIG_PATH.exists():
     config = json.loads(CONFIG_PATH.read_bytes())
@@ -80,7 +80,9 @@ group.add_argument('-v',
                    action='store_true',
                    help='Print the current version.')
 
-if '-f' not in argv and sym_list is not None:
+if sym_list is not None and not ('-f' in argv or '--file' in argv
+                                 or '--sym' in argv or '-v' in argv
+                                 or '--version' in argv):
     argv.extend(('-f', str(sym_list.expanduser())))
 
 args = parser.parse_args()
