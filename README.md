@@ -123,6 +123,7 @@ As of Version 0.2.2-alpha
 - ~~Allow the user to skip plotting and output the symbol names.~~
 - ~~Improve the user interface and ability to pass watchlist files as arguments.~~
 
+- Support intraday and timeframes with time components. (I only tested daily without time component.) [WIP - soon]
 - Reduce code duplication
 - Ability to scan all patterns in a single run.
 
