@@ -37,6 +37,8 @@ This program does not provide any buy or sell signals. It only detects the patte
 }
 ```
 
+**Stock-Pattern is being constantly updated with new features and bug fixes. Run `git pull` to get the latest updates.**
+
 Every time a pattern is detected, the chart is plotted with lines marking the pattern.
 
 Press `q` to quit the chart and resume scanning.
