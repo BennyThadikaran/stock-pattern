@@ -1,6 +1,7 @@
 import utils
 import pandas as pd
 import json
+import logging
 from pathlib import Path
 from argparse import ArgumentParser
 from datetime import datetime
@@ -9,7 +10,7 @@ from sys import argv
 DIR = Path(__file__).parent
 CONFIG_PATH = DIR / 'user.json'
 
-version = '1.0.1-alpha'
+version = '1.1.0-alpha'
 
 if CONFIG_PATH.exists():
     config = json.loads(CONFIG_PATH.read_bytes())
@@ -87,6 +88,12 @@ if sym_list is not None and not ('-f' in argv or '--file' in argv
 
 args = parser.parse_args()
 
+logging.basicConfig(level=logging.WARNING if args.silent else logging.INFO,
+                    format='%(message)s',
+                    datefmt='%d-%m-%Y %H:%M')
+
+utils.set_logger(logging)
+
 if args.version:
     exit(f'''
     Stock-Pattern | Version {version}
@@ -101,7 +108,7 @@ if args.version:
     ''')
 
 if args.date and args.date.weekday() in (5, 6):
-    exit('Date falls on weekend (Sat / Sun)')
+    logging.info('Date falls on weekend (Sat / Sun)')
 
 if args.pattern:
     key = args.pattern
@@ -126,7 +133,7 @@ else:
             continue
         break
 
-print('Scanning stocks. Press Ctrl - C to exit')
+logging.info('Scanning stocks. Press Ctrl - C to exit')
 
 data = args.file.read_text().strip().split('\n') if args.file else args.sym
 
@@ -146,30 +153,47 @@ try:
         sym_file = data_path / f'{sym.lower()}.csv'
 
         try:
-            df = pd.read_csv(sym_file, index_col='Date', parse_dates=['Date'])
+            df: pd.DataFrame = pd.read_csv(sym_file,
+                                           index_col='Date',
+                                           parse_dates=['Date'])
         except FileNotFoundError:
-            print(f'File not found: {sym_file}')
+            logging.warning(f'File not found: {sym_file}')
             continue
 
         if args.date:
+            dt_index = df.index.date
+
             # Date is out of bounds
-            if args.date < df.index[0] or args.date > df.index[-1]:
+            if args.date.date() not in dt_index:
                 continue
 
-            if args.date not in df.index:
-                continue
+            # if has time component for ex. intraday data
+            if utils.has_time_component(df.index):
+                # get the last available datetime index for the date
+                last_idx = df[args.date.date() == dt_index].index.max()
+                end = df.index.get_loc(last_idx)
+            else:
+                # get the index position in the DataFrame
+                end = df.index.get_loc(args.date)
 
-            end = df.index.get_loc(args.date)
-            df = df[end - 160:end + 1]
+            if not isinstance(end, int):
+                raise TypeError('Expected integer')
+
+            df = df.iloc[end - 160:end + 1]
         else:
-            df = df[-160:]
+            df = df.iloc[-160:]
 
         pivots = utils.getMaxMin(df, barsLeft=args.left, barsRight=args.right)
 
         if not pivots.shape[0]:
             continue
 
-        fn_dict[key](sym, df, pivots, args.silent)
+        try:
+            fn_dict[key](sym, df, pivots)
+        except TypeError as e:
+            logging.error('%s', str(e), exc_info=True)
+            continue
+
 except KeyboardInterrupt:
     # silent exit without ugly erorr trace
     exit()

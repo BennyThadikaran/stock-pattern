@@ -18,6 +18,29 @@ plot_args = {
     }
 }
 
+log = None
+is_silent = False
+
+
+def set_logger(logger):
+    # Set the logger for this module
+    global log
+    global is_silent
+    log = logger
+    is_silent = logger.getLogger().getEffectiveLevel() == log.WARNING
+
+
+def has_time_component(datetime_index: pd.DatetimeIndex) -> bool:
+    '''Return True if any value in DatetimeIndex has time component 
+    other than `00:00:00` (Midnight hour)
+
+    Ex Datetime(2023, 12, 10)           ->  `00:00:00` (Defaults to midnight)
+       Datetime(2023, 12, 10, 0, 0)     ->  `00:00:00` (Midnight time)
+       Datetime(2023, 12, 10, 12, 10)   ->  `12:10:00`
+    '''
+    return any(
+        datetime_index.to_series().dt.time != pd.Timestamp('00:00:00').time())
+
 
 def onKeyPress(event):
     if event.key == 'Q':
@@ -25,8 +48,7 @@ def onKeyPress(event):
         exit('User exit')
 
 
-def plot_chart(sym, df: pd.DataFrame, plot_args: dict):
-    print(sym)
+def plot_chart(df: pd.DataFrame, plot_args: dict):
     plt.ion()
     fig, _ = mpl.plot(df, **plot_args)
     fig.canvas.mpl_connect('key_press_event', onKeyPress)
@@ -198,11 +220,11 @@ def getNextIndex(index: pd.DatetimeIndex, idx: pd.Timestamp) -> int:
 
     if isinstance(pos, slice):
         if not isinstance(pos.stop, int):
-            raise ValueError("Expected Integer")
+            raise TypeError("Expected Integer")
         return pos.stop
 
     if not isinstance(pos, int):
-        raise ValueError("Expected Integer")
+        raise TypeError("Expected Integer")
     return pos + 1
 
 
@@ -211,11 +233,11 @@ def getPrevIndex(index: pd.DatetimeIndex, idx: pd.Timestamp) -> int:
 
     if isinstance(pos, slice):
         if not isinstance(pos.stop, int):
-            raise ValueError("Expected Integer")
+            raise TypeError("Expected Integer")
         return pos.stop
 
     if not isinstance(pos, int):
-        raise ValueError("Expected Integer")
+        raise TypeError("Expected Integer")
     return pos - 1
 
 
@@ -267,10 +289,7 @@ def generate_trend_line(
     return ((start_coords, end_coords), slope, yintercept)
 
 
-def findBullishVCP(sym: str,
-                   df: pd.DataFrame,
-                   pivots: pd.DataFrame,
-                   silent=False):
+def findBullishVCP(sym: str, df: pd.DataFrame, pivots: pd.DataFrame):
 
     if not isinstance(pivots.index, pd.DatetimeIndex):
         raise TypeError('Expected DatetimeIndex')
@@ -290,7 +309,7 @@ def findBullishVCP(sym: str,
         # high and low pivots occured on the same date
         if a_idx == b_idx:
             if not isinstance(a_idx, pd.Timestamp):
-                raise ValueError("Expected pd.Timestamp")
+                raise TypeError("Expected pd.Timestamp")
 
             idx = getNextIndex(pivots.index, a_idx)
 
@@ -334,8 +353,8 @@ def findBullishVCP(sym: str,
         if bullishVCP(a, b, c, d, e, avgBarLength):
 
             # check if Level C has been breached after it was formed
-            if c_idx != df.loc[c_idx:, 'Close'].idxmax() or d_idx != df.loc[
-                    d_idx:, 'Close'].idxmin():
+            if (c_idx != df.loc[c_idx:, 'Close'].idxmax()
+                    or d_idx != df.loc[d_idx:, 'Close'].idxmin()):
                 # Level C is breached, current pattern is not valid
 
                 # check if C is the last pivot formed
@@ -346,8 +365,11 @@ def findBullishVCP(sym: str,
                 a_idx, a = c_idx, c
                 continue
 
-            if silent:
-                print(sym)
+            if log:
+                log.warning(sym)
+
+            # silent mode
+            if is_silent:
                 break
 
             plot_args['title'] = f'{sym} - Bull VCP'
@@ -363,16 +385,17 @@ def findBullishVCP(sym: str,
 
             plot_args['alines']['alines'] = (entryLine, ab, bc, cd, de)
 
-            plot_chart(sym, df, plot_args)
+            plot_chart(df, plot_args)
             break
 
         a_idx, a = c_idx, c
 
 
-def findBearishVCP(sym: str,
-                   df: pd.DataFrame,
-                   pivots: pd.DataFrame,
-                   silent=False):
+def findBearishVCP(
+    sym: str,
+    df: pd.DataFrame,
+    pivots: pd.DataFrame,
+):
 
     if not isinstance(pivots.index, pd.DatetimeIndex):
         raise TypeError('Expected DatetimeIndex')
@@ -391,7 +414,7 @@ def findBearishVCP(sym: str,
         # high and low pivots occured on the same date
         if a_idx == b_idx:
             if not isinstance(a_idx, pd.Timestamp):
-                raise ValueError("Expected pd.Timestamp")
+                raise TypeError("Expected pd.Timestamp")
 
             idx = getNextIndex(pivots.index, a_idx)
 
@@ -433,16 +456,20 @@ def findBearishVCP(sym: str,
 
         if bearishVCP(a, b, c, d, e, avgBarLength):
 
-            if d_idx != df.loc[d_idx:, 'Close'].idxmax() or c_idx != df.loc[
-                    c_idx:, 'Close'].idxmin():
+            if (d_idx != df.loc[d_idx:, 'Close'].idxmax()
+                    or c_idx != df.loc[c_idx:, 'Close'].idxmin()):
+
                 if pivots.index[-1] == d_idx or pivots.index[-1] == c_idx:
                     break
 
                 a_idx, a = c_idx, c
                 continue
 
-            if silent:
-                print(sym)
+            if log:
+                log.warning(sym)
+
+            # silent mode
+            if is_silent:
                 break
 
             plot_args['title'] = f'{sym} - Bear VCP'
@@ -457,7 +484,7 @@ def findBearishVCP(sym: str,
 
             plot_args['alines']['colors'] = (('green', ) +
                                              ('midnightblue', ) * 4)
-            plot_chart(sym, df, plot_args)
+            plot_chart(df, plot_args)
             break
 
         # We assign pivot level C to be the new A
@@ -465,10 +492,11 @@ def findBearishVCP(sym: str,
         a_idx, a = c_idx, c
 
 
-def findDoubleBottom(sym: str,
-                     df: pd.DataFrame,
-                     pivots: pd.DataFrame,
-                     silent=False):
+def findDoubleBottom(
+    sym: str,
+    df: pd.DataFrame,
+    pivots: pd.DataFrame,
+):
 
     if not isinstance(pivots.index, pd.DatetimeIndex):
         raise TypeError('Expected DatetimeIndex')
@@ -478,6 +506,9 @@ def findDoubleBottom(sym: str,
     a, aVol = pivots.loc[a_idx, ['P', 'V']]
     d_idx = df.index[-1]
     d = df.loc[d_idx, 'Close']
+
+    if not isinstance(a_idx, pd.Timestamp):
+        raise TypeError("Expected pd.Timestamp")
 
     while True:
         pos = getNextIndex(pivots.index, a_idx)
@@ -531,8 +562,9 @@ def findDoubleBottom(sym: str,
 
         if isDoubleBottom(a, b, c, d, aVol, cVol, avgBarLength):
 
-            if c_idx != df.loc[c_idx:, 'Close'].idxmin() or b_idx != df.loc[
-                    b_idx:, 'Close'].idxmax():
+            if (c_idx != df.loc[c_idx:, 'Close'].idxmin()
+                    or b_idx != df.loc[b_idx:, 'Close'].idxmax()):
+
                 a_idx, a, aVol = c_idx, c, cVol
                 continue
 
@@ -540,8 +572,11 @@ def findDoubleBottom(sym: str,
                 a_idx, a, aVol = c_idx, c, cVol
                 continue
 
-            if silent:
-                print(sym)
+            if log:
+                log.warning(sym)
+
+            # silent mode
+            if is_silent:
                 break
 
             plot_args['title'] = f'{sym} - Double bottom'
@@ -556,16 +591,17 @@ def findDoubleBottom(sym: str,
             plot_args['alines']['colors'] = (('green', ) +
                                              ('midnightblue', ) * 4)
 
-            plot_chart(sym, df, plot_args)
+            plot_chart(df, plot_args)
             break
 
         a_idx, a, aVol = c_idx, c, cVol
 
 
-def findDoubleTop(sym: str,
-                  df: pd.DataFrame,
-                  pivots: pd.DataFrame,
-                  silent=False):
+def findDoubleTop(
+    sym: str,
+    df: pd.DataFrame,
+    pivots: pd.DataFrame,
+):
 
     if not isinstance(pivots.index, pd.DatetimeIndex):
         raise TypeError('Expected DatetimeIndex')
@@ -575,6 +611,9 @@ def findDoubleTop(sym: str,
     a, aVol = pivots.loc[a_idx, ['P', 'V']]
     d_idx = df.index[-1]
     d = df.loc[d_idx, 'Close']
+
+    if not isinstance(a_idx, pd.Timestamp):
+        raise TypeError("Expected pd.Timestamp")
 
     while True:
         idx = getNextIndex(pivots.index, a_idx)
@@ -618,14 +657,17 @@ def findDoubleTop(sym: str,
         if isDoubleTop(a, b, c, d, aVol, cVol, avgBarLength):
 
             # check if Level C has been breached after it was formed
-            if c_idx != df.loc[c_idx:, 'Close'].idxmax() or b_idx != df.loc[
-                    b_idx:, 'Close'].idxmin():
+            if (c_idx != df.loc[c_idx:, 'Close'].idxmax()
+                    or b_idx != df.loc[b_idx:, 'Close'].idxmin()):
                 # Level C is breached, current pattern is not valid
                 a_idx, a, aVol = c_idx, c, cVol
                 continue
 
-            if silent:
-                print(sym)
+            if log:
+                log.warning(sym)
+
+            # silent mode
+            if is_silent:
                 break
 
             plot_args['title'] = f'{sym} - Double Top'
@@ -639,16 +681,17 @@ def findDoubleTop(sym: str,
 
             plot_args['alines']['colors'] = (('green', ) +
                                              ('midnightblue', ) * 4)
-            plot_chart(sym, df, plot_args)
+            plot_chart(df, plot_args)
             break
 
         a_idx, a, aVol = c_idx, c, cVol
 
 
-def findPennant(sym: str,
-                df: pd.DataFrame,
-                pivots: pd.DataFrame,
-                silent=False):
+def findPennant(
+    sym: str,
+    df: pd.DataFrame,
+    pivots: pd.DataFrame,
+):
 
     if not isinstance(pivots.index, pd.DatetimeIndex):
         raise TypeError('Expected DatetimeIndex')
@@ -664,7 +707,7 @@ def findPennant(sym: str,
         # A is already the lowest point
         if a_idx == b_idx:
             if not isinstance(a_idx, pd.Timestamp):
-                raise ValueError("Expected pd.Timestamp")
+                raise TypeError("Expected pd.Timestamp")
 
             idx = getNextIndex(pivots.index, a_idx)
 
@@ -720,35 +763,42 @@ def findPennant(sym: str,
 
         if isPennant(a, b, c, d, e, f, avgBarLength):
 
-            if c_idx != df.loc[c_idx:, 'Close'].idxmax() or d_idx != df.loc[
-                    d_idx:, 'Close'].idxmin():
+            if (c_idx != df.loc[c_idx:, 'Close'].idxmax()
+                    or d_idx != df.loc[d_idx:, 'Close'].idxmin()):
                 a_idx, a = c_idx, c
                 continue
 
             if not isinstance(a_idx, pd.Timestamp):
-                raise ValueError("Expected pd.Timestamp")
+                raise TypeError("Expected pd.Timestamp")
 
-            upper_line, *_ = generate_trend_line(df['High'], a_idx, c_idx)
-            lower_line, *_ = generate_trend_line(df['Low'], b_idx, d_idx)
+            upper_line, *_ = generate_trend_line(df.High, a_idx, c_idx)
+            lower_line, *_ = generate_trend_line(df.Low, b_idx, d_idx)
 
             if upper_line[1][1] < lower_line[1][1]:
                 break
 
-            if silent:
-                print(sym)
+            if log:
+                log.warning(sym)
+
+            # silent mode
+            if is_silent:
                 break
 
             plot_args['alines'] = ((upper_line), (lower_line))
 
             plot_args['title'] = f'{sym} - Pennant'
 
-            plot_chart(sym, df, plot_args)
+            plot_chart(df, plot_args)
             break
 
         a_idx, c = c_idx, c
 
 
-def findHNS(sym: str, df: pd.DataFrame, pivots: pd.DataFrame, silent=False):
+def findHNS(
+    sym: str,
+    df: pd.DataFrame,
+    pivots: pd.DataFrame,
+):
 
     if not isinstance(pivots.index, pd.DatetimeIndex):
         raise TypeError('Expected DatetimeIndex')
@@ -759,6 +809,9 @@ def findHNS(sym: str, df: pd.DataFrame, pivots: pd.DataFrame, silent=False):
 
     c_idx = pivots['P'].idxmax()
     c = pivots.at[c_idx, 'P']
+
+    if not isinstance(c_idx, pd.Timestamp):
+        raise TypeError('Expected pd.Timestamp')
 
     while True:
         pos = getPrevIndex(pivots.index, c_idx)
@@ -812,14 +865,14 @@ def findHNS(sym: str, df: pd.DataFrame, pivots: pd.DataFrame, silent=False):
 
             lowest_after_e = df.loc[e_idx:, 'Low'].min()
 
-            if lowest_after_e < neckline_price and abs(
-                    lowest_after_e - neckline_price) > avgBarLength:
+            if (lowest_after_e < neckline_price
+                    and abs(lowest_after_e - neckline_price) > avgBarLength):
 
                 c_idx, c = e_idx, e
                 continue
 
             # bd is the line coordinate for points B and D
-            bd, m, y_intercept = generate_trend_line(df['Low'], b_idx, d_idx)
+            bd, m, y_intercept = generate_trend_line(df.Low, b_idx, d_idx)
 
             # Get the y coordinate of the trendline at the end of the chart
             # With the given slope(m) and y-intercept(b) as y_int,
@@ -837,8 +890,11 @@ def findHNS(sym: str, df: pd.DataFrame, pivots: pd.DataFrame, silent=False):
                 c_idx, c = e_idx, e
                 continue
 
-            if silent:
-                print(sym)
+            if log:
+                log.warning(sym)
+
+            # silent mode
+            if is_silent:
                 break
 
             plot_args['title'] = f'{sym} - Head & Shoulders - Bearish'
@@ -854,16 +910,17 @@ def findHNS(sym: str, df: pd.DataFrame, pivots: pd.DataFrame, silent=False):
             plot_args['alines']['colors'] = (('green', ) +
                                              ('midnightblue', ) * 5)
 
-            plot_chart(sym, df, plot_args)
+            plot_chart(df, plot_args)
             break
 
         c_idx, c = e_idx, e
 
 
-def findReverseHNS(sym: str,
-                   df: pd.DataFrame,
-                   pivots: pd.DataFrame,
-                   silent=False):
+def findReverseHNS(
+    sym: str,
+    df: pd.DataFrame,
+    pivots: pd.DataFrame,
+):
 
     if not isinstance(pivots.index, pd.DatetimeIndex):
         raise TypeError('Expected DatetimeIndex')
@@ -874,6 +931,9 @@ def findReverseHNS(sym: str,
 
     c_idx = pivots['P'].idxmin()
     c = pivots.at[c_idx, 'P']
+
+    if not isinstance(c_idx, pd.Timestamp):
+        raise TypeError('Expected pd.Timestamp')
 
     while True:
         pos = getPrevIndex(pivots.index, c_idx)
@@ -927,13 +987,13 @@ def findReverseHNS(sym: str,
 
             highest_after_e = df.loc[e_idx:, 'High'].max()
 
-            if highest_after_e > neckline_price and abs(
-                    highest_after_e - neckline_price) > avgBarLength:
+            if (highest_after_e > neckline_price
+                    and abs(highest_after_e - neckline_price) > avgBarLength):
                 c_idx, c = e_idx, e
                 continue
 
             # bd is the trendline coordinates from B to D (neckline)
-            bd, m, y_intercept = generate_trend_line(df['High'], b_idx, d_idx)
+            bd, m, y_intercept = generate_trend_line(df.High, b_idx, d_idx)
 
             # Get the y coordinate of the trendline at the end of the chart
             # With the given slope(m) and y-intercept(b) as y_int,
@@ -951,8 +1011,11 @@ def findReverseHNS(sym: str,
                 c_idx, c = e_idx, e
                 continue
 
-            if silent:
-                print(sym)
+            # silent mode
+            if log:
+                log.warning(sym)
+
+            if is_silent:
                 break
 
             plot_args['title'] = f'{sym} - Reverse Head & Shoulders - Bullish'
@@ -968,7 +1031,7 @@ def findReverseHNS(sym: str,
             plot_args['alines']['colors'] = (('green', ) +
                                              ('midnightblue', ) * 5)
 
-            plot_chart(sym, df, plot_args)
+            plot_chart(df, plot_args)
             break
 
         c_idx, c = e_idx, e
