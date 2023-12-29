@@ -12,10 +12,6 @@ See Wiki to understand how the code works: [Pattern Algorithms](https://github.c
 
 ## Important Info
 
-**Update 27th Dec 2023:** Many UI improvements and other changes. See [all changes](https://github.com/BennyThadikaran/stock-pattern/commit/d7081c63c8ecfec9afaec15fcf237f43f4e28a74)
-
-**Update 18th Dec 2023:** All patterns are tested and working perfectly, as of **version 0.2.2-alpha**.
-
 **All patterns are detected, prior to breakout.** Patterns are detected at the last leg of the pattern. Allowing you to add the stock to your watchlist and track them further.
 
 This program does not provide any buy or sell signals. It only detects the pattern. It is upto you to decide, if a pattern is valid or tradeable.
@@ -38,7 +34,7 @@ This program does not provide any buy or sell signals. It only detects the patte
 }
 ```
 
-**Stock-Pattern is being constantly updated with new features and bug fixes. Run `git pull` to get the latest updates.**
+> **Stock-Pattern is being constantly updated with new features and bug fixes. Run `git pull` to get the latest updates.**
 
 Every time a pattern is detected, the chart is plotted with lines marking the pattern.
 
@@ -116,6 +112,10 @@ There are other CLI options available for those wanting to tinker.
 
 ## TODO
 
+- Make package available via pip.
+- Reduce code duplication.
+- Ability to scan all patterns in a single run.
+
 As of Version 1.1.0-alpha
 
 - ~~Support all timeframes.~~
@@ -129,10 +129,6 @@ As of Version 0.2.2-alpha
 
 - ~~Allow the user to skip plotting and output the symbol names.~~
 - ~~Improve the user interface and ability to pass watchlist files as arguments.~~
-
-- Make package available via pip.
-- Reduce code duplication.
-- Ability to scan all patterns in a single run.
 
 # Disclaimer
 
