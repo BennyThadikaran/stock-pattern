@@ -6,16 +6,16 @@ import pandas as pd
 LineCoordinates = Tuple[Tuple[pd.Timestamp, float], Tuple[pd.Timestamp, float]]
 
 plot_args = {
-    "type": 'candle',
-    "style": 'tradingview',
-    'figscale': 2,
-    'returnfig': True,
+    "type": "candle",
+    "style": "tradingview",
+    "figscale": 2,
+    "returnfig": True,
     "alines": {
-        'colors': 'royalblue',
-        'alines': None,
-        'linewidths': 0.8,
-        'alpha': 0.7,
-    }
+        "colors": "royalblue",
+        "alines": None,
+        "linewidths": 0.8,
+        "alpha": 0.7,
+    },
 }
 
 log = None
@@ -31,33 +31,41 @@ def set_logger(logger):
 
 
 def has_time_component(datetime_index: pd.DatetimeIndex) -> bool:
-    '''Return True if any value in DatetimeIndex has time component 
+    """Return True if any value in DatetimeIndex has time component
     other than `00:00:00` (Midnight hour)
 
     Ex Datetime(2023, 12, 10)           ->  `00:00:00` (Defaults to midnight)
        Datetime(2023, 12, 10, 0, 0)     ->  `00:00:00` (Midnight time)
        Datetime(2023, 12, 10, 12, 10)   ->  `12:10:00`
-    '''
+    """
     return any(
-        datetime_index.to_series().dt.time != pd.Timestamp('00:00:00').time())
+        datetime_index.to_series().dt.time != pd.Timestamp("00:00:00").time()
+    )
 
 
 def onKeyPress(event):
-    if event.key == 'Q':
-        plt.close('all')
-        exit('User exit')
+    if event.key == "Q":
+        plt.close("all")
+        exit("User exit")
 
 
 def plot_chart(df: pd.DataFrame, plot_args: dict):
     plt.ion()
     fig, _ = mpl.plot(df, **plot_args)
-    fig.canvas.mpl_connect('key_press_event', onKeyPress)
+    fig.canvas.mpl_connect("key_press_event", onKeyPress)
     mpl.show(block=True)
 
 
-def isPennant(a: float, b: float, c: float, d: float, e: float, f: float,
-              avgBarLength: float) -> bool:
-    r'''
+def isPennant(
+    a: float,
+    b: float,
+    c: float,
+    d: float,
+    e: float,
+    f: float,
+    avgBarLength: float,
+) -> bool:
+    r"""
           A
          /\        C
         /  \      /\    E
@@ -67,7 +75,7 @@ def isPennant(a: float, b: float, c: float, d: float, e: float, f: float,
     /         B
 
     Height = A - B
-    '''
+    """
     if a > c > e and b < d < f and e > f:
         return True
 
@@ -83,9 +91,16 @@ def isPennant(a: float, b: float, c: float, d: float, e: float, f: float,
     return b_d and a > c > e > f and f > d
 
 
-def isHNS(a: float, b: float, c: float, d: float, e: float, f: float,
-          avgBarLength: float) -> bool:
-    r'''
+def isHNS(
+    a: float,
+    b: float,
+    c: float,
+    d: float,
+    e: float,
+    f: float,
+    avgBarLength: float,
+) -> bool:
+    r"""
     Head and Shoulders
                 C
                 /\
@@ -95,14 +110,25 @@ def isHNS(a: float, b: float, c: float, d: float, e: float, f: float,
       /    \/________\/____\F__Neckline
      /      B         D     \
     /                        \
-    '''
-    return c > max(a, e) and max(b, d) < min(
-        a, e) and f < e and abs(b - d) < avgBarLength
+    """
+    return (
+        c > max(a, e)
+        and max(b, d) < min(a, e)
+        and f < e
+        and abs(b - d) < avgBarLength
+    )
 
 
-def isReverseHNS(a: float, b: float, c: float, d: float, e: float, f: float,
-                 avgBarLength: float) -> bool:
-    r'''
+def isReverseHNS(
+    a: float,
+    b: float,
+    c: float,
+    d: float,
+    e: float,
+    f: float,
+    avgBarLength: float,
+) -> bool:
+    r"""
     Reverse Head and Shoulders
     \
      \                  /
@@ -112,14 +138,25 @@ def isReverseHNS(a: float, b: float, c: float, d: float, e: float, f: float,
         A    \  /    E
               \/
               C
-    '''
-    return c < min(a, e) and min(b, d) > max(
-        a, e) and f > e and abs(b - d) < avgBarLength
+    """
+    return (
+        c < min(a, e)
+        and min(b, d) > max(a, e)
+        and f > e
+        and abs(b - d) < avgBarLength
+    )
 
 
-def isDoubleTop(a: float, b: float, c: float, d: float, aVol: int, cVol: int,
-                avgBarLength: float) -> bool:
-    r'''
+def isDoubleTop(
+    a: float,
+    b: float,
+    c: float,
+    d: float,
+    aVol: int,
+    cVol: int,
+    avgBarLength: float,
+) -> bool:
+    r"""
     Double Top
           A     C
          /\    /\
@@ -128,14 +165,25 @@ def isDoubleTop(a: float, b: float, c: float, d: float, aVol: int, cVol: int,
       /      B     
      /  
     /
-    '''
-    return abs(a - c) <= avgBarLength and cVol < aVol and b < min(
-        a, c) and b < d < c
+    """
+    return (
+        abs(a - c) <= avgBarLength
+        and cVol < aVol
+        and b < min(a, c)
+        and b < d < c
+    )
 
 
-def isDoubleBottom(a: float, b: float, c: float, d: float, aVol: int,
-                   cVol: int, avgBarLength: float) -> bool:
-    r'''
+def isDoubleBottom(
+    a: float,
+    b: float,
+    c: float,
+    d: float,
+    aVol: int,
+    cVol: int,
+    avgBarLength: float,
+) -> bool:
+    r"""
     Double Bottom
       \
        \
@@ -144,15 +192,20 @@ def isDoubleBottom(a: float, b: float, c: float, d: float, aVol: int,
           \  /  \  /
            \/    \/
             A     C
-    '''
+    """
 
-    return abs(a - c) <= avgBarLength and cVol < aVol and b > max(
-        a, c) and b > d > c
+    return (
+        abs(a - c) <= avgBarLength
+        and cVol < aVol
+        and b > max(a, c)
+        and b > d > c
+    )
 
 
-def bearishVCP(a: float, b: float, c: float, d: float, e: float,
-               avgBarLength: float) -> bool:
-    r'''
+def bearishVCP(
+    a: float, b: float, c: float, d: float, e: float, avgBarLength: float
+) -> bool:
+    r"""
     Volatilty Contraction pattern
           B
          /\      D
@@ -163,14 +216,19 @@ def bearishVCP(a: float, b: float, c: float, d: float, e: float,
 
     B is highest point in pattern
     D is second highest after B
-    '''
-    return abs(a - c) <= avgBarLength and b > max(a, c, d, e) and d > max(
-        a, c, e) and e > c
+    """
+    return (
+        abs(a - c) <= avgBarLength
+        and b > max(a, c, d, e)
+        and d > max(a, c, e)
+        and e > c
+    )
 
 
-def bullishVCP(a: float, b: float, c: float, d: float, e: float,
-               avgBarLength: float) -> bool:
-    r'''
+def bullishVCP(
+    a: float, b: float, c: float, d: float, e: float, avgBarLength: float
+) -> bool:
+    r"""
     Volatilty Contraction pattern
 
        A        C
@@ -182,9 +240,13 @@ def bullishVCP(a: float, b: float, c: float, d: float, e: float,
 
     B is lowest point in pattern
     D is second lowest after B
-    '''
-    return abs(a - c) <= avgBarLength and b < min(a, c, d, e) and d < min(
-        a, c, e) and e < c
+    """
+    return (
+        abs(a - c) <= avgBarLength
+        and b < min(a, c, d, e)
+        and d < min(a, c, e)
+        and e < c
+    )
 
 
 def getMaxMin(df: pd.DataFrame, barsLeft=6, barsRight=6) -> pd.DataFrame:
@@ -192,7 +254,7 @@ def getMaxMin(df: pd.DataFrame, barsLeft=6, barsRight=6) -> pd.DataFrame:
 
     l_max_dt = []
     l_min_dt = []
-    cols = ['P', 'V']
+    cols = ["P", "V"]
 
     for win in df.rolling(window):
         if win.shape[0] < window:
@@ -200,16 +262,16 @@ def getMaxMin(df: pd.DataFrame, barsLeft=6, barsRight=6) -> pd.DataFrame:
 
         idx = win.index[barsLeft + 1]  # center candle
 
-        if win['High'].idxmax() == idx:
+        if win["High"].idxmax() == idx:
             l_max_dt.append(idx)
 
-        if win['Low'].idxmin() == idx:
+        if win["Low"].idxmin() == idx:
             l_min_dt.append(idx)
 
-    maxima = pd.DataFrame(df.loc[l_max_dt, ['High', 'Volume']])
+    maxima = pd.DataFrame(df.loc[l_max_dt, ["High", "Volume"]])
     maxima.columns = cols
 
-    minima = pd.DataFrame(df.loc[l_min_dt, ['Low', 'Volume']])
+    minima = pd.DataFrame(df.loc[l_min_dt, ["Low", "Volume"]])
     minima.columns = cols
 
     return pd.concat([maxima, minima]).sort_index()
@@ -242,14 +304,14 @@ def getPrevIndex(index: pd.DatetimeIndex, idx: pd.Timestamp) -> int:
 
 
 def generate_trend_line(
-        series: pd.Series, date1: pd.Timestamp,
-        date2: pd.Timestamp) -> Tuple[LineCoordinates, float, float]:
+    series: pd.Series, date1: pd.Timestamp, date2: pd.Timestamp
+) -> Tuple[LineCoordinates, float, float]:
     """Return the end coordinates for a trendline along with slope and y-intercept
-       Input: Pandas series with a pandas.DatetimeIndex, and two dates:
-              The two dates are used to determine two "prices" from the series
+    Input: Pandas series with a pandas.DatetimeIndex, and two dates:
+           The two dates are used to determine two "prices" from the series
 
-       Output: tuple(tuple(coord, coord), slope, y-intercept)
-       source: https://github.com/matplotlib/mplfinance/blob/master/examples/scratch_pad/trend_line_extrapolation.ipynb
+    Output: tuple(tuple(coord, coord), slope, y-intercept)
+    source: https://github.com/matplotlib/mplfinance/blob/master/examples/scratch_pad/trend_line_extrapolation.ipynb
 
     """
     index = series.index
@@ -264,14 +326,17 @@ def generate_trend_line(
     lastIdxPos = index.get_loc(lastIdx)
 
     if not isinstance(lastIdx, pd.Timestamp):
-        raise TypeError('Expected pd.Timestamp')
+        raise TypeError("Expected pd.Timestamp")
 
     if not isinstance(p1, float) or not isinstance(p2, float):
-        raise TypeError('Expected float')
+        raise TypeError("Expected float")
 
-    if not isinstance(d1, int) or not isinstance(d2, int) or not isinstance(
-            lastIdxPos, int):
-        raise TypeError('Expected integer')
+    if (
+        not isinstance(d1, int)
+        or not isinstance(d2, int)
+        or not isinstance(lastIdxPos, int)
+    ):
+        raise TypeError("Expected integer")
 
     # b = y - mx
     # where m is slope,
@@ -290,21 +355,19 @@ def generate_trend_line(
 
 
 def findBullishVCP(sym: str, df: pd.DataFrame, pivots: pd.DataFrame):
-
     if not isinstance(pivots.index, pd.DatetimeIndex):
-        raise TypeError('Expected DatetimeIndex')
+        raise TypeError("Expected DatetimeIndex")
 
     pivot_len = pivots.shape[0]
-    a_idx = pivots['P'].idxmax()
+    a_idx = pivots["P"].idxmax()
 
-    a = pivots.loc[a_idx, 'P']
+    a = pivots.loc[a_idx, "P"]
 
     e_idx = df.index[-1]
-    e = df.loc[e_idx, 'Close']
+    e = df.loc[e_idx, "Close"]
 
     while True:
-
-        b_idx = pivots.loc[a_idx:, 'P'].idxmin()
+        b_idx = pivots.loc[a_idx:, "P"].idxmin()
 
         # high and low pivots occured on the same date
         if a_idx == b_idx:
@@ -317,10 +380,10 @@ def findBullishVCP(sym: str, df: pd.DataFrame, pivots: pd.DataFrame):
                 break
 
             a_idx = pivots.index[idx]
-            a = pivots.loc[a_idx, 'P']
+            a = pivots.loc[a_idx, "P"]
             continue
 
-        b = pivots.loc[b_idx, 'P']
+        b = pivots.loc[b_idx, "P"]
 
         # high and low pivots occured on the same date
         idx = getNextIndex(pivots.index, b_idx)
@@ -328,33 +391,34 @@ def findBullishVCP(sym: str, df: pd.DataFrame, pivots: pd.DataFrame):
         if idx >= pivot_len:
             break
 
-        d_idx = pivots.loc[pivots.index[idx]:, 'P'].idxmin()
-        d = pivots.loc[d_idx, 'P']
+        d_idx = pivots.loc[pivots.index[idx] :, "P"].idxmin()
+        d = pivots.loc[d_idx, "P"]
 
-        c_idx = pivots.loc[b_idx:d_idx, 'P'].idxmax()
-        c = pivots.loc[c_idx, 'P']
+        c_idx = pivots.loc[b_idx:d_idx, "P"].idxmax()
+        c = pivots.loc[c_idx, "P"]
 
         df_slice = df.loc[a_idx:c_idx]
-        avgBarLength = (df_slice['High'] - df_slice['Low']).mean()
+        avgBarLength = (df_slice["High"] - df_slice["Low"]).mean()
 
         if pivots.index.has_duplicates:
             if isinstance(a, pd.Series | str):
-                a = pivots.loc[a_idx, 'P'].iloc[0]
+                a = pivots.loc[a_idx, "P"].iloc[0]
 
             if isinstance(b, pd.Series | str):
-                b = pivots.loc[b_idx, 'P'].iloc[1]
+                b = pivots.loc[b_idx, "P"].iloc[1]
 
             if isinstance(c, pd.Series | str):
-                c = pivots.loc[c_idx, 'P'].iloc[0]
+                c = pivots.loc[c_idx, "P"].iloc[0]
 
             if isinstance(d, pd.Series | str):
-                d = pivots.loc[d_idx, 'P'].iloc[1]
+                d = pivots.loc[d_idx, "P"].iloc[1]
 
         if bullishVCP(a, b, c, d, e, avgBarLength):
-
             # check if Level C has been breached after it was formed
-            if (c_idx != df.loc[c_idx:, 'Close'].idxmax()
-                    or d_idx != df.loc[d_idx:, 'Close'].idxmin()):
+            if (
+                c_idx != df.loc[c_idx:, "Close"].idxmax()
+                or d_idx != df.loc[d_idx:, "Close"].idxmin()
+            ):
                 # Level C is breached, current pattern is not valid
 
                 # check if C is the last pivot formed
@@ -372,10 +436,9 @@ def findBullishVCP(sym: str, df: pd.DataFrame, pivots: pd.DataFrame):
             if is_silent:
                 break
 
-            plot_args['title'] = f'{sym} - Bull VCP'
+            plot_args["title"] = f"{sym} - Bull VCP"
 
-            plot_args['alines']['colors'] = (('green', ) +
-                                             ('midnightblue', ) * 4)
+            plot_args["alines"]["colors"] = ("green",) + ("midnightblue",) * 4
 
             entryLine = ((c_idx, c), (e_idx, c))
             ab = ((a_idx, a), (b_idx, b))
@@ -383,7 +446,7 @@ def findBullishVCP(sym: str, df: pd.DataFrame, pivots: pd.DataFrame):
             cd = ((c_idx, c), (d_idx, d))
             de = ((d_idx, d), (e_idx, e))
 
-            plot_args['alines']['alines'] = (entryLine, ab, bc, cd, de)
+            plot_args["alines"]["alines"] = (entryLine, ab, bc, cd, de)
 
             plot_chart(df, plot_args)
             break
@@ -396,20 +459,19 @@ def findBearishVCP(
     df: pd.DataFrame,
     pivots: pd.DataFrame,
 ):
-
     if not isinstance(pivots.index, pd.DatetimeIndex):
-        raise TypeError('Expected DatetimeIndex')
+        raise TypeError("Expected DatetimeIndex")
 
     pivot_len = pivots.shape[0]
-    a_idx = pivots['P'].idxmin()
-    a = pivots.loc[a_idx, 'P']
+    a_idx = pivots["P"].idxmin()
+    a = pivots.loc[a_idx, "P"]
 
     e_idx = df.index[-1]
-    e = df.loc[e_idx, 'Close']
+    e = df.loc[e_idx, "Close"]
     idx = None
 
     while True:
-        b_idx = pivots.loc[a_idx:, 'P'].idxmax()
+        b_idx = pivots.loc[a_idx:, "P"].idxmax()
 
         # high and low pivots occured on the same date
         if a_idx == b_idx:
@@ -422,43 +484,43 @@ def findBearishVCP(
                 break
 
             a_idx = pivots.index[idx]
-            a = pivots.loc[a_idx, 'P']
+            a = pivots.loc[a_idx, "P"]
             continue
 
-        b = pivots.loc[b_idx, 'P']
+        b = pivots.loc[b_idx, "P"]
 
         idx = getNextIndex(pivots.index, b_idx)
 
         if idx >= pivot_len:
             break
 
-        d_idx = pivots.loc[pivots.index[idx]:, 'P'].idxmax()
-        d = pivots.loc[d_idx, 'P']
+        d_idx = pivots.loc[pivots.index[idx] :, "P"].idxmax()
+        d = pivots.loc[d_idx, "P"]
 
-        c_idx = pivots.loc[b_idx:d_idx, 'P'].idxmin()
-        c = pivots.loc[c_idx, 'P']
+        c_idx = pivots.loc[b_idx:d_idx, "P"].idxmin()
+        c = pivots.loc[c_idx, "P"]
 
         df_slice = df.loc[a_idx:c_idx]
-        avgBarLength = (df_slice['High'] - df_slice['Low']).mean()
+        avgBarLength = (df_slice["High"] - df_slice["Low"]).mean()
 
         if pivots.index.has_duplicates:
             if isinstance(a, pd.Series | str):
-                a = pivots.loc[a_idx, 'P'].iloc[1]
+                a = pivots.loc[a_idx, "P"].iloc[1]
 
             if isinstance(b, pd.Series | str):
-                b = pivots.loc[b_idx, 'P'].iloc[0]
+                b = pivots.loc[b_idx, "P"].iloc[0]
 
             if isinstance(c, pd.Series | str):
-                c = pivots.loc[c_idx, 'P'].iloc[1]
+                c = pivots.loc[c_idx, "P"].iloc[1]
 
             if isinstance(d, pd.Series | str):
-                d = pivots.loc[d_idx, 'P'].iloc[0]
+                d = pivots.loc[d_idx, "P"].iloc[0]
 
         if bearishVCP(a, b, c, d, e, avgBarLength):
-
-            if (d_idx != df.loc[d_idx:, 'Close'].idxmax()
-                    or c_idx != df.loc[c_idx:, 'Close'].idxmin()):
-
+            if (
+                d_idx != df.loc[d_idx:, "Close"].idxmax()
+                or c_idx != df.loc[c_idx:, "Close"].idxmin()
+            ):
                 if pivots.index[-1] == d_idx or pivots.index[-1] == c_idx:
                     break
 
@@ -472,7 +534,7 @@ def findBearishVCP(
             if is_silent:
                 break
 
-            plot_args['title'] = f'{sym} - Bear VCP'
+            plot_args["title"] = f"{sym} - Bear VCP"
 
             entryLine = ((c_idx, c), (e_idx, c))
             ab = ((a_idx, a), (b_idx, b))
@@ -480,10 +542,9 @@ def findBearishVCP(
             cd = ((c_idx, c), (d_idx, d))
             de = ((d_idx, d), (e_idx, e))
 
-            plot_args['alines']['alines'] = (entryLine, ab, bc, cd, de)
+            plot_args["alines"]["alines"] = (entryLine, ab, bc, cd, de)
 
-            plot_args['alines']['colors'] = (('green', ) +
-                                             ('midnightblue', ) * 4)
+            plot_args["alines"]["colors"] = ("green",) + ("midnightblue",) * 4
             plot_chart(df, plot_args)
             break
 
@@ -497,15 +558,14 @@ def findDoubleBottom(
     df: pd.DataFrame,
     pivots: pd.DataFrame,
 ):
-
     if not isinstance(pivots.index, pd.DatetimeIndex):
-        raise TypeError('Expected DatetimeIndex')
+        raise TypeError("Expected DatetimeIndex")
 
     pivot_len = pivots.shape[0]
-    a_idx = pivots['P'].idxmin()
-    a, aVol = pivots.loc[a_idx, ['P', 'V']]
+    a_idx = pivots["P"].idxmin()
+    a, aVol = pivots.loc[a_idx, ["P", "V"]]
     d_idx = df.index[-1]
-    d = df.loc[d_idx, 'Close']
+    d = df.loc[d_idx, "Close"]
 
     if not isinstance(a_idx, pd.Timestamp):
         raise TypeError("Expected pd.Timestamp")
@@ -517,58 +577,58 @@ def findDoubleBottom(
             break
 
         # A is the high of bar
-        if a == df.loc[a_idx, 'High']:
+        if a == df.loc[a_idx, "High"]:
             pos = getNextIndex(pivots.index, a_idx)
             idx = pivots.index[pos]
 
-            a_idx = pivots.loc[idx:, 'P'].idxmin()
-            a, aVol = pivots.loc[a_idx, ['P', 'V']]
+            a_idx = pivots.loc[idx:, "P"].idxmin()
+            a, aVol = pivots.loc[a_idx, ["P", "V"]]
             continue
 
-        c_idx = pivots.loc[pivots.index[pos]:, 'P'].idxmin()
-        c, cVol = pivots.loc[c_idx, ['P', 'V']]
+        c_idx = pivots.loc[pivots.index[pos] :, "P"].idxmin()
+        c, cVol = pivots.loc[c_idx, ["P", "V"]]
 
         # check if Level C has been breached after it was formed
-        if c_idx != df.loc[c_idx:, 'Close'].idxmin():
+        if c_idx != df.loc[c_idx:, "Close"].idxmin():
             # Level C is breached, current pattern is not valid
             a_idx, a, aVol = c_idx, c, cVol
             continue
 
-        b_idx = pivots.loc[a_idx:c_idx, 'P'].idxmax()
-        b = pivots.loc[b_idx, 'P']
+        b_idx = pivots.loc[a_idx:c_idx, "P"].idxmax()
+        b = pivots.loc[b_idx, "P"]
 
-        if b_idx != pivots.loc[b_idx:, 'P'].idxmax():
+        if b_idx != pivots.loc[b_idx:, "P"].idxmax():
             a_idx, a, aVol = c_idx, c, cVol
             continue
 
         if pivots.index.has_duplicates:
             if isinstance(a, pd.Series | str):
-                a = pivots.loc[a_idx, 'P'].iloc[1]
+                a = pivots.loc[a_idx, "P"].iloc[1]
 
             if isinstance(aVol, pd.Series | str):
-                aVol = pivots.loc[a_idx, 'V'].iloc[1]
+                aVol = pivots.loc[a_idx, "V"].iloc[1]
 
             if isinstance(b, pd.Series | str):
-                b = pivots.loc[b_idx, 'P'].iloc[0]
+                b = pivots.loc[b_idx, "P"].iloc[0]
 
             if isinstance(c, pd.Series | str):
-                c = pivots.loc[c_idx, 'P'].iloc[1]
+                c = pivots.loc[c_idx, "P"].iloc[1]
 
             if isinstance(cVol, pd.Series | str):
-                cVol = pivots.loc[c_idx, 'V'].iloc[1]
+                cVol = pivots.loc[c_idx, "V"].iloc[1]
 
         df_slice = df.loc[a_idx:c_idx]
-        avgBarLength = (df_slice['High'] - df_slice['Low']).mean()
+        avgBarLength = (df_slice["High"] - df_slice["Low"]).mean()
 
         if isDoubleBottom(a, b, c, d, aVol, cVol, avgBarLength):
-
-            if (c_idx != df.loc[c_idx:, 'Close'].idxmin()
-                    or b_idx != df.loc[b_idx:, 'Close'].idxmax()):
-
+            if (
+                c_idx != df.loc[c_idx:, "Close"].idxmin()
+                or b_idx != df.loc[b_idx:, "Close"].idxmax()
+            ):
                 a_idx, a, aVol = c_idx, c, cVol
                 continue
 
-            if df.loc[c_idx:, 'Close'].max() > b:
+            if df.loc[c_idx:, "Close"].max() > b:
                 a_idx, a, aVol = c_idx, c, cVol
                 continue
 
@@ -579,17 +639,16 @@ def findDoubleBottom(
             if is_silent:
                 break
 
-            plot_args['title'] = f'{sym} - Double bottom'
+            plot_args["title"] = f"{sym} - Double bottom"
 
             entryLine = ((b_idx, b), (d_idx, b))
             ab = ((a_idx, a), (b_idx, b))
             bc = ((b_idx, b), (c_idx, c))
             cd = ((c_idx, c), (d_idx, d))
 
-            plot_args['alines']['alines'] = (entryLine, ab, bc, cd)
+            plot_args["alines"]["alines"] = (entryLine, ab, bc, cd)
 
-            plot_args['alines']['colors'] = (('green', ) +
-                                             ('midnightblue', ) * 4)
+            plot_args["alines"]["colors"] = ("green",) + ("midnightblue",) * 4
 
             plot_chart(df, plot_args)
             break
@@ -602,15 +661,14 @@ def findDoubleTop(
     df: pd.DataFrame,
     pivots: pd.DataFrame,
 ):
-
     if not isinstance(pivots.index, pd.DatetimeIndex):
-        raise TypeError('Expected DatetimeIndex')
+        raise TypeError("Expected DatetimeIndex")
 
     pivot_len = pivots.shape[0]
-    a_idx = pivots['P'].idxmax()
-    a, aVol = pivots.loc[a_idx, ['P', 'V']]
+    a_idx = pivots["P"].idxmax()
+    a, aVol = pivots.loc[a_idx, ["P", "V"]]
     d_idx = df.index[-1]
-    d = df.loc[d_idx, 'Close']
+    d = df.loc[d_idx, "Close"]
 
     if not isinstance(a_idx, pd.Timestamp):
         raise TypeError("Expected pd.Timestamp")
@@ -621,44 +679,45 @@ def findDoubleTop(
         if idx >= pivot_len:
             break
 
-        if a == df.loc[a_idx, 'Low']:
+        if a == df.loc[a_idx, "Low"]:
             pos = getNextIndex(pivots.index, a_idx)
             idx = pivots.index[pos]
 
-            a_idx = pivots.loc[idx:, 'P'].idxmax()
-            a, aVol = pivots.loc[a_idx, ['P', 'V']]
+            a_idx = pivots.loc[idx:, "P"].idxmax()
+            a, aVol = pivots.loc[a_idx, ["P", "V"]]
             continue
 
-        c_idx = pivots.loc[pivots.index[idx]:, 'P'].idxmax()
-        c, cVol = pivots.loc[c_idx, ['P', 'V']]
+        c_idx = pivots.loc[pivots.index[idx] :, "P"].idxmax()
+        c, cVol = pivots.loc[c_idx, ["P", "V"]]
 
-        b_idx = pivots.loc[a_idx:c_idx, 'P'].idxmin()
-        b = pivots.loc[b_idx, 'P']
+        b_idx = pivots.loc[a_idx:c_idx, "P"].idxmin()
+        b = pivots.loc[b_idx, "P"]
 
         if pivots.index.has_duplicates:
             if isinstance(a, pd.Series | str):
-                a = pivots.loc[a_idx, 'P'].iloc[0]
+                a = pivots.loc[a_idx, "P"].iloc[0]
 
             if isinstance(aVol, pd.Series | str):
-                aVol = pivots.loc[a_idx, 'V'].iloc[0]
+                aVol = pivots.loc[a_idx, "V"].iloc[0]
 
             if isinstance(b, pd.Series | str):
-                b = pivots.loc[b_idx, 'P'].iloc[1]
+                b = pivots.loc[b_idx, "P"].iloc[1]
 
             if isinstance(c, pd.Series | str):
-                c = pivots.loc[c_idx, 'P'].iloc[0]
+                c = pivots.loc[c_idx, "P"].iloc[0]
 
             if isinstance(cVol, pd.Series | str):
-                cVol = pivots.loc[c_idx, 'V'].iloc[0]
+                cVol = pivots.loc[c_idx, "V"].iloc[0]
 
         df_slice = df.loc[a_idx:c_idx]
-        avgBarLength = (df_slice['High'] - df_slice['Low']).mean()
+        avgBarLength = (df_slice["High"] - df_slice["Low"]).mean()
 
         if isDoubleTop(a, b, c, d, aVol, cVol, avgBarLength):
-
             # check if Level C has been breached after it was formed
-            if (c_idx != df.loc[c_idx:, 'Close'].idxmax()
-                    or b_idx != df.loc[b_idx:, 'Close'].idxmin()):
+            if (
+                c_idx != df.loc[c_idx:, "Close"].idxmax()
+                or b_idx != df.loc[b_idx:, "Close"].idxmin()
+            ):
                 # Level C is breached, current pattern is not valid
                 a_idx, a, aVol = c_idx, c, cVol
                 continue
@@ -670,17 +729,16 @@ def findDoubleTop(
             if is_silent:
                 break
 
-            plot_args['title'] = f'{sym} - Double Top'
+            plot_args["title"] = f"{sym} - Double Top"
 
             entryLine = ((b_idx, b), (d_idx, b))
             ab = ((a_idx, a), (b_idx, b))
             bc = ((b_idx, b), (c_idx, c))
             cd = ((c_idx, c), (d_idx, d))
 
-            plot_args['alines']['alines'] = (entryLine, ab, bc, cd)
+            plot_args["alines"]["alines"] = (entryLine, ab, bc, cd)
 
-            plot_args['alines']['colors'] = (('green', ) +
-                                             ('midnightblue', ) * 4)
+            plot_args["alines"]["colors"] = ("green",) + ("midnightblue",) * 4
             plot_chart(df, plot_args)
             break
 
@@ -692,17 +750,16 @@ def findPennant(
     df: pd.DataFrame,
     pivots: pd.DataFrame,
 ):
-
     if not isinstance(pivots.index, pd.DatetimeIndex):
-        raise TypeError('Expected DatetimeIndex')
+        raise TypeError("Expected DatetimeIndex")
 
     pivot_len = pivots.shape[0]
-    a_idx = pivots['P'].idxmax()
-    a = pivots.loc[a_idx, 'P']
+    a_idx = pivots["P"].idxmax()
+    a = pivots.loc[a_idx, "P"]
 
     while True:
-        b_idx = pivots.loc[a_idx:, 'P'].idxmin()
-        b = pivots.loc[b_idx, 'P']
+        b_idx = pivots.loc[a_idx:, "P"].idxmin()
+        b = pivots.loc[b_idx, "P"]
 
         # A is already the lowest point
         if a_idx == b_idx:
@@ -715,21 +772,21 @@ def findPennant(
                 break
 
             a_idx = pivots.index[idx]
-            a = pivots.loc[a_idx, 'P']
+            a = pivots.loc[a_idx, "P"]
             continue
 
-        b = pivots.loc[b_idx, 'P']
+        b = pivots.loc[b_idx, "P"]
 
         idx = getNextIndex(pivots.index, b_idx)
 
         if idx >= pivot_len:
             break
 
-        d_idx = pivots.loc[pivots.index[idx]:, 'P'].idxmin()
-        d = pivots.loc[d_idx, 'P']
+        d_idx = pivots.loc[pivots.index[idx] :, "P"].idxmin()
+        d = pivots.loc[d_idx, "P"]
 
-        c_idx = pivots.loc[b_idx:d_idx, 'P'].idxmax()
-        c = pivots.loc[c_idx, 'P']
+        c_idx = pivots.loc[b_idx:d_idx, "P"].idxmax()
+        c = pivots.loc[c_idx, "P"]
 
         idx = getNextIndex(pivots.index, d_idx)
 
@@ -737,34 +794,35 @@ def findPennant(
             break
 
         f_idx = df.index[-1]
-        f = df.loc[f_idx, 'Close']
+        f = df.loc[f_idx, "Close"]
 
-        e_idx = pivots.loc[d_idx:f_idx, 'P'].idxmax()
-        e = pivots.loc[e_idx, 'P']
+        e_idx = pivots.loc[d_idx:f_idx, "P"].idxmax()
+        e = pivots.loc[e_idx, "P"]
 
         if pivots.index.has_duplicates:
             if isinstance(a, pd.Series | str):
-                a = pivots.loc[a_idx, 'P'].iloc[0]
+                a = pivots.loc[a_idx, "P"].iloc[0]
 
             if isinstance(b, pd.Series | str):
-                b = pivots.loc[b_idx, 'P'].iloc[1]
+                b = pivots.loc[b_idx, "P"].iloc[1]
 
             if isinstance(c, pd.Series | str):
-                c = pivots.loc[c_idx, 'P'].iloc[0]
+                c = pivots.loc[c_idx, "P"].iloc[0]
 
             if isinstance(d, pd.Series | str):
-                d = pivots.loc[d_idx, 'P'].iloc[1]
+                d = pivots.loc[d_idx, "P"].iloc[1]
 
             if isinstance(e, pd.Series | str):
-                e = pivots.loc[e_idx, 'P'].iloc[0]
+                e = pivots.loc[e_idx, "P"].iloc[0]
 
         df_slice = df.loc[a_idx:d_idx]
-        avgBarLength = (df_slice['High'] - df_slice['Low']).mean()
+        avgBarLength = (df_slice["High"] - df_slice["Low"]).mean()
 
         if isPennant(a, b, c, d, e, f, avgBarLength):
-
-            if (c_idx != df.loc[c_idx:, 'Close'].idxmax()
-                    or d_idx != df.loc[d_idx:, 'Close'].idxmin()):
+            if (
+                c_idx != df.loc[c_idx:, "Close"].idxmax()
+                or d_idx != df.loc[d_idx:, "Close"].idxmin()
+            ):
                 a_idx, a = c_idx, c
                 continue
 
@@ -784,9 +842,9 @@ def findPennant(
             if is_silent:
                 break
 
-            plot_args['alines'] = ((upper_line), (lower_line))
+            plot_args["alines"] = ((upper_line), (lower_line))
 
-            plot_args['title'] = f'{sym} - Pennant'
+            plot_args["title"] = f"{sym} - Pennant"
 
             plot_chart(df, plot_args)
             break
@@ -799,19 +857,18 @@ def findHNS(
     df: pd.DataFrame,
     pivots: pd.DataFrame,
 ):
-
     if not isinstance(pivots.index, pd.DatetimeIndex):
-        raise TypeError('Expected DatetimeIndex')
+        raise TypeError("Expected DatetimeIndex")
 
     pivot_len = pivots.shape[0]
     f_idx = df.index[-1]
-    f = df.at[f_idx, 'Close']
+    f = df.at[f_idx, "Close"]
 
-    c_idx = pivots['P'].idxmax()
-    c = pivots.at[c_idx, 'P']
+    c_idx = pivots["P"].idxmax()
+    c = pivots.at[c_idx, "P"]
 
     if not isinstance(c_idx, pd.Timestamp):
-        raise TypeError('Expected pd.Timestamp')
+        raise TypeError("Expected pd.Timestamp")
 
     while True:
         pos = getPrevIndex(pivots.index, c_idx)
@@ -821,11 +878,11 @@ def findHNS(
 
         idx_before_c = pivots.index[pos]
 
-        a_idx = pivots.loc[:idx_before_c, 'P'].idxmax()
-        a = pivots.loc[a_idx, 'P']
+        a_idx = pivots.loc[:idx_before_c, "P"].idxmax()
+        a = pivots.loc[a_idx, "P"]
 
-        b_idx = pivots.loc[a_idx:c_idx, 'P'].idxmin()
-        b = pivots.loc[b_idx, 'P']
+        b_idx = pivots.loc[a_idx:c_idx, "P"].idxmin()
+        b = pivots.loc[b_idx, "P"]
 
         pos = getNextIndex(pivots.index, c_idx)
 
@@ -834,40 +891,40 @@ def findHNS(
 
         idx_after_c = pivots.index[pos]
 
-        e_idx = pivots.loc[idx_after_c:, 'P'].idxmax()
-        e = pivots.loc[e_idx, 'P']
+        e_idx = pivots.loc[idx_after_c:, "P"].idxmax()
+        e = pivots.loc[e_idx, "P"]
 
-        d_idx = pivots.loc[c_idx:e_idx, 'P'].idxmin()
-        d = pivots.loc[d_idx, 'P']
+        d_idx = pivots.loc[c_idx:e_idx, "P"].idxmin()
+        d = pivots.loc[d_idx, "P"]
 
         if pivots.index.has_duplicates:
             if isinstance(a, pd.Series | str):
-                a = pivots.loc[a_idx, 'P'].iloc[0]
+                a = pivots.loc[a_idx, "P"].iloc[0]
 
             if isinstance(b, pd.Series | str):
-                b = pivots.loc[b_idx, 'P'].iloc[1]
+                b = pivots.loc[b_idx, "P"].iloc[1]
 
             if isinstance(c, pd.Series | str):
-                c = pivots.loc[c_idx, 'P'].iloc[0]
+                c = pivots.loc[c_idx, "P"].iloc[0]
 
             if isinstance(d, pd.Series | str):
-                d = pivots.loc[d_idx, 'P'].iloc[1]
+                d = pivots.loc[d_idx, "P"].iloc[1]
 
             if isinstance(e, pd.Series | str):
-                e = pivots.loc[e_idx, 'P'].iloc[0]
+                e = pivots.loc[e_idx, "P"].iloc[0]
 
         df_slice = df.loc[b_idx:d_idx]
-        avgBarLength = (df_slice['High'] - df_slice['Low']).mean()
+        avgBarLength = (df_slice["High"] - df_slice["Low"]).mean()
 
         if isHNS(a, b, c, d, e, f, avgBarLength):
-
             neckline_price = min(b, d)
 
-            lowest_after_e = df.loc[e_idx:, 'Low'].min()
+            lowest_after_e = df.loc[e_idx:, "Low"].min()
 
-            if (lowest_after_e < neckline_price
-                    and abs(lowest_after_e - neckline_price) > avgBarLength):
-
+            if (
+                lowest_after_e < neckline_price
+                and abs(lowest_after_e - neckline_price) > avgBarLength
+            ):
                 c_idx, c = e_idx, e
                 continue
 
@@ -881,7 +938,7 @@ def findHNS(
             x = df.index.get_loc(f_idx)
 
             if not isinstance(x, int):
-                raise TypeError('Expected Integer')
+                raise TypeError("Expected Integer")
 
             y = m * x + y_intercept
 
@@ -897,7 +954,7 @@ def findHNS(
             if is_silent:
                 break
 
-            plot_args['title'] = f'{sym} - Head & Shoulders - Bearish'
+            plot_args["title"] = f"{sym} - Head & Shoulders - Bearish"
 
             # lines
             ab = ((a_idx, a), (b_idx, b))
@@ -906,9 +963,8 @@ def findHNS(
             de = ((d_idx, d), (e_idx, e))
             ef = ((e_idx, e), (f_idx, f))
 
-            plot_args['alines']['alines'] = (bd, ab, bc, cd, de, ef)
-            plot_args['alines']['colors'] = (('green', ) +
-                                             ('midnightblue', ) * 5)
+            plot_args["alines"]["alines"] = (bd, ab, bc, cd, de, ef)
+            plot_args["alines"]["colors"] = ("green",) + ("midnightblue",) * 5
 
             plot_chart(df, plot_args)
             break
@@ -921,19 +977,18 @@ def findReverseHNS(
     df: pd.DataFrame,
     pivots: pd.DataFrame,
 ):
-
     if not isinstance(pivots.index, pd.DatetimeIndex):
-        raise TypeError('Expected DatetimeIndex')
+        raise TypeError("Expected DatetimeIndex")
 
     pivot_len = pivots.shape[0]
     f_idx = df.index[-1]
-    f = df.at[f_idx, 'Close']
+    f = df.at[f_idx, "Close"]
 
-    c_idx = pivots['P'].idxmin()
-    c = pivots.at[c_idx, 'P']
+    c_idx = pivots["P"].idxmin()
+    c = pivots.at[c_idx, "P"]
 
     if not isinstance(c_idx, pd.Timestamp):
-        raise TypeError('Expected pd.Timestamp')
+        raise TypeError("Expected pd.Timestamp")
 
     while True:
         pos = getPrevIndex(pivots.index, c_idx)
@@ -943,11 +998,11 @@ def findReverseHNS(
 
         idx_before_c = pivots.index[pos]
 
-        a_idx = pivots.loc[:idx_before_c, 'P'].idxmin()
-        a = pivots.at[a_idx, 'P']
+        a_idx = pivots.loc[:idx_before_c, "P"].idxmin()
+        a = pivots.at[a_idx, "P"]
 
-        b_idx = pivots.loc[a_idx:c_idx, 'P'].idxmax()
-        b = pivots.at[b_idx, 'P']
+        b_idx = pivots.loc[a_idx:c_idx, "P"].idxmax()
+        b = pivots.at[b_idx, "P"]
 
         pos = getNextIndex(pivots.index, c_idx)
 
@@ -956,39 +1011,40 @@ def findReverseHNS(
 
         idx_after_c = pivots.index[pos]
 
-        e_idx = pivots.loc[idx_after_c:, 'P'].idxmin()
-        e = pivots.at[e_idx, 'P']
+        e_idx = pivots.loc[idx_after_c:, "P"].idxmin()
+        e = pivots.at[e_idx, "P"]
 
-        d_idx = pivots.loc[c_idx:e_idx, 'P'].idxmax()
-        d = pivots.at[d_idx, 'P']
+        d_idx = pivots.loc[c_idx:e_idx, "P"].idxmax()
+        d = pivots.at[d_idx, "P"]
 
         if pivots.index.has_duplicates:
             if isinstance(a, pd.Series | str):
-                a = pivots.loc[a_idx, 'P'].iloc[1]
+                a = pivots.loc[a_idx, "P"].iloc[1]
 
             if isinstance(b, pd.Series | str):
-                b = pivots.loc[b_idx, 'P'].iloc[0]
+                b = pivots.loc[b_idx, "P"].iloc[0]
 
             if isinstance(c, pd.Series | str):
-                c = pivots.loc[c_idx, 'P'].iloc[1]
+                c = pivots.loc[c_idx, "P"].iloc[1]
 
             if isinstance(d, pd.Series | str):
-                d = pivots.loc[d_idx, 'P'].iloc[0]
+                d = pivots.loc[d_idx, "P"].iloc[0]
 
             if isinstance(e, pd.Series | str):
-                e = pivots.loc[e_idx, 'P'].iloc[1]
+                e = pivots.loc[e_idx, "P"].iloc[1]
 
         df_slice = df.loc[b_idx:d_idx]
-        avgBarLength = (df_slice['High'] - df_slice['Low']).mean()
+        avgBarLength = (df_slice["High"] - df_slice["Low"]).mean()
 
         if isReverseHNS(a, b, c, d, e, f, avgBarLength):
-
             neckline_price = min(b, d)
 
-            highest_after_e = df.loc[e_idx:, 'High'].max()
+            highest_after_e = df.loc[e_idx:, "High"].max()
 
-            if (highest_after_e > neckline_price
-                    and abs(highest_after_e - neckline_price) > avgBarLength):
+            if (
+                highest_after_e > neckline_price
+                and abs(highest_after_e - neckline_price) > avgBarLength
+            ):
                 c_idx, c = e_idx, e
                 continue
 
@@ -1002,7 +1058,7 @@ def findReverseHNS(
             x = df.index.get_loc(df.index[-1])
 
             if not isinstance(x, int):
-                raise TypeError('Expected Integer')
+                raise TypeError("Expected Integer")
 
             y = m * x + y_intercept
 
@@ -1018,7 +1074,7 @@ def findReverseHNS(
             if is_silent:
                 break
 
-            plot_args['title'] = f'{sym} - Reverse Head & Shoulders - Bullish'
+            plot_args["title"] = f"{sym} - Reverse Head & Shoulders - Bullish"
 
             # lines
             ab = ((a_idx, a), (b_idx, b))
@@ -1027,9 +1083,8 @@ def findReverseHNS(
             de = ((d_idx, d), (e_idx, e))
             ef = ((e_idx, e), (f_idx, f))
 
-            plot_args['alines']['alines'] = (bd, ab, bc, cd, de, ef)
-            plot_args['alines']['colors'] = (('green', ) +
-                                             ('midnightblue', ) * 5)
+            plot_args["alines"]["alines"] = (bd, ab, bc, cd, de, ef)
+            plot_args["alines"]["colors"] = ("green",) + ("midnightblue",) * 5
 
             plot_chart(df, plot_args)
             break
