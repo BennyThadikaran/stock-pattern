@@ -2,6 +2,8 @@
 
 A Python CLI scanner to detect and plot common chart patterns
 
+**Supports Python >= 3.8** (As of v1.1.1-alpha)
+
 If you :heart: my work so far, please :star2: this repo.
 
 ![stock-pattern-cli](https://res.cloudinary.com/doyu4uovr/image/upload/s--9HW6Yk6D--/c_scale,f_auto,w_700/v1702918851/stock-pattern/stock-pattern-cli_bzd7ze.png)

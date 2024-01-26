@@ -10,7 +10,7 @@ from sys import argv
 DIR = Path(__file__).parent
 CONFIG_PATH = DIR / "user.json"
 
-version = "1.1.0-alpha"
+version = "1.1.1-alpha"
 
 if CONFIG_PATH.exists():
     config = json.loads(CONFIG_PATH.read_bytes())

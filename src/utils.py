@@ -401,16 +401,16 @@ def findBullishVCP(sym: str, df: pd.DataFrame, pivots: pd.DataFrame):
         avgBarLength = (df_slice["High"] - df_slice["Low"]).mean()
 
         if pivots.index.has_duplicates:
-            if isinstance(a, pd.Series | str):
+            if isinstance(a, (pd.Series, str)):
                 a = pivots.loc[a_idx, "P"].iloc[0]
 
-            if isinstance(b, pd.Series | str):
+            if isinstance(b, (pd.Series, str)):
                 b = pivots.loc[b_idx, "P"].iloc[1]
 
-            if isinstance(c, pd.Series | str):
+            if isinstance(c, (pd.Series, str)):
                 c = pivots.loc[c_idx, "P"].iloc[0]
 
-            if isinstance(d, pd.Series | str):
+            if isinstance(d, (pd.Series, str)):
                 d = pivots.loc[d_idx, "P"].iloc[1]
 
         if bullishVCP(a, b, c, d, e, avgBarLength):
@@ -504,16 +504,16 @@ def findBearishVCP(
         avgBarLength = (df_slice["High"] - df_slice["Low"]).mean()
 
         if pivots.index.has_duplicates:
-            if isinstance(a, pd.Series | str):
+            if isinstance(a, (pd.Series, str)):
                 a = pivots.loc[a_idx, "P"].iloc[1]
 
-            if isinstance(b, pd.Series | str):
+            if isinstance(b, (pd.Series, str)):
                 b = pivots.loc[b_idx, "P"].iloc[0]
 
-            if isinstance(c, pd.Series | str):
+            if isinstance(c, (pd.Series, str)):
                 c = pivots.loc[c_idx, "P"].iloc[1]
 
-            if isinstance(d, pd.Series | str):
+            if isinstance(d, (pd.Series, str)):
                 d = pivots.loc[d_idx, "P"].iloc[0]
 
         if bearishVCP(a, b, c, d, e, avgBarLength):
@@ -602,19 +602,19 @@ def findDoubleBottom(
             continue
 
         if pivots.index.has_duplicates:
-            if isinstance(a, pd.Series | str):
+            if isinstance(a, (pd.Series, str)):
                 a = pivots.loc[a_idx, "P"].iloc[1]
 
-            if isinstance(aVol, pd.Series | str):
+            if isinstance(aVol, (pd.Series, str)):
                 aVol = pivots.loc[a_idx, "V"].iloc[1]
 
-            if isinstance(b, pd.Series | str):
+            if isinstance(b, (pd.Series, str)):
                 b = pivots.loc[b_idx, "P"].iloc[0]
 
-            if isinstance(c, pd.Series | str):
+            if isinstance(c, (pd.Series, str)):
                 c = pivots.loc[c_idx, "P"].iloc[1]
 
-            if isinstance(cVol, pd.Series | str):
+            if isinstance(cVol, (pd.Series, str)):
                 cVol = pivots.loc[c_idx, "V"].iloc[1]
 
         df_slice = df.loc[a_idx:c_idx]
@@ -694,19 +694,19 @@ def findDoubleTop(
         b = pivots.loc[b_idx, "P"]
 
         if pivots.index.has_duplicates:
-            if isinstance(a, pd.Series | str):
+            if isinstance(a, (pd.Series, str)):
                 a = pivots.loc[a_idx, "P"].iloc[0]
 
-            if isinstance(aVol, pd.Series | str):
+            if isinstance(aVol, (pd.Series, str)):
                 aVol = pivots.loc[a_idx, "V"].iloc[0]
 
-            if isinstance(b, pd.Series | str):
+            if isinstance(b, (pd.Series, str)):
                 b = pivots.loc[b_idx, "P"].iloc[1]
 
-            if isinstance(c, pd.Series | str):
+            if isinstance(c, (pd.Series, str)):
                 c = pivots.loc[c_idx, "P"].iloc[0]
 
-            if isinstance(cVol, pd.Series | str):
+            if isinstance(cVol, (pd.Series, str)):
                 cVol = pivots.loc[c_idx, "V"].iloc[0]
 
         df_slice = df.loc[a_idx:c_idx]
@@ -800,19 +800,19 @@ def findPennant(
         e = pivots.loc[e_idx, "P"]
 
         if pivots.index.has_duplicates:
-            if isinstance(a, pd.Series | str):
+            if isinstance(a, (pd.Series, str)):
                 a = pivots.loc[a_idx, "P"].iloc[0]
 
-            if isinstance(b, pd.Series | str):
+            if isinstance(b, (pd.Series, str)):
                 b = pivots.loc[b_idx, "P"].iloc[1]
 
-            if isinstance(c, pd.Series | str):
+            if isinstance(c, (pd.Series, str)):
                 c = pivots.loc[c_idx, "P"].iloc[0]
 
-            if isinstance(d, pd.Series | str):
+            if isinstance(d, (pd.Series, str)):
                 d = pivots.loc[d_idx, "P"].iloc[1]
 
-            if isinstance(e, pd.Series | str):
+            if isinstance(e, (pd.Series, str)):
                 e = pivots.loc[e_idx, "P"].iloc[0]
 
         df_slice = df.loc[a_idx:d_idx]
@@ -898,19 +898,19 @@ def findHNS(
         d = pivots.loc[d_idx, "P"]
 
         if pivots.index.has_duplicates:
-            if isinstance(a, pd.Series | str):
+            if isinstance(a, (pd.Series, str)):
                 a = pivots.loc[a_idx, "P"].iloc[0]
 
-            if isinstance(b, pd.Series | str):
+            if isinstance(b, (pd.Series, str)):
                 b = pivots.loc[b_idx, "P"].iloc[1]
 
-            if isinstance(c, pd.Series | str):
+            if isinstance(c, (pd.Series, str)):
                 c = pivots.loc[c_idx, "P"].iloc[0]
 
-            if isinstance(d, pd.Series | str):
+            if isinstance(d, (pd.Series, str)):
                 d = pivots.loc[d_idx, "P"].iloc[1]
 
-            if isinstance(e, pd.Series | str):
+            if isinstance(e, (pd.Series, str)):
                 e = pivots.loc[e_idx, "P"].iloc[0]
 
         df_slice = df.loc[b_idx:d_idx]
@@ -1018,19 +1018,19 @@ def findReverseHNS(
         d = pivots.at[d_idx, "P"]
 
         if pivots.index.has_duplicates:
-            if isinstance(a, pd.Series | str):
+            if isinstance(a, (pd.Series, str)):
                 a = pivots.loc[a_idx, "P"].iloc[1]
 
-            if isinstance(b, pd.Series | str):
+            if isinstance(b, (pd.Series, str)):
                 b = pivots.loc[b_idx, "P"].iloc[0]
 
-            if isinstance(c, pd.Series | str):
+            if isinstance(c, (pd.Series, str)):
                 c = pivots.loc[c_idx, "P"].iloc[1]
 
-            if isinstance(d, pd.Series | str):
+            if isinstance(d, (pd.Series, str)):
                 d = pivots.loc[d_idx, "P"].iloc[0]
 
-            if isinstance(e, pd.Series | str):
+            if isinstance(e, (pd.Series, str)):
                 e = pivots.loc[e_idx, "P"].iloc[1]
 
         df_slice = df.loc[b_idx:d_idx]
