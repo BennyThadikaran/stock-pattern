@@ -6,9 +6,13 @@ from argparse import ArgumentParser
 from datetime import datetime
 from typing import Callable, List, Tuple, Union, Dict
 from sys import argv
-from tqdm import tqdm
 from Plotter import Plotter
 import utils
+
+try:
+    from tqdm import tqdm
+except ModuleNotFoundError:
+    exit('tqdm is required. Run `pip install tqdm` to install')
 
 
 def get_user_input() -> str:

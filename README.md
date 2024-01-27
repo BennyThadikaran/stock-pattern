@@ -23,16 +23,19 @@ This program does not provide any buy or sell signals. It only detects the patte
 1. Clone or download the repo: `git clone https://github.com/BennyThadikaran/stock-pattern.git`
 2. Install dependencies: `pip install -r requirements.txt`
 3. `cd` into `/src` folder, run `py init.py`. It will generate a `user.json` file
-4. Open `user.json` and edit the `DATA_PATH` with the absolute path to your data source
+4. Open `user.json` and edit the `DATA_PATH` with the folder path to your OHLC data. Data must be in CSV format in any timeframe.
    - If using [EOD2](https://github.com/BennyThadikaran/eod2) point it to `src/eod2_data/daily`
-   - Optionally, add a `SYM_LIST` with an absolute file path (CSV or TXT file) containing a list of stock symbols to scan. (One on each line)
-   - This will serve as a default watchlist to scan. `SYM_LIST` can be overriden with `-f/--file` option. See [Usage](#usage)
+   - Optionally, add a `SYM_LIST` with a file path (CSV or TXT file) containing a list of symbols to scan. (One on each line)
+   - This will serve as a default watchlist to scan. See [Usage](#usage)
+   - **Windows users: add an extra backslash for file paths to avoid JSON decode errors. `\\Documents\\python\\stock-pattern`**
+
 
 ```json
 {
-  "_comment": "DATA_PATH: OHLC folder path, SYM_LIST: Optional stocklist filepath",
   "DATA_PATH": "~/Documents/python/eod2/src/eod2_data/daily",
-  "SYM_LIST": "~/Documents/python/stock-pattern/src/data.csv"
+  "WEEKEND_WARN": true,
+  "POST_SCAN_PLOT": true,
+  "SYM_LIST": "./data.csv"
 }
 ```
 
@@ -78,14 +81,7 @@ py init.py -f data.csv -d 2023-01-01
 
 ```bash
 # Bullish VCP
-py init.py -f data.csv -p 1
-```
-
-**To run silent, without opening chart plots:**
-
-```bash
-# Only symbol names are printed
-py init.py -f data.csv -p 1 -s
+py init.py -f data.csv -p vcpu
 ```
 
 There are other CLI options available for those wanting to tinker.
@@ -114,9 +110,10 @@ There are other CLI options available for those wanting to tinker.
 
 ## TODO
 
-- Make package available via pip.
-- Reduce code duplication.
-- Ability to scan all patterns in a single run.
+- Make package available via pip [Delayed].
+
+As of Version 2.0.0-alpha
+- ~~Ability to scan all patterns in a single run.~~
 
 As of Version 1.1.0-alpha
 
