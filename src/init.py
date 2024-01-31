@@ -52,6 +52,9 @@ def scan_pattern(
 
     df = utils.get_DataFrame(file)
 
+    if df.empty:
+        return patterns
+
     if not isinstance(df.index, pd.DatetimeIndex):
         raise TypeError("Expected pd.DatetimeIndex")
 
