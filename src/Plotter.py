@@ -43,12 +43,12 @@ class Plotter:
         else:
             plt.ion()
             plt.switch_backend(self.default_backend)
-            self.data = data
+            self.data = list(data.values()) if isinstance(data, dict) else data
             self.len = len(data) - 1
 
             self.plot_args.update(dict(figscale=2, returnfig=True))
 
-            print("\tq: quit\n\tn: Next\n\tp: Previous" "")
+            print("\nChart Controls\n\tq: quit\n\tn: Next\n\tp: Previous")
 
     def save(self, dct):
         if not isinstance(self.save_folder, Path):

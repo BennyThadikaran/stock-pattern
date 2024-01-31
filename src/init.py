@@ -220,6 +220,11 @@ def process(sym_list: List, fns: Tuple[Callable, ...]) -> List[dict]:
             ):
                 pass
 
+        if state_file:
+            utils.logging.info(
+                f"\nTo view all current market patterns, run `py init.py --plot state/{state_file.name}\n"
+            )
+
         return filtered
 
 
@@ -452,7 +457,7 @@ if __name__ == "__main__":
     (DIR / f"{key.lower()}.json").write_text(json.dumps(patterns, indent=2))
 
     utils.logging.info(
-        f"Got {count} patterns for {key}.\n\nRun `py init.py --plot {key.lower()}.json` to view results.\n"
+        f"Got {count} patterns for `{key}`.\n\nRun `py init.py --plot {key.lower()}.json` to view results.\n"
     )
 
     if config["POST_SCAN_PLOT"]:
