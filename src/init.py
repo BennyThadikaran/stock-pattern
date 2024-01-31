@@ -102,6 +102,19 @@ def process(sym_list: List, fns: Tuple[Callable, ...]) -> List[dict]:
     patterns: List[dict] = []
     futures = []
 
+    save_folder: Union[Path, None] = None
+
+    image_folder = f"{datetime.now():%d_%b_%y_%H%M}"
+
+    if "SAVE_FOLDER" in config:
+        save_folder = Path(config["SAVE_FOLDER"]) / image_folder
+
+    if args.save:
+        save_folder = args.save / image_folder
+
+    if save_folder and not save_folder.exists():
+        save_folder.mkdir(parents=True)
+
     with concurrent.futures.ProcessPoolExecutor() as executor:
         for sym in sym_list:
             file = data_path / f"{sym.lower()}.csv"
@@ -119,6 +132,21 @@ def process(sym_list: List, fns: Tuple[Callable, ...]) -> List[dict]:
         ):
             result = future.result()
             patterns.extend(result)
+
+        if save_folder and len(patterns):
+            plotter = Plotter(None, data_path, save_folder=save_folder)
+            futures = []
+
+            for i in patterns:
+                future = executor.submit(plotter.save, i.copy())
+                futures.append(future)
+
+            utils.logging.info("Saving images")
+
+            for _ in tqdm(
+                concurrent.futures.as_completed(futures), total=len(futures)
+            ):
+                pass
 
         return patterns
 
@@ -146,8 +174,9 @@ if __name__ == "__main__":
 
         print(
             "\nConfig help\n",
-            "DATA_PATH: Folder path for OHLC csv data\n\n",
-            "SYM_LIST: Optional file with list of symbols, one per line\n\n",
+            "DATA_PATH: Folder path for OHLC csv data.\n\n",
+            "SYM_LIST: Optional file with list of symbols, one per line.\n\n",
+            "SAVE_FOLDER: Optional folder path to save charts as images.\n\n",
             "POST_SCAN_PLOT: If True, plots the results on chart, after a scan.",
         )
 
@@ -211,6 +240,21 @@ if __name__ == "__main__":
         help="Number of candles on right side of pivot",
     )
 
+    parser.add_argument(
+        "--save",
+        type=Path,
+        nargs="?",
+        const=DIR / "images",
+        help="Specify the save directory",
+    )
+
+    parser.add_argument(
+        "--idx",
+        type=int,
+        default=0,
+        help="Index to plot",
+    )
+
     group = parser.add_mutually_exclusive_group(required=True)
 
     group.add_argument(
@@ -246,13 +290,6 @@ if __name__ == "__main__":
         type=lambda x: json.loads(Path(x).expanduser().resolve().read_bytes()),
         default=None,
         help="Plot results from json file",
-    )
-
-    parser.add_argument(
-        "--idx",
-        type=int,
-        default=0,
-        help="Index to plot",
     )
 
     if sym_list is not None and not (

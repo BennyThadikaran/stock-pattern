@@ -1,3 +1,5 @@
+from typing import Union
+from pathlib import Path
 import matplotlib.pyplot as plt
 import mplfinance as mpf
 import pandas as pd
@@ -5,30 +7,84 @@ import pandas as pd
 
 class Plotter:
     idx = 0
-    fig = None
-    plt.ion()
+    default_backend = plt.get_backend()
 
-    def __init__(self, data, source_folder, mode="default"):
-        self.data = data
+    def __init__(
+        self,
+        data,
+        source_folder,
+        save_folder: Union[Path, None] = None,
+        mode="default",
+    ):
         self.source_folder = source_folder
         self.mode = mode
-        self.len = len(data) - 1
+        self.save_folder = save_folder
+
         self.plot_args = {
             "type": "candle",
             "style": "tradingview",
-            "figscale": 2,
-            "returnfig": True,
             "scale_padding": {
                 "left": 0.05,
-                "right": 0.45,
+                "right": 0.6,
                 "top": 0.35,
                 "bottom": 0.7,
             },
             "alines": {"linewidths": 0.8, "alpha": 0.7},
         }
-        print("\tq: quit\n\tn: Next\n\tp: Previous" "")
+
+        if save_folder:
+            # Save images with non interactive backend and
+            # switch off interactive mode
+            self.data = None
+
+            # Switch to a Non GUI backend to work with threads
+            plt.switch_backend("AGG")
+            plt.ioff()
+        else:
+            plt.ion()
+            plt.switch_backend(self.default_backend)
+            self.data = data
+            self.len = len(data) - 1
+
+            self.plot_args.update(dict(figscale=2, returnfig=True))
+
+            print("\tq: quit\n\tn: Next\n\tp: Previous" "")
+
+    def save(self, dct):
+        if not isinstance(self.save_folder, Path):
+            raise TypeError("Expected pathlib.Path")
+
+        sym = dct["sym"]
+        pattern = dct["pattern"]
+        lines = dct["lines"]
+
+        df = self._prep_dataframe(sym, dct)
+
+        if pattern in ("Symetric", "Ascending", "Descending"):
+            colors = "midnightblue"
+        else:
+            colors = ("green",) + ("midnightblue",) * (len(lines) - 1)
+
+        self.plot_args.update(
+            dict(
+                title=f"{sym} - {pattern}",
+                figscale=1.2,
+                savefig=dict(
+                    fname=self.save_folder / f"{sym}_{pattern}.png", dpi=100
+                ),
+            )
+        )
+
+        self.plot_args["scale_padding"]["right"] = 0.8
+
+        self.plot_args["alines"].update({"alines": lines, "colors": colors})
+
+        mpf.plot(df, **self.plot_args)
 
     def plot(self, idx=None):
+        if self.data is None:
+            raise TypeError("Missing dict data")
+
         if idx:
             self.idx = idx
 
@@ -84,11 +140,11 @@ class Plotter:
             stmt, loc="left", color="black", fontdict={"fontweight": "bold"}
         )
 
-        self.fig.canvas.mpl_connect("key_press_event", self.on_key_press)
+        self.fig.canvas.mpl_connect("key_press_event", self._on_key_press)
 
         mpf.show(block=True)
 
-    def on_key_press(self, event):
+    def _on_key_press(self, event):
         key = event.key
 
         if key not in ("n", "p"):
@@ -118,3 +174,34 @@ class Plotter:
 
         plt.close(self.fig)
         self.plot()
+
+    def _prep_dataframe(self, sym: str, dct: dict) -> pd.DataFrame:
+        df = pd.read_csv(
+            self.source_folder / f"{sym.lower()}.csv",
+            index_col="Date",
+            parse_dates=["Date"],
+            na_filter=False,
+        )
+
+        if self.mode == "default":
+            df = df.loc[dct["df_start"] : dct["df_end"]]
+            return df
+
+        start = df.index.get_loc(dct["start"])
+        end = df.index.get_loc(dct["end"])
+
+        if isinstance(start, slice):
+            start = int(start.start)
+
+        if isinstance(end, slice):
+            end = int(end.start)
+
+        if not isinstance(start, int) or not isinstance(end, int):
+            raise TypeError("expected int")
+
+        start = max(start - 120, 0)
+        end = min(end + 120, df.shape[0])
+
+        df = df.iloc[start:end]
+
+        return df
