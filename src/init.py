@@ -232,7 +232,7 @@ def process(sym_list: List, fns: Tuple[Callable, ...]) -> List[dict]:
 
 
 if __name__ == "__main__":
-    version = "2.1.0-alpha"
+    version = "2.1.1-alpha"
 
     # Run the below code only when imported
     DIR = Path(__file__).parent
@@ -418,6 +418,8 @@ if __name__ == "__main__":
         user_input = get_user_input()
 
         key = key_list[int(user_input)]
+
+        args.pattern = key
 
     fn = fn_dict[key]
 

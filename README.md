@@ -6,7 +6,7 @@ A Python CLI scanner to detect and plot common chart patterns
 
 If you :heart: my work so far, please :star2: this repo.
 
-![stock-pattern-cli](https://res.cloudinary.com/doyu4uovr/image/upload/s--9HW6Yk6D--/c_scale,f_auto,w_700/v1702918851/stock-pattern/stock-pattern-cli_bzd7ze.png)
+![stock-pattern-cli](https://res.cloudinary.com/doyu4uovr/image/upload/s--PG_RPaP6--/c_scale,f_auto,w_800/v1706704565/stock-pattern/stock-pattern-cli_sbw1ny.png)
 
 These were a series of pattern scanners I wrote for experimentation and fun in 2022. My inspiration was this Medium article [Algorithmically Detecting (and Trading) Technical Chart Patterns with Python](https://medium.com/automation-generation/algorithmically-detecting-and-trading-technical-chart-patterns-with-python-c577b3a396ed)
 
@@ -14,38 +14,30 @@ See Wiki to understand how the code works: [Pattern Algorithms](https://github.c
 
 ## Important Info
 
-**All patterns are detected, prior to breakout.** Patterns are detected at the last leg of the pattern. Allowing you to add the stock to your watchlist and track them further.
+**All patterns are detected, prior to breakout.** at the last leg of the pattern. Add the stock to your watchlist and track them further.
 
 This program does not provide any buy or sell signals. It only detects the pattern. It is upto you to decide, if a pattern is valid or tradeable.
 
 ## Installation
 
+> **Stock-Pattern is being constantly updated with new features and bug fixes. Run `git pull` to get the latest updates.**
+
 1. Clone or download the repo: `git clone https://github.com/BennyThadikaran/stock-pattern.git`
 2. Install dependencies: `pip install -r requirements.txt`
 3. `cd` into `/src` folder, run `py init.py`. It will generate a `user.json` file
-4. Open `user.json` and edit the `DATA_PATH` with the folder path to your OHLC data. Data must be in CSV format in any timeframe.
+4. Open `user.json` and edit the `DATA_PATH` with the folder path to your OHLC data. Files must be in CSV format in any timeframe.
    - If using [EOD2](https://github.com/BennyThadikaran/eod2) point it to `src/eod2_data/daily`
-   - Optionally, add a `SYM_LIST` with a file path (CSV or TXT file) containing a list of symbols to scan. (One on each line)
-   - This will serve as a default watchlist to scan. See [Usage](#usage)
+   - Optionally, add a `SYM_LIST` with a file path (CSV or TXT file) containing a list of symbols to scan. (One on each line). It will serve as a default watchlist to scan. See [Usage](#usage)
    - **Windows users: add an extra backslash for file paths to avoid JSON decode errors. `\\Documents\\python\\stock-pattern`**
 
 
 ```json
 {
   "DATA_PATH": "~/Documents/python/eod2/src/eod2_data/daily",
-  "WEEKEND_WARN": true,
   "POST_SCAN_PLOT": true,
-  "SYM_LIST": "./data.csv"
+  "SYM_LIST": "./nifty_500.csv"
 }
 ```
-
-> **Stock-Pattern is being constantly updated with new features and bug fixes. Run `git pull` to get the latest updates.**
-
-Every time a pattern is detected, the chart is plotted with lines marking the pattern.
-
-Press `q` to quit the chart and resume scanning.
-
-To quit the program, press `CTRL + C` in the terminal or `SHIFT + q` in the chart.
 
 ## Usage
 
@@ -55,11 +47,11 @@ To quit the program, press `CTRL + C` in the terminal or `SHIFT + q` in the char
 
 `py init.py (-f filepath | --sym SYM [SYM ...] | -v) options`
 
-**Scan stocks from a file.** Pass a file containing stocks (one on each line).
+**Scan stocks using a watchlist file.** Pass a file containing stocks (one on each line).
 
 ```bash
 # starts an interactive prompt
-py init.py -f data.csv
+py init.py -f nifty_500.csv
 ```
 
 **Scan stocks from a list of symbols.** Pass a list of symbols space separated.
@@ -74,17 +66,74 @@ py init.py --sym tcs astral datapattns
 
 ```bash
 # iso date format YYYY-MM-DD
-py init.py -f data.csv -d 2023-01-01
+py init.py -f nifty_500.csv -d 2023-01-01
 ```
 
-**To skip the interactive prompt, specify the pattern number:**
+**Save results as images to folder**
+
+```bash
+# default folder is src/images
+py init.py -f nifty_500.csv --save
+```
+
+```bash
+# add a custom folder
+py init.py -f nifty_500.csv --save ~/Desktop/pattern/
+```
+**To skip the interactive prompt, specify a pattern string:**
 
 ```bash
 # Bullish VCP
-py init.py -f data.csv -p vcpu
+py init.py -f nifty_500.csv -p vcpu
 ```
 
+Pattern string can be one of:
+| Pattern String | Description                    |
+| -------------- | ------------------------------ |
+| all            | All patterns                   |
+| bull           | All Bullish patterns           |
+| bear           | All Bearish patterns           |
+| vcpu           | VCP **U**p (Bullish)           |
+| vcpd           | VCP **D**own (Bearish)         |
+| dbot           | Double Bottom                  |
+| dtop           | Double Top                     |
+| hnsu           | Head & Shoulder **U**p (Bullish) |
+| hnsd           | Head & Shoulder **D**own (Bearish) |
+| trng           | Triangles (Symmetric, Ascending, Descending) |
+
 There are other CLI options available for those wanting to tinker.
+
+## Chart Plot options
+
+When patterns are detected the results are saved as json files. Filename is same as pattern string, for Ex. vcpu.json
+
+**To plot results of scan, use `--plot`**. 
+```bash
+py init.py --plot vcpu.json
+```
+
+**To jump to a particular count in the result, use `--idx`**
+```bash
+py init.py --plot vcpu.json --idx 15
+```
+
+When scanning using a watchlist file, all patterns are tracked in json files stored in `src/state` folder. Files format is <watchlist_name>_<pattern_name>.json for ex. nifty_500_vcpu.json.
+
+**Only newly detected patterns are notified and plotted on charts.**
+
+**To see all currently active patterns in market, use the `--plot` passing the json file from `state` folder**
+```bash
+py init.py --plot state/nifty_500_vcpu.json
+```
+
+## Chart keyboard navigation
+
+| Key             | Description    |
+| --------------- | -------------- |
+| n               | Next Chart     |
+| p               | Previous Chart |
+| NUM_KEY + j     | Type the number followed by `j` to jump to index. Press `ESC` to clear  |
+
 
 ## Screenshots
 
@@ -111,23 +160,6 @@ There are other CLI options available for those wanting to tinker.
 ## TODO
 
 - Make package available via pip [Delayed].
-
-As of Version 2.0.0-alpha
-- ~~Ability to scan all patterns in a single run.~~
-
-As of Version 1.1.0-alpha
-
-- ~~Support all timeframes.~~
-
-As of Version 1.0.0-alpha
-
-- ~~Add key binding to exit the program from the chart itself~~
-- ~~Add documentation for all pattern algorithms~~
-
-As of Version 0.2.2-alpha
-
-- ~~Allow the user to skip plotting and output the symbol names.~~
-- ~~Improve the user interface and ability to pass watchlist files as arguments.~~
 
 # Disclaimer
 
