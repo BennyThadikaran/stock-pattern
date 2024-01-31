@@ -60,7 +60,7 @@ def scan_pattern(
 
         # Date is out of bounds
         if date.date() not in dt_index:
-            return patterns
+            date = df.index.asof(date)
 
         # if has time component for ex. intraday data
         if utils.has_time_component(df.index):
@@ -137,7 +137,6 @@ if __name__ == "__main__":
     else:
         json_content = {
             "DATA_PATH": "",
-            "WEEKEND_WARN": True,
             "POST_SCAN_PLOT": True,
         }
 
@@ -149,7 +148,6 @@ if __name__ == "__main__":
             "\nConfig help\n",
             "DATA_PATH: Folder path for OHLC csv data\n\n",
             "SYM_LIST: Optional file with list of symbols, one per line\n\n",
-            "WEEKEND_WARN: If True, warns user, when date argument is a weekend.\n\n",
             "POST_SCAN_PLOT: If True, plots the results on chart, after a scan.",
         )
 
@@ -310,9 +308,6 @@ if __name__ == "__main__":
         key = key_list[int(user_input)]
 
     fn = fn_dict[key]
-
-    if args.date and config["WEEKEND_WARN"] and args.date.weekday() in (5, 6):
-        utils.logging.warning("Date falls on weekend. Markets may be shut")
 
     utils.logging.info(
         f"Scanning for all {key.upper()} patterns. Press Ctrl - C to exit"
