@@ -102,8 +102,23 @@ def process(sym_list: List, fns: Tuple[Callable, ...]) -> List[dict]:
     patterns: List[dict] = []
     futures = []
 
-    save_folder: Union[Path, None] = None
+    # Load or initialize state dict for storing previously detected patterns
+    state = None
+    state_file = None
 
+    if args.file:
+        state_file = DIR / f"state/{args.file.stem}_{args.pattern}.json"
+
+        if not state_file.parent.is_dir():
+            state_file.parent.mkdir(parents=True)
+
+        if state_file.exists():
+            state = json.loads(state_file.read_bytes())
+        else:
+            state = {}
+
+    # determine the folder to save to in case save option is set
+    save_folder: Union[Path, None] = None
     image_folder = f"{datetime.now():%d_%b_%y_%H%M}"
 
     if "SAVE_FOLDER" in config:
@@ -115,6 +130,7 @@ def process(sym_list: List, fns: Tuple[Callable, ...]) -> List[dict]:
     if save_folder and not save_folder.exists():
         save_folder.mkdir(parents=True)
 
+    # begin scan process
     with concurrent.futures.ProcessPoolExecutor() as executor:
         for sym in sym_list:
             file = data_path / f"{sym.lower()}.csv"
@@ -133,11 +149,67 @@ def process(sym_list: List, fns: Tuple[Callable, ...]) -> List[dict]:
             result = future.result()
             patterns.extend(result)
 
-        if save_folder and len(patterns):
+        if state is None:
+            # if no args.file option, no need to save state
+            return patterns
+
+        ####
+        #   Filter for newly detected patterns and remove stale patterns
+        ####
+
+        # list for storing newly detected patterns
+        filtered = []
+
+        # initial length of state dict
+        len_state = len(state)
+
+        # Will contain keys to all patterns currently detected
+        detected = set()
+
+        for dct in patterns:
+            # unique identifier
+            key = f'{dct["sym"]}-{dct["pattern"]}'
+
+            detected.add(key)
+
+            if not len_state:
+                # if state is empty, this is a first run
+                # no need to filter
+                state[key] = dct
+                filtered.append(dct)
+                continue
+
+            if key in state:
+                if dct["start"] == state[key]["start"]:
+                    # if the pattern starts on the same date,
+                    # they are the same previously detected pattern
+                    continue
+
+                # Else there is a new pattern for the same key
+                state[key] = dct
+                filtered.append(dct)
+
+            # new pattern
+            filtered.append(dct)
+            state[key] = dct
+
+        # set difference - get keys in state dict not existing in detected
+        # These are pattern keys no longer detected and can be removed
+        invalid_patterns = set(state.keys()) - detected
+
+        # Clean up stale patterns in state dict
+        for key in invalid_patterns:
+            state.pop(key)
+
+        if state_file:
+            state_file.write_text(json.dumps(state, indent=2))
+
+        # Save the images if required
+        if save_folder and len(filtered):
             plotter = Plotter(None, data_path, save_folder=save_folder)
             futures = []
 
-            for i in patterns:
+            for i in filtered:
                 future = executor.submit(plotter.save, i.copy())
                 futures.append(future)
 
@@ -148,7 +220,7 @@ def process(sym_list: List, fns: Tuple[Callable, ...]) -> List[dict]:
             ):
                 pass
 
-        return patterns
+        return filtered
 
 
 if __name__ == "__main__":
@@ -260,12 +332,7 @@ if __name__ == "__main__":
     group.add_argument(
         "-f",
         "--file",
-        type=lambda x: Path(x)
-        .expanduser()
-        .resolve()
-        .read_text()
-        .strip()
-        .split("\n"),
+        type=lambda x: Path(x).expanduser().resolve(),
         default=None,
         metavar="filepath",
         help="File containing list of stocks. One on each line",
@@ -350,7 +417,7 @@ if __name__ == "__main__":
         f"Scanning for all {key.upper()} patterns. Press Ctrl - C to exit"
     )
 
-    data = args.file if args.file else args.sym
+    data = args.file.read_text().strip().split("\n") if args.file else args.sym
 
     patterns: List[dict] = []
 
@@ -382,11 +449,11 @@ if __name__ == "__main__":
     if count == 0:
         exit("No patterns detected")
 
-    utils.logging.info(
-        f"Got {count} patterns for {key}.\n\nRun `py init.py --plot {key.lower()}.json` to view results."
-    )
-
     (DIR / f"{key.lower()}.json").write_text(json.dumps(patterns, indent=2))
+
+    utils.logging.info(
+        f"Got {count} patterns for {key}.\n\nRun `py init.py --plot {key.lower()}.json` to view results.\n"
+    )
 
     if config["POST_SCAN_PLOT"]:
         plotter = Plotter(patterns, data_path)
