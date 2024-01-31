@@ -81,7 +81,7 @@ def scan_pattern(
     if df.empty:
         return patterns
 
-    pivots = utils.getMaxMin(df, barsLeft=bars_left, barsRight=bars_right)
+    pivots = utils.get_max_min(df, barsLeft=bars_left, barsRight=bars_right)
 
     if not pivots.shape[0]:
         return patterns
@@ -291,13 +291,13 @@ if __name__ == "__main__":
         "all": "all",
         "bull": "bull",
         "bear": "bear",
-        "vcpu": utils.findBullishVCP,
-        "dbot": utils.findDoubleBottom,
-        "hnsu": utils.findReverseHNS,
-        "vcpd": utils.findBearishVCP,
-        "dtop": utils.findDoubleTop,
-        "hnsd": utils.findHNS,
-        "trng": utils.findTriangles,
+        "vcpu": utils.find_bullish_vcp,
+        "dbot": utils.find_double_bottom,
+        "hnsu": utils.find_reverse_hns,
+        "vcpd": utils.find_bearish_vcp,
+        "dtop": utils.find_double_top,
+        "hnsd": utils.find_hns,
+        "trng": utils.find_triangles,
     }
 
     if args.pattern:
