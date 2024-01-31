@@ -7,6 +7,7 @@ import pandas as pd
 
 class Plotter:
     idx = 0
+    idx_str = ""
     default_backend = plt.get_backend()
 
     def __init__(
@@ -147,32 +148,45 @@ class Plotter:
     def _on_key_press(self, event):
         key = event.key
 
-        if key not in ("n", "p"):
+        if key.isdigit():
+            self.idx_str += key
+
+            return self._alert(f"{self.idx_str}j")
+
+        if key not in ("n", "p", "j", "escape"):
             return
+
+        if key == "escape":
+            self.idx_str = ""
+
+            return self._alert()
+
+        if key == "j":
+            if self.idx_str == "":
+                return
+
+            idx = int(self.idx_str)
+
+            if idx > self.len:
+                self.idx_str = ""
+                return self._alert()
+
+            self.idx = idx
 
         if key == "n":
             if self.idx >= self.len:
-                return self.main_ax.set_title(
-                    "At Last Chart",
-                    loc="right",
-                    color="crimson",
-                    fontdict={"fontweight": "bold"},
-                )
-            else:
-                self.idx += 1
+                return self._alert("At Last Chart")
+
+            self.idx += 1
 
         if key == "p":
             if self.idx == 0:
-                return self.main_ax.set_title(
-                    "At First Chart",
-                    loc="right",
-                    color="crimson",
-                    fontdict={"fontweight": "bold"},
-                )
-            else:
-                self.idx -= 1
+                return self._alert("At First Chart")
 
-        plt.close(self.fig)
+            self.idx -= 1
+
+        self.idx_str = ""
+        plt.close("all")
         self.plot()
 
     def _prep_dataframe(self, sym: str, dct: dict) -> pd.DataFrame:
@@ -205,3 +219,11 @@ class Plotter:
         df = df.iloc[start:end]
 
         return df
+
+    def _alert(self, string=""):
+        return self.main_ax.set_title(
+            string,
+            loc="right",
+            color="crimson",
+            fontdict={"fontweight": "bold"},
+        )
