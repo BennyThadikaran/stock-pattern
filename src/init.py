@@ -12,7 +12,7 @@ import utils
 try:
     from tqdm import tqdm
 except ModuleNotFoundError:
-    exit('tqdm is required. Run `pip install tqdm` to install')
+    exit("tqdm is required. Run `pip install tqdm` to install")
 
 
 def get_user_input() -> str:
@@ -33,7 +33,7 @@ def get_user_input() -> str:
     > """
     )
 
-    if not (user_input.isdigit() and int(user_input) in range(0, 10)):
+    if not (user_input.isdigit() and int(user_input) in range(10)):
         print("Enter a key from the list")
         return get_user_input()
 
