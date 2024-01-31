@@ -12,7 +12,7 @@ import utils
 try:
     from tqdm import tqdm
 except ModuleNotFoundError:
-    exit('tqdm is required. Run `pip install tqdm` to install')
+    exit("tqdm is required. Run `pip install tqdm` to install")
 
 
 def get_user_input() -> str:
@@ -33,7 +33,7 @@ def get_user_input() -> str:
     > """
     )
 
-    if not (user_input.isdigit() and int(user_input) in range(0, 10)):
+    if not (user_input.isdigit() and int(user_input) in range(10)):
         print("Enter a key from the list")
         return get_user_input()
 
@@ -52,6 +52,9 @@ def scan_pattern(
 
     df = utils.get_DataFrame(file)
 
+    if df.empty:
+        return patterns
+
     if not isinstance(df.index, pd.DatetimeIndex):
         raise TypeError("Expected pd.DatetimeIndex")
 
@@ -60,7 +63,7 @@ def scan_pattern(
 
         # Date is out of bounds
         if date.date() not in dt_index:
-            return patterns
+            date = df.index.asof(date)
 
         # if has time component for ex. intraday data
         if utils.has_time_component(df.index):
@@ -81,7 +84,7 @@ def scan_pattern(
     if df.empty:
         return patterns
 
-    pivots = utils.getMaxMin(df, barsLeft=bars_left, barsRight=bars_right)
+    pivots = utils.get_max_min(df, barsLeft=bars_left, barsRight=bars_right)
 
     if not pivots.shape[0]:
         return patterns
@@ -102,6 +105,35 @@ def process(sym_list: List, fns: Tuple[Callable, ...]) -> List[dict]:
     patterns: List[dict] = []
     futures = []
 
+    # Load or initialize state dict for storing previously detected patterns
+    state = None
+    state_file = None
+
+    if args.file:
+        state_file = DIR / f"state/{args.file.stem}_{args.pattern}.json"
+
+        if not state_file.parent.is_dir():
+            state_file.parent.mkdir(parents=True)
+
+        if state_file.exists():
+            state = json.loads(state_file.read_bytes())
+        else:
+            state = {}
+
+    # determine the folder to save to in case save option is set
+    save_folder: Union[Path, None] = None
+    image_folder = f"{datetime.now():%d_%b_%y_%H%M}"
+
+    if "SAVE_FOLDER" in config:
+        save_folder = Path(config["SAVE_FOLDER"]) / image_folder
+
+    if args.save:
+        save_folder = args.save / image_folder
+
+    if save_folder and not save_folder.exists():
+        save_folder.mkdir(parents=True)
+
+    # begin scan process
     with concurrent.futures.ProcessPoolExecutor() as executor:
         for sym in sym_list:
             file = data_path / f"{sym.lower()}.csv"
@@ -120,11 +152,87 @@ def process(sym_list: List, fns: Tuple[Callable, ...]) -> List[dict]:
             result = future.result()
             patterns.extend(result)
 
-        return patterns
+        if state is None:
+            # if no args.file option, no need to save state
+            return patterns
+
+        ####
+        #   Filter for newly detected patterns and remove stale patterns
+        ####
+
+        # list for storing newly detected patterns
+        filtered = []
+
+        # initial length of state dict
+        len_state = len(state)
+
+        # Will contain keys to all patterns currently detected
+        detected = set()
+
+        for dct in patterns:
+            # unique identifier
+            key = f'{dct["sym"]}-{dct["pattern"]}'
+
+            detected.add(key)
+
+            if not len_state:
+                # if state is empty, this is a first run
+                # no need to filter
+                state[key] = dct
+                filtered.append(dct)
+                continue
+
+            if key in state:
+                if dct["start"] == state[key]["start"]:
+                    # if the pattern starts on the same date,
+                    # they are the same previously detected pattern
+                    continue
+
+                # Else there is a new pattern for the same key
+                state[key] = dct
+                filtered.append(dct)
+
+            # new pattern
+            filtered.append(dct)
+            state[key] = dct
+
+        # set difference - get keys in state dict not existing in detected
+        # These are pattern keys no longer detected and can be removed
+        invalid_patterns = set(state.keys()) - detected
+
+        # Clean up stale patterns in state dict
+        for key in invalid_patterns:
+            state.pop(key)
+
+        if state_file:
+            state_file.write_text(json.dumps(state, indent=2))
+
+        # Save the images if required
+        if save_folder and len(filtered):
+            plotter = Plotter(None, data_path, save_folder=save_folder)
+            futures = []
+
+            for i in filtered:
+                future = executor.submit(plotter.save, i.copy())
+                futures.append(future)
+
+            utils.logging.info("Saving images")
+
+            for _ in tqdm(
+                concurrent.futures.as_completed(futures), total=len(futures)
+            ):
+                pass
+
+        if state_file:
+            utils.logging.info(
+                f"\nTo view all current market patterns, run `py init.py --plot state/{state_file.name}\n"
+            )
+
+        return filtered
 
 
 if __name__ == "__main__":
-    version = "2.0.0-alpha"
+    version = "2.1.0-alpha"
 
     # Run the below code only when imported
     DIR = Path(__file__).parent
@@ -137,7 +245,6 @@ if __name__ == "__main__":
     else:
         json_content = {
             "DATA_PATH": "",
-            "WEEKEND_WARN": True,
             "POST_SCAN_PLOT": True,
         }
 
@@ -147,9 +254,9 @@ if __name__ == "__main__":
 
         print(
             "\nConfig help\n",
-            "DATA_PATH: Folder path for OHLC csv data\n\n",
-            "SYM_LIST: Optional file with list of symbols, one per line\n\n",
-            "WEEKEND_WARN: If True, warns user, when date argument is a weekend.\n\n",
+            "DATA_PATH: Folder path for OHLC csv data.\n\n",
+            "SYM_LIST: Optional file with list of symbols, one per line.\n\n",
+            "SAVE_FOLDER: Optional folder path to save charts as images.\n\n",
             "POST_SCAN_PLOT: If True, plots the results on chart, after a scan.",
         )
 
@@ -213,17 +320,27 @@ if __name__ == "__main__":
         help="Number of candles on right side of pivot",
     )
 
+    parser.add_argument(
+        "--save",
+        type=Path,
+        nargs="?",
+        const=DIR / "images",
+        help="Specify the save directory",
+    )
+
+    parser.add_argument(
+        "--idx",
+        type=int,
+        default=0,
+        help="Index to plot",
+    )
+
     group = parser.add_mutually_exclusive_group(required=True)
 
     group.add_argument(
         "-f",
         "--file",
-        type=lambda x: Path(x)
-        .expanduser()
-        .resolve()
-        .read_text()
-        .strip()
-        .split("\n"),
+        type=lambda x: Path(x).expanduser().resolve(),
         default=None,
         metavar="filepath",
         help="File containing list of stocks. One on each line",
@@ -248,13 +365,6 @@ if __name__ == "__main__":
         type=lambda x: json.loads(Path(x).expanduser().resolve().read_bytes()),
         default=None,
         help="Plot results from json file",
-    )
-
-    parser.add_argument(
-        "--idx",
-        type=int,
-        default=0,
-        help="Index to plot",
     )
 
     if sym_list is not None and not (
@@ -293,13 +403,13 @@ if __name__ == "__main__":
         "all": "all",
         "bull": "bull",
         "bear": "bear",
-        "vcpu": utils.findBullishVCP,
-        "dbot": utils.findDoubleBottom,
-        "hnsu": utils.findReverseHNS,
-        "vcpd": utils.findBearishVCP,
-        "dtop": utils.findDoubleTop,
-        "hnsd": utils.findHNS,
-        "trng": utils.findTriangles,
+        "vcpu": utils.find_bullish_vcp,
+        "dbot": utils.find_double_bottom,
+        "hnsu": utils.find_reverse_hns,
+        "vcpd": utils.find_bearish_vcp,
+        "dtop": utils.find_double_top,
+        "hnsd": utils.find_hns,
+        "trng": utils.find_triangles,
     }
 
     if args.pattern:
@@ -311,14 +421,11 @@ if __name__ == "__main__":
 
     fn = fn_dict[key]
 
-    if args.date and config["WEEKEND_WARN"] and args.date.weekday() in (5, 6):
-        utils.logging.warning("Date falls on weekend. Markets may be shut")
-
     utils.logging.info(
         f"Scanning for all {key.upper()} patterns. Press Ctrl - C to exit"
     )
 
-    data = args.file if args.file else args.sym
+    data = args.file.read_text().strip().split("\n") if args.file else args.sym
 
     patterns: List[dict] = []
 
@@ -350,11 +457,11 @@ if __name__ == "__main__":
     if count == 0:
         exit("No patterns detected")
 
-    utils.logging.info(
-        f"Got {count} patterns for {key}.\n\nRun `py init.py --plot {key.lower()}.json` to view results."
-    )
-
     (DIR / f"{key.lower()}.json").write_text(json.dumps(patterns, indent=2))
+
+    utils.logging.info(
+        f"Got {count} patterns for `{key}`.\n\nRun `py init.py --plot {key.lower()}.json` to view results.\n"
+    )
 
     if config["POST_SCAN_PLOT"]:
         plotter = Plotter(patterns, data_path)

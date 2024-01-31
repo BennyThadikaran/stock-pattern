@@ -1,7 +1,5 @@
 from typing import Tuple, Union, TypeVar
-import mplfinance as mpl
 import numpy as np
-import matplotlib.pyplot as plt
 import pandas as pd
 import logging
 import sys
@@ -78,25 +76,7 @@ def get_DataFrame(file) -> pd.DataFrame:
     )
 
 
-def onKeyPress(event):
-    if event.key == "Q":
-        plt.close("all")
-        exit("User exit")
-
-
-def plot_chart(df: pd.DataFrame, plot_args: dict):
-    plot_args["alines"].update({"linewidths": 0.7, "alpha": 0.7})
-
-    plt.ion()
-
-    fig, _ = mpl.plot(df, **plot_args)
-
-    fig.canvas.mpl_connect("key_press_event", onKeyPress)
-
-    mpl.show(block=True)
-
-
-def isTriangle(
+def is_triangle(
     a: float,
     b: float,
     c: float,
@@ -134,7 +114,7 @@ def isTriangle(
     return None
 
 
-def isHNS(
+def is_hns(
     a: float,
     b: float,
     c: float,
@@ -165,7 +145,7 @@ def isHNS(
     )
 
 
-def isReverseHNS(
+def is_reverse_hns(
     a: float,
     b: float,
     c: float,
@@ -196,7 +176,7 @@ def isReverseHNS(
     )
 
 
-def isDoubleTop(
+def is_double_top(
     a: float,
     b: float,
     c: float,
@@ -225,7 +205,7 @@ def isDoubleTop(
     )
 
 
-def isDoubleBottom(
+def is_double_bottom(
     a: float,
     b: float,
     c: float,
@@ -255,7 +235,7 @@ def isDoubleBottom(
     )
 
 
-def bearishVCP(
+def is_bearish_vcp(
     a: float, b: float, c: float, d: float, e: float, avgBarLength: float
 ) -> bool:
     r"""
@@ -282,7 +262,7 @@ def bearishVCP(
     )
 
 
-def bullishVCP(
+def is_bullish_vcp(
     a: float, b: float, c: float, d: float, e: float, avgBarLength: float
 ) -> bool:
     r"""
@@ -310,7 +290,7 @@ def bullishVCP(
     )
 
 
-def getMaxMin(df: pd.DataFrame, barsLeft=6, barsRight=6) -> pd.DataFrame:
+def get_max_min(df: pd.DataFrame, barsLeft=6, barsRight=6) -> pd.DataFrame:
     window = barsLeft + 1 + barsRight
 
     l_max_dt = []
@@ -338,7 +318,7 @@ def getMaxMin(df: pd.DataFrame, barsLeft=6, barsRight=6) -> pd.DataFrame:
     return pd.concat([maxima, minima]).sort_index()
 
 
-def getNextIndex(index: pd.DatetimeIndex, idx: pd.Timestamp) -> int:
+def get_next_index(index: pd.DatetimeIndex, idx: pd.Timestamp) -> int:
     pos = index.get_loc(idx)
 
     if isinstance(pos, slice):
@@ -350,7 +330,7 @@ def getNextIndex(index: pd.DatetimeIndex, idx: pd.Timestamp) -> int:
     raise TypeError("Expected Integer")
 
 
-def getPrevIndex(index: pd.DatetimeIndex, idx: pd.Timestamp) -> int:
+def get_prev_index(index: pd.DatetimeIndex, idx: pd.Timestamp) -> int:
     pos = index.get_loc(idx)
 
     if isinstance(pos, slice):
@@ -413,7 +393,7 @@ def generate_trend_line(
     return ((start_coords, end_coords), slope, yintercept)
 
 
-def findBullishVCP(
+def find_bullish_vcp(
     sym: str, df: pd.DataFrame, pivots: pd.DataFrame
 ) -> Union[dict, None]:
     """Find Volatilty Contraction Pattern Bullish.
@@ -438,7 +418,7 @@ def findBullishVCP(
         if not isinstance(a_idx, pd.Timestamp):
             raise TypeError("Expected pd.Timestamp")
 
-        pos_after_a = getNextIndex(pivots.index, a_idx)
+        pos_after_a = get_next_index(pivots.index, a_idx)
 
         if pos_after_a >= pivot_len:
             break
@@ -447,7 +427,7 @@ def findBullishVCP(
 
         b = pivots.at[b_idx, "P"]
 
-        pos_after_b = getNextIndex(pivots.index, b_idx)
+        pos_after_b = get_next_index(pivots.index, b_idx)
 
         if pos_after_b >= pivot_len:
             break
@@ -474,7 +454,7 @@ def findBullishVCP(
             if isinstance(d, (pd.Series, str)):
                 d = pivots.at[d_idx, "P"].iloc[1]
 
-        if bullishVCP(a, b, c, d, e, avgBarLength):
+        if is_bullish_vcp(a, b, c, d, e, avgBarLength):
             # check if Level C has been breached after it was formed
             if (
                 c_idx != df.loc[c_idx:, "Close"].idxmax()
@@ -510,7 +490,7 @@ def findBullishVCP(
         a_idx, a = c_idx, c
 
 
-def findBearishVCP(
+def find_bearish_vcp(
     sym: str,
     df: pd.DataFrame,
     pivots: pd.DataFrame,
@@ -536,7 +516,7 @@ def findBearishVCP(
         if not isinstance(a_idx, pd.Timestamp):
             raise TypeError("Expected pd.Timestamp")
 
-        pos_after_a = getNextIndex(pivots.index, a_idx)
+        pos_after_a = get_next_index(pivots.index, a_idx)
 
         if pos_after_a >= pivot_len:
             break
@@ -545,7 +525,7 @@ def findBearishVCP(
 
         b = pivots.at[b_idx, "P"]
 
-        pos_after_b = getNextIndex(pivots.index, b_idx)
+        pos_after_b = get_next_index(pivots.index, b_idx)
 
         if pos_after_b >= pivot_len:
             break
@@ -572,7 +552,7 @@ def findBearishVCP(
             if isinstance(d, (pd.Series, str)):
                 d = pivots.at[d_idx, "P"].iloc[0]
 
-        if bearishVCP(a, b, c, d, e, avgBarLength):
+        if is_bearish_vcp(a, b, c, d, e, avgBarLength):
             if (
                 d_idx != df.loc[d_idx:, "Close"].idxmax()
                 or c_idx != df.loc[c_idx:, "Close"].idxmin()
@@ -607,7 +587,7 @@ def findBearishVCP(
         a_idx, a = c_idx, c
 
 
-def findDoubleBottom(
+def find_double_bottom(
     sym: str,
     df: pd.DataFrame,
     pivots: pd.DataFrame,
@@ -634,7 +614,7 @@ def findDoubleBottom(
         raise TypeError("Expected pd.Timestamp")
 
     while True:
-        pos_after_a = getNextIndex(pivots.index, a_idx)
+        pos_after_a = get_next_index(pivots.index, a_idx)
 
         if pos_after_a >= pivot_len:
             break
@@ -666,7 +646,7 @@ def findDoubleBottom(
 
         atr = atr_ser.at[c_idx]
 
-        if isDoubleBottom(a, b, c, d, aVol, cVol, avgBarLength, atr):
+        if is_double_bottom(a, b, c, d, aVol, cVol, avgBarLength, atr):
             if (
                 a == df.at[a_idx, "High"]
                 or b == df.at[b_idx, "Low"]
@@ -708,7 +688,7 @@ def findDoubleBottom(
         a_idx, a, aVol = c_idx, c, cVol
 
 
-def findDoubleTop(
+def find_double_top(
     sym: str,
     df: pd.DataFrame,
     pivots: pd.DataFrame,
@@ -735,7 +715,7 @@ def findDoubleTop(
         raise TypeError("Expected pd.Timestamp")
 
     while True:
-        idx = getNextIndex(pivots.index, a_idx)
+        idx = get_next_index(pivots.index, a_idx)
 
         if idx >= pivot_len:
             break
@@ -767,7 +747,7 @@ def findDoubleTop(
 
         atr = atr_ser.at[c_idx]
 
-        if isDoubleTop(a, b, c, d, aVol, cVol, avgBarLength, atr):
+        if is_double_top(a, b, c, d, aVol, cVol, avgBarLength, atr):
             if (
                 a == df.at[a_idx, "Low"]
                 or b == df.at[b_idx, "High"]
@@ -805,7 +785,7 @@ def findDoubleTop(
         a_idx, a, aVol = c_idx, c, cVol
 
 
-def findTriangles(
+def find_triangles(
     sym: str,
     df: pd.DataFrame,
     pivots: pd.DataFrame,
@@ -836,7 +816,7 @@ def findTriangles(
             if not isinstance(a_idx, pd.Timestamp):
                 raise TypeError("Expected pd.Timestamp")
 
-            idx = getNextIndex(pivots.index, a_idx)
+            idx = get_next_index(pivots.index, a_idx)
 
             if idx >= pivot_len:
                 break
@@ -847,7 +827,7 @@ def findTriangles(
 
         b = pivots.at[b_idx, "P"]
 
-        idx = getNextIndex(pivots.index, b_idx)
+        idx = get_next_index(pivots.index, b_idx)
 
         if idx >= pivot_len:
             break
@@ -858,7 +838,7 @@ def findTriangles(
         c_idx = pivots.loc[b_idx:d_idx, "P"].idxmax()
         c = pivots.at[c_idx, "P"]
 
-        idx = getNextIndex(pivots.index, d_idx)
+        idx = get_next_index(pivots.index, d_idx)
 
         if idx >= pivot_len:
             break
@@ -885,7 +865,7 @@ def findTriangles(
         df_slice = df.loc[a_idx:d_idx]
         avgBarLength = (df_slice["High"] - df_slice["Low"]).mean()
 
-        triangle = isTriangle(a, b, c, d, e, f, avgBarLength)
+        triangle = is_triangle(a, b, c, d, e, f, avgBarLength)
 
         if triangle is not None:
             # check if high of C or low of D has been breached
@@ -939,7 +919,7 @@ def findTriangles(
         a_idx, c = c_idx, c
 
 
-def findHNS(
+def find_hns(
     sym: str,
     df: pd.DataFrame,
     pivots: pd.DataFrame,
@@ -965,7 +945,7 @@ def findHNS(
         raise TypeError("Expected pd.Timestamp")
 
     while True:
-        pos = getPrevIndex(pivots.index, c_idx)
+        pos = get_prev_index(pivots.index, c_idx)
 
         if pos >= pivot_len:
             break
@@ -978,7 +958,7 @@ def findHNS(
         b_idx = pivots.loc[a_idx:c_idx, "P"].idxmin()
         b = pivots.at[b_idx, "P"]
 
-        pos = getNextIndex(pivots.index, c_idx)
+        pos = get_next_index(pivots.index, c_idx)
 
         if pos >= pivot_len:
             break
@@ -1010,7 +990,7 @@ def findHNS(
         df_slice = df.loc[b_idx:d_idx]
         avgBarLength = (df_slice["High"] - df_slice["Low"]).mean()
 
-        if isHNS(a, b, c, d, e, f, avgBarLength):
+        if is_hns(a, b, c, d, e, f, avgBarLength):
             if (
                 a == df.at[a_idx, "Low"]
                 or b == df.at[b_idx, "High"]
@@ -1084,7 +1064,7 @@ def findHNS(
         c_idx, c = e_idx, e
 
 
-def findReverseHNS(
+def find_reverse_hns(
     sym: str,
     df: pd.DataFrame,
     pivots: pd.DataFrame,
@@ -1110,7 +1090,7 @@ def findReverseHNS(
         raise TypeError("Expected pd.Timestamp")
 
     while True:
-        pos = getPrevIndex(pivots.index, c_idx)
+        pos = get_prev_index(pivots.index, c_idx)
 
         if pos >= pivot_len:
             break
@@ -1123,7 +1103,7 @@ def findReverseHNS(
         b_idx = pivots.loc[a_idx:c_idx, "P"].idxmax()
         b = pivots.at[b_idx, "P"]
 
-        pos = getNextIndex(pivots.index, c_idx)
+        pos = get_next_index(pivots.index, c_idx)
 
         if pos >= pivot_len:
             break
@@ -1155,7 +1135,7 @@ def findReverseHNS(
         df_slice = df.loc[b_idx:d_idx]
         avgBarLength = (df_slice["High"] - df_slice["Low"]).mean()
 
-        if isReverseHNS(a, b, c, d, e, f, avgBarLength):
+        if is_reverse_hns(a, b, c, d, e, f, avgBarLength):
             if (
                 a == df.at[a_idx, "High"]
                 or b == df.at[b_idx, "Low"]

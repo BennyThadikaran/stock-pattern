@@ -136,4 +136,6 @@ dmypy.json
 src/*.json
 src/*.csv
 src/*.txt
+src/images/*
+src/state/*
 
