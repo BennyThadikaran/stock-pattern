@@ -29,6 +29,7 @@ This program does not provide any buy or sell signals. It only detects the patte
    - If using [EOD2](https://github.com/BennyThadikaran/eod2) point it to `src/eod2_data/daily`
    - Optionally, add a `SYM_LIST` with a file path (CSV or TXT file) containing a list of symbols to scan. (One on each line). It will serve as a default watchlist to scan. See [Usage](#usage)
    - **Windows users: add an extra backslash for file paths to avoid JSON decode errors. `\\Documents\\python\\stock-pattern`**
+5. See [Configuration](#configuration) for more options
 
 
 ```json
@@ -53,6 +54,8 @@ This program does not provide any buy or sell signals. It only detects the patte
 # starts an interactive prompt
 py init.py -f nifty_500.csv
 ```
+
+Scan results are stored in a json file. To plot the results, see [Chart Plot options](#chart-plot-options)
 
 **Scan stocks from a list of symbols.** Pass a list of symbols space separated.
 
@@ -133,6 +136,21 @@ py init.py --plot state/nifty_500_vcpu.json
 | n               | Next Chart     |
 | p               | Previous Chart |
 | NUM_KEY + j     | Type the number followed by `j` to jump to index. Press `ESC` to clear  |
+
+## Configuration
+
+`user.json` is used for configuration and is auto-generated on first run. 
+
+Both absolute and relative file path are supported. Tilde or `~` for home directory symbol is also supported.
+
+| Parameter         | Description                                                                                  |
+|-------------------|----------------------------------------------------------------------------------------------|
+| DATA_PATH         | Required. Folder path for OHLC csv data.                                                     |
+| SYM_LIST          | Optional. File path containing list of symbols, one per line. Override with `-f` or `--file` |
+| SAVE_FOLDER       | Optional. Folder path to save charts as images. Override with `--save`                       |
+| POST_SCAN_PLOT    | Default False. If True, plots the results on the chart after a scan.                         |
+
+
 
 
 ## Screenshots
