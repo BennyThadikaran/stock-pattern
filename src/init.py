@@ -59,6 +59,9 @@ def scan_pattern(
         raise TypeError("Expected pd.DatetimeIndex")
 
     if date:
+        if date < df.index[0]:
+            return patterns
+
         dt_index = df.index.date
 
         # Date is out of bounds
@@ -232,7 +235,7 @@ def process(sym_list: List, fns: Tuple[Callable, ...]) -> List[dict]:
 
 
 if __name__ == "__main__":
-    version = "2.1.1-alpha"
+    version = "2.1.2-alpha"
 
     # Run the below code only when imported
     DIR = Path(__file__).parent
