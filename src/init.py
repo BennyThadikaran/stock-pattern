@@ -438,21 +438,15 @@ if __name__ == "__main__":
         fns = (fn,)
     elif fn == "bull":
         fns = tuple(
-            val
-            for key, val in fn_dict.items()
-            if key in key_list[3:6] and callable(val)
+            v for k, v in fn_dict.items() if k in key_list[3:6] and callable(v)
         )
     elif fn == "bear":
         fns = tuple(
-            val
-            for key, val in fn_dict.items()
-            if key in key_list[6:9] and callable(val)
+            v for k, v in fn_dict.items() if k in key_list[6:9] and callable(v)
         )
     else:
         fns = tuple(
-            val
-            for key, val in fn_dict.items()
-            if key in key_list[3:] and callable(val)
+            v for k, v in fn_dict.items() if k in key_list[3:] and callable(v)
         )
 
     try:
