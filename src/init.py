@@ -4,7 +4,7 @@ import concurrent.futures
 from pathlib import Path
 from argparse import ArgumentParser
 from datetime import datetime
-from typing import Callable, List, Tuple, Union, Dict
+from typing import Callable, List, Optional, Tuple, Union, Dict
 from sys import argv
 from Plotter import Plotter
 import utils
@@ -43,7 +43,7 @@ def get_user_input() -> str:
 def scan_pattern(
     sym: str,
     file: Path,
-    date: Union[datetime, None],
+    date: Optional[datetime],
     fns: Tuple[Callable, ...],
     bars_left=6,
     bars_right=6,
@@ -124,7 +124,7 @@ def process(sym_list: List, fns: Tuple[Callable, ...]) -> List[dict]:
             state = {}
 
     # determine the folder to save to in case save option is set
-    save_folder: Union[Path, None] = None
+    save_folder: Optional[Path] = None
     image_folder = f"{datetime.now():%d_%b_%y_%H%M}"
 
     if "SAVE_FOLDER" in config:
@@ -235,7 +235,7 @@ def process(sym_list: List, fns: Tuple[Callable, ...]) -> List[dict]:
 
 
 if __name__ == "__main__":
-    version = "2.1.2-alpha"
+    version = "2.1.3"
 
     # Run the below code only when imported
     DIR = Path(__file__).parent
