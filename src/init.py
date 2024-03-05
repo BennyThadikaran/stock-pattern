@@ -427,7 +427,7 @@ if __name__ == "__main__":
     fn = fn_dict[key]
 
     utils.logging.info(
-        f"Scanning for all {key.upper()} patterns. Press Ctrl - C to exit"
+        f"Scanning `{key.upper()}` patterns. Press Ctrl - C to exit"
     )
 
     data = args.file.read_text().strip().split("\n") if args.file else args.sym
@@ -455,7 +455,12 @@ if __name__ == "__main__":
             if key in key_list[3:] and callable(val)
         )
 
-    patterns = process(data, fns)
+    try:
+        patterns = process(data, fns)
+    except KeyboardInterrupt:
+        # Is there a better / graceful way to handle this?
+        utils.logging.info("User exit")
+        exit()
 
     count = len(patterns)
 
