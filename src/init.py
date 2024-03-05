@@ -4,7 +4,7 @@ import concurrent.futures
 from pathlib import Path
 from argparse import ArgumentParser
 from datetime import datetime
-from typing import Callable, List, Tuple, Union, Dict
+from typing import Callable, List, Optional, Tuple, Union, Dict
 from sys import argv
 from Plotter import Plotter
 import utils
@@ -43,7 +43,7 @@ def get_user_input() -> str:
 def scan_pattern(
     sym: str,
     file: Path,
-    date: Union[datetime, None],
+    date: Optional[datetime],
     fns: Tuple[Callable, ...],
     bars_left=6,
     bars_right=6,
@@ -124,7 +124,7 @@ def process(sym_list: List, fns: Tuple[Callable, ...]) -> List[dict]:
             state = {}
 
     # determine the folder to save to in case save option is set
-    save_folder: Union[Path, None] = None
+    save_folder: Optional[Path] = None
     image_folder = f"{datetime.now():%d_%b_%y_%H%M}"
 
     if "SAVE_FOLDER" in config:
@@ -235,7 +235,7 @@ def process(sym_list: List, fns: Tuple[Callable, ...]) -> List[dict]:
 
 
 if __name__ == "__main__":
-    version = "2.1.2-alpha"
+    version = "2.1.3"
 
     # Run the below code only when imported
     DIR = Path(__file__).parent
@@ -275,10 +275,10 @@ if __name__ == "__main__":
         "bull",
         "bear",
         "vcpu",
-        "vcpd",
         "dbot",
-        "dtop",
         "hnsu",
+        "vcpd",
+        "dtop",
         "hnsd",
         "trng",
     )
@@ -427,7 +427,7 @@ if __name__ == "__main__":
     fn = fn_dict[key]
 
     utils.logging.info(
-        f"Scanning for all {key.upper()} patterns. Press Ctrl - C to exit"
+        f"Scanning `{key.upper()}` patterns. Press Ctrl - C to exit"
     )
 
     data = args.file.read_text().strip().split("\n") if args.file else args.sym
@@ -438,24 +438,23 @@ if __name__ == "__main__":
         fns = (fn,)
     elif fn == "bull":
         fns = tuple(
-            val
-            for key, val in fn_dict.items()
-            if key in key_list[3:6] and callable(val)
+            v for k, v in fn_dict.items() if k in key_list[3:6] and callable(v)
         )
     elif fn == "bear":
         fns = tuple(
-            val
-            for key, val in fn_dict.items()
-            if key in key_list[6:9] and callable(val)
+            v for k, v in fn_dict.items() if k in key_list[6:9] and callable(v)
         )
     else:
         fns = tuple(
-            val
-            for key, val in fn_dict.items()
-            if key in key_list[3:] and callable(val)
+            v for k, v in fn_dict.items() if k in key_list[3:] and callable(v)
         )
 
-    patterns = process(data, fns)
+    try:
+        patterns = process(data, fns)
+    except KeyboardInterrupt:
+        # Is there a better / graceful way to handle this?
+        utils.logging.info("User exit")
+        exit()
 
     count = len(patterns)
 

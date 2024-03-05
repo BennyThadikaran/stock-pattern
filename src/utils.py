@@ -1,4 +1,4 @@
-from typing import Tuple, Union, TypeVar
+from typing import Tuple, Optional, TypeVar
 import numpy as np
 import pandas as pd
 import logging
@@ -84,7 +84,7 @@ def is_triangle(
     e: float,
     f: float,
     avgBarLength: float,
-) -> Union[str, None]:
+) -> Optional[str]:
     r"""
           A
          /\        C
@@ -395,7 +395,7 @@ def generate_trend_line(
 
 def find_bullish_vcp(
     sym: str, df: pd.DataFrame, pivots: pd.DataFrame
-) -> Union[dict, None]:
+) -> Optional[dict]:
     """Find Volatilty Contraction Pattern Bullish.
 
     Returns None if no patterns found.
@@ -494,7 +494,7 @@ def find_bearish_vcp(
     sym: str,
     df: pd.DataFrame,
     pivots: pd.DataFrame,
-) -> Union[dict, None]:
+) -> Optional[dict]:
     """Find Volatilty Contraction Pattern Bearish.
 
     Returns None if no patterns found.
@@ -591,7 +591,7 @@ def find_double_bottom(
     sym: str,
     df: pd.DataFrame,
     pivots: pd.DataFrame,
-) -> Union[dict, None]:
+) -> Optional[dict]:
     """Find Double bottom.
 
     Returns None if no patterns found.
@@ -692,7 +692,7 @@ def find_double_top(
     sym: str,
     df: pd.DataFrame,
     pivots: pd.DataFrame,
-) -> Union[dict, None]:
+) -> Optional[dict]:
     """Find Double Top.
 
     Returns None if no patterns found.
@@ -789,7 +789,7 @@ def find_triangles(
     sym: str,
     df: pd.DataFrame,
     pivots: pd.DataFrame,
-) -> Union[dict, None]:
+) -> Optional[dict]:
     """Find Triangles - Symetric, Ascending, Descending.
 
     Returns None if no patterns found.
@@ -895,6 +895,9 @@ def find_triangles(
             if triangle == "Ascending" and slope_upper > 0.2:
                 break
 
+            if triangle == "Descending" and slope_lower < -0.2:
+                break
+
             if (
                 triangle == "Symetric"
                 and slope_upper > -0.01
@@ -923,7 +926,7 @@ def find_hns(
     sym: str,
     df: pd.DataFrame,
     pivots: pd.DataFrame,
-) -> Union[dict, None]:
+) -> Optional[dict]:
     """Find Head and Shoulders - Bearish
 
     Returns None if no patterns found.
@@ -1068,7 +1071,7 @@ def find_reverse_hns(
     sym: str,
     df: pd.DataFrame,
     pivots: pd.DataFrame,
-) -> Union[dict, None]:
+) -> Optional[dict]:
     """Find Head and Shoulders - Bullish
 
     Returns None if no patterns found.
