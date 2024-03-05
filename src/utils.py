@@ -895,6 +895,9 @@ def find_triangles(
             if triangle == "Ascending" and slope_upper > 0.2:
                 break
 
+            if triangle == "Descending" and slope_lower < -0.2:
+                break
+
             if (
                 triangle == "Symetric"
                 and slope_upper > -0.01
