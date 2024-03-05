@@ -275,10 +275,10 @@ if __name__ == "__main__":
         "bull",
         "bear",
         "vcpu",
-        "vcpd",
         "dbot",
-        "dtop",
         "hnsu",
+        "vcpd",
+        "dtop",
         "hnsd",
         "trng",
     )
