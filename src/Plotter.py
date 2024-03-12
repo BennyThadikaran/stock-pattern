@@ -5,6 +5,7 @@ import mplfinance as mpf
 import pandas as pd
 from utils import csv_loader
 from datetime import datetime
+from functools import lru_cache
 
 
 class Plotter:
@@ -166,6 +167,7 @@ class Plotter:
         plt.close("all")
         self.plot()
 
+    @lru_cache(maxsize=6)
     def _prep_dataframe(self, sym: str, end_date: datetime) -> pd.DataFrame:
         return csv_loader(
             self.source_folder / f"{sym.lower()}.csv",
