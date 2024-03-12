@@ -1,5 +1,4 @@
 import json
-import pandas as pd
 import concurrent.futures
 from pathlib import Path
 from argparse import ArgumentParser
@@ -50,39 +49,13 @@ def scan_pattern(
 ):
     patterns: List[dict] = []
 
-    df = utils.get_DataFrame(file)
-
-    if df.empty:
-        return patterns
-
-    if not isinstance(df.index, pd.DatetimeIndex):
-        raise TypeError("Expected pd.DatetimeIndex")
-
     if date:
-        if date < df.index[0]:
+        try:
+            df = utils.csv_loader(file, end_date=date)
+        except IndexError:
             return patterns
-
-        dt_index = df.index.date
-
-        # Date is out of bounds
-        if date.date() not in dt_index:
-            date = df.index.asof(date)
-
-        # if has time component for ex. intraday data
-        if utils.has_time_component(df.index):
-            # get the last available datetime index for the date
-            last_idx = df[date.date() == dt_index].index.max()
-            end = df.index.get_loc(last_idx)
-        else:
-            # get the index position in the DataFrame
-            end = df.index.get_loc(date)
-
-        if not isinstance(end, int):
-            raise TypeError("Expected integer")
-
-        df = df.iloc[end - 160 : end + 1]
     else:
-        df = df.iloc[-160:]
+        df = utils.csv_loader(file)
 
     if df.empty:
         return patterns
