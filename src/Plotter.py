@@ -1,8 +1,11 @@
-from typing import Union
+from typing import Optional
 from pathlib import Path
 import matplotlib.pyplot as plt
 import mplfinance as mpf
 import pandas as pd
+from utils import csv_loader
+from datetime import datetime
+from functools import lru_cache
 
 
 class Plotter:
@@ -14,11 +17,9 @@ class Plotter:
         self,
         data,
         source_folder,
-        save_folder: Union[Path, None] = None,
-        mode="default",
+        save_folder: Optional[Path] = None,
     ):
         self.source_folder = source_folder
-        self.mode = mode
         self.save_folder = save_folder
 
         self.plot_args = {
@@ -58,8 +59,9 @@ class Plotter:
         sym = dct["sym"]
         pattern = dct["pattern"]
         lines = dct["lines"]
+        end_date = datetime.fromisoformat(dct["df_end"])
 
-        df = self._prep_dataframe(sym, dct)
+        df = self._prep_dataframe(sym, end_date)
 
         if pattern in ("Symetric", "Ascending", "Descending"):
             colors = "midnightblue"
@@ -96,33 +98,9 @@ class Plotter:
         sym = dct["sym"]
         pattern = dct["pattern"]
         lines = dct["lines"]
+        end_date = datetime.fromisoformat(dct["df_end"])
 
-        df = pd.read_csv(
-            self.source_folder / f"{sym.lower()}.csv",
-            index_col="Date",
-            parse_dates=["Date"],
-            na_filter=False,
-        )
-
-        if self.mode == "default":
-            df = df.loc[dct["df_start"] : dct["df_end"]]
-        else:
-            start = df.index.get_loc(dct["start"])
-            end = df.index.get_loc(dct["end"])
-
-            if isinstance(start, slice):
-                start = int(start.start)
-
-            if isinstance(end, slice):
-                end = int(end.start)
-
-            if not isinstance(start, int) or not isinstance(end, int):
-                raise TypeError("expected int")
-
-            start = max(start - 120, 0)
-            end = min(end + 120, df.shape[0])
-
-            df = df.iloc[start:end]
+        df = self._prep_dataframe(sym, end_date)
 
         if pattern in ("Symetric", "Ascending", "Descending"):
             colors = "midnightblue"
@@ -189,36 +167,12 @@ class Plotter:
         plt.close("all")
         self.plot()
 
-    def _prep_dataframe(self, sym: str, dct: dict) -> pd.DataFrame:
-        df = pd.read_csv(
+    @lru_cache(maxsize=6)
+    def _prep_dataframe(self, sym: str, end_date: datetime) -> pd.DataFrame:
+        return csv_loader(
             self.source_folder / f"{sym.lower()}.csv",
-            index_col="Date",
-            parse_dates=["Date"],
-            na_filter=False,
+            end_date=end_date,
         )
-
-        if self.mode == "default":
-            df = df.loc[dct["df_start"] : dct["df_end"]]
-            return df
-
-        start = df.index.get_loc(dct["start"])
-        end = df.index.get_loc(dct["end"])
-
-        if isinstance(start, slice):
-            start = int(start.start)
-
-        if isinstance(end, slice):
-            end = int(end.start)
-
-        if not isinstance(start, int) or not isinstance(end, int):
-            raise TypeError("expected int")
-
-        start = max(start - 120, 0)
-        end = min(end + 120, df.shape[0])
-
-        df = df.iloc[start:end]
-
-        return df
 
     def _alert(self, string=""):
         return self.main_ax.set_title(
