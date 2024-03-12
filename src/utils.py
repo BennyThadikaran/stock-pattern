@@ -61,25 +61,6 @@ def get_atr(
     return tr.tr.rolling(window=window).mean()
 
 
-def has_time_component(datetime_index: pd.DatetimeIndex) -> bool:
-    """Return True if any value in DatetimeIndex has time component
-    other than `00:00:00` (Midnight hour)
-
-    Ex Datetime(2023, 12, 10)           ->  `00:00:00` (Defaults to midnight)
-       Datetime(2023, 12, 10, 0, 0)     ->  `00:00:00` (Midnight time)
-       Datetime(2023, 12, 10, 12, 10)   ->  `12:10:00`
-    """
-    return any(
-        datetime_index.to_series().dt.time != pd.Timestamp("00:00:00").time()
-    )
-
-
-def get_DataFrame(file) -> pd.DataFrame:
-    return pd.read_csv(
-        file, index_col="Date", parse_dates=["Date"], na_filter=False
-    )
-
-
 def csv_loader(
     file_path: Path,
     period=160,
