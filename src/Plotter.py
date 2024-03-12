@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Optional
 from pathlib import Path
 import matplotlib.pyplot as plt
 import mplfinance as mpf
@@ -16,7 +16,7 @@ class Plotter:
         self,
         data,
         source_folder,
-        save_folder: Union[Path, None] = None,
+        save_folder: Optional[Path] = None,
     ):
         self.source_folder = source_folder
         self.save_folder = save_folder
