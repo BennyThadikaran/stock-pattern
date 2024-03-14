@@ -1,4 +1,4 @@
-from typing import Tuple, Optional, TypeVar
+from typing import Any, Optional, TypeVar, NamedTuple
 from datetime import datetime
 from pathlib import Path
 import numpy as np
@@ -8,7 +8,22 @@ import sys
 import io
 import os
 
-LineCoordinates = Tuple[Tuple[pd.Timestamp, float], Tuple[pd.Timestamp, float]]
+
+class Point(NamedTuple):
+    x: pd.Timestamp
+    y: float
+
+
+class Coordinate(NamedTuple):
+    start: Point
+    end: Point
+
+
+class Line(NamedTuple):
+    line: Coordinate
+    slope: float
+    y_int: float
+
 
 T = TypeVar("T")
 
@@ -31,7 +46,7 @@ def make_serializable(obj: T) -> T:
     """Convert pandas.Timestamp and numpy.Float32 objects in obj
     to serializable native types"""
 
-    def serialize(obj):
+    def serialize(obj: Any) -> Any:
         if isinstance(obj, (pd.Timestamp, np.generic)):
             # Convert Pandas Timestamp to Python datetime or NumPy item
             return (
@@ -466,7 +481,7 @@ def get_prev_index(index: pd.DatetimeIndex, idx: pd.Timestamp) -> int:
 
 def generate_trend_line(
     series: pd.Series, date1: pd.Timestamp, date2: pd.Timestamp
-) -> Tuple[LineCoordinates, float, float]:
+) -> Line:
     """Return the end coordinates for a trendline along with slope and y-intercept
     Input: Pandas series with a pandas.DatetimeIndex, and two dates:
            The two dates are used to determine two "prices" from the series
@@ -503,16 +518,18 @@ def generate_trend_line(
     # where m is slope,
     # b is y-intercept
     # slope m = change in y / change in x
-    slope = (p2 - p1) / (d2 - d1)
+    m = (p2 - p1) / (d2 - d1)
 
-    # b = y - mx
-    yintercept = p1 - slope * d1
+    yintercept = p1 - m * d1  # b = y - mx
 
-    # y = mx + b
-    start_coords = (date1, slope * d1 + yintercept)
-    end_coords = (lastIdx, slope * lastIdxPos + yintercept)
-
-    return ((start_coords, end_coords), slope, yintercept)
+    return Line(
+        line=Coordinate(
+            start=Point(x=date1, y=m * d1 + yintercept),  # y = mx + b
+            end=Point(x=lastIdx, y=m * lastIdxPos + yintercept),
+        ),
+        slope=m,
+        y_int=yintercept,
+    )
 
 
 def find_bullish_vcp(
@@ -1001,29 +1018,26 @@ def find_triangles(
             if not isinstance(a_idx, pd.Timestamp):
                 raise TypeError("Expected pd.Timestamp")
 
-            upper_line, slope_upper, _ = generate_trend_line(
-                df.High, a_idx, c_idx
-            )
-            lower_line, slope_lower, _ = generate_trend_line(
-                df.Low, b_idx, d_idx
-            )
+            upper = generate_trend_line(df.High, a_idx, c_idx)
+            lower = generate_trend_line(df.Low, b_idx, d_idx)
 
             # If trendlines have intersected, pattern has played out
-            if upper_line[1][1] < lower_line[1][1]:
+
+            if upper.line.end.y < lower.line.end.y:
                 break
 
             # upper line must not be upsloping, 0 is straight line
             # allow for some leeway
-            if triangle == "Ascending" and slope_upper > 0.2:
+            if triangle == "Ascending" and upper.slope > 0.2:
                 break
 
-            if triangle == "Descending" and slope_lower < -0.2:
+            if triangle == "Descending" and lower.slope < -0.2:
                 break
 
             if (
                 triangle == "Symetric"
-                and slope_upper > -0.01
-                or slope_lower < 0.01
+                and upper.slope > -0.01
+                or lower.slope < 0.01
             ):
                 break
 
@@ -1036,9 +1050,9 @@ def find_triangles(
                 end=f_idx,
                 df_start=df.index[0],
                 df_end=df.index[-1],
-                slope_upper=slope_upper,
-                slope_lower=slope_lower,
-                lines=((upper_line), (lower_line)),
+                slope_upper=upper.slope,
+                slope_lower=lower.slope,
+                lines=(upper.line, lower.line),
             )
 
         a_idx, c = c_idx, c
@@ -1140,7 +1154,7 @@ def find_hns(
                 continue
 
             # bd is the line coordinate for points B and D
-            bd, m, y_intercept = generate_trend_line(df.Low, b_idx, d_idx)
+            tline = generate_trend_line(df.Low, b_idx, d_idx)
 
             # Get the y coordinate of the trendline at the end of the chart
             # With the given slope(m) and y-intercept(b) as y_int,
@@ -1151,7 +1165,7 @@ def find_hns(
             if not isinstance(x, int):
                 raise TypeError("Expected Integer")
 
-            y = m * x + y_intercept
+            y = tline.slope * x + tline.y_int
 
             # if the close price is below the neckline (trendline), skip
             if f < y:
@@ -1165,12 +1179,12 @@ def find_hns(
             de = ((d_idx, d), (e_idx, e))
             ef = ((e_idx, e), (f_idx, f))
 
-            if m < 0:
+            if tline.slope < 0:
                 entry_line = ((b_idx, b), (f_idx, b))
 
-                lines = (entry_line, bd, ab, bc, cd, de, ef)
+                lines = (entry_line, tline.line, ab, bc, cd, de, ef)
             else:
-                lines = (bd, ab, bc, cd, de, ef)
+                lines = (tline.line, ab, bc, cd, de, ef)
 
             logger.debug(f"{sym} - HNSD")
 
@@ -1181,8 +1195,8 @@ def find_hns(
                 end=f_idx,
                 df_start=df.index[0],
                 df_end=df.index[-1],
-                slope=m,
-                y_intercept=y_intercept,
+                slope=tline.slope,
+                y_intercept=tline.y_int,
                 lines=lines,
             )
 
@@ -1285,7 +1299,7 @@ def find_reverse_hns(
                 continue
 
             # bd is the trendline coordinates from B to D (neckline)
-            bd, m, y_intercept = generate_trend_line(df.High, b_idx, d_idx)
+            tline = generate_trend_line(df.High, b_idx, d_idx)
 
             # Get the y coordinate of the trendline at the end of the chart
             # With the given slope(m) and y-intercept(b) as y_int,
@@ -1296,7 +1310,7 @@ def find_reverse_hns(
             if not isinstance(x, int):
                 raise TypeError("Expected Integer")
 
-            y = m * x + y_intercept
+            y = tline.slope * x + tline.y_int
 
             # if close price is greater than neckline (trendline), skip
             if f > y:
@@ -1310,12 +1324,12 @@ def find_reverse_hns(
             de = ((d_idx, d), (e_idx, e))
             ef = ((e_idx, e), (f_idx, f))
 
-            if m > 0:
+            if tline.slope > 0:
                 entry_line = ((b_idx, b), (f_idx, b))
 
-                lines = (entry_line, bd, ab, bc, cd, de, ef)
+                lines = (entry_line, tline.line, ab, bc, cd, de, ef)
             else:
-                lines = (bd, ab, bc, cd, de, ef)
+                lines = (tline.line, ab, bc, cd, de, ef)
 
             logger.debug(f"{sym} - HNSU")
 
@@ -1326,8 +1340,8 @@ def find_reverse_hns(
                 end=f_idx,
                 df_start=df.index[0],
                 df_end=df.index[-1],
-                slope=m,
-                y_intercept=y_intercept,
+                slope=tline.line,
+                y_intercept=tline.y_int,
                 lines=lines,
             )
 
