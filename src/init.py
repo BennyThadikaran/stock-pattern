@@ -85,7 +85,7 @@ def process(sym_list: List, fns: Tuple[Callable, ...]) -> List[dict]:
     state = None
     state_file = None
 
-    if args.file:
+    if args.file and not args.date:
         state_file = DIR / f"state/{args.file.stem}_{args.pattern}.json"
 
         if not state_file.parent.is_dir():
