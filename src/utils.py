@@ -1,4 +1,4 @@
-from typing import Optional, TypeVar, NamedTuple
+from typing import Any, Optional, TypeVar, NamedTuple
 from datetime import datetime
 from pathlib import Path
 import numpy as np
@@ -46,7 +46,7 @@ def make_serializable(obj: T) -> T:
     """Convert pandas.Timestamp and numpy.Float32 objects in obj
     to serializable native types"""
 
-    def serialize(obj):
+    def serialize(obj: Any) -> Any:
         if isinstance(obj, (pd.Timestamp, np.generic)):
             # Convert Pandas Timestamp to Python datetime or NumPy item
             return (
