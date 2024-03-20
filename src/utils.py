@@ -1028,16 +1028,18 @@ def find_triangles(
 
             # upper line must not be upsloping, 0 is straight line
             # allow for some leeway
-            if triangle == "Ascending" and upper.slope > 0.2:
+            if triangle == "Ascending" and (
+                upper.slope > 0.1 or lower.slope < 0.2
+            ):
                 break
 
-            if triangle == "Descending" and lower.slope < -0.2:
+            if triangle == "Descending" and (
+                lower.slope < -0.1 or upper.slope > -0.2
+            ):
                 break
 
-            if (
-                triangle == "Symetric"
-                and upper.slope > -0.01
-                or lower.slope < 0.01
+            if triangle == "Symetric" and (
+                upper.slope > -0.2 or lower.slope < 0.2
             ):
                 break
 
