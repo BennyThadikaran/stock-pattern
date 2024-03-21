@@ -953,7 +953,7 @@ def find_triangles(
         if not isinstance(a_idx, pd.Timestamp):
             raise TypeError("Expected pd.Timestamp")
 
-        pos_after_a= get_next_index(pivots.index, a_idx)
+        pos_after_a = get_next_index(pivots.index, a_idx)
 
         if pos_after_a >= pivot_len:
             break
@@ -974,7 +974,7 @@ def find_triangles(
         d_idx = pivots.loc[pivots.index[pos_after_b] :, "P"].idxmin()
         d = pivots.at[d_idx, "P"]
 
-        c_idx = pivots.loc[pivots.index[pos_after_a]:, "P"].idxmax()
+        c_idx = pivots.loc[pivots.index[pos_after_a] :, "P"].idxmax()
         c = pivots.at[c_idx, "P"]
 
         pos_after_c = get_next_index(pivots.index, c_idx)
@@ -982,7 +982,7 @@ def find_triangles(
         if pos_after_c >= pivot_len:
             break
 
-        e_idx = pivots.loc[pivots.index[pos_after_c]:, "P"].idxmax()
+        e_idx = pivots.loc[pivots.index[pos_after_c] :, "P"].idxmax()
         e = pivots.at[e_idx, "P"]
 
         if pivots.index.has_duplicates:
