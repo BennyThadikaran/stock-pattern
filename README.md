@@ -22,9 +22,15 @@ This program does not provide any buy or sell signals. It only detects the patte
 
 > **Stock-Pattern is being constantly updated with new features and bug fixes. Run `git pull` to get the latest updates.**
 
-1. Clone or download the repo: `git clone https://github.com/BennyThadikaran/stock-pattern.git`
-2. Install dependencies: `pip install -r requirements.txt`
-3. `cd` into `/src` folder, run `py init.py`. It will generate a `user.json` file
+1. Clone or download the repo:
+    ```
+    git clone https://github.com/BennyThadikaran/stock-pattern.git
+    ```
+2. Install dependencies: 
+    ```
+    pip install -r requirements.txt
+    ```
+3. Run `init.py`. It will generate a `user.json` file
 4. Open `user.json` and edit the `DATA_PATH` with the folder path to your OHLC data. Files must be in CSV format in any timeframe.
    - If using [EOD2](https://github.com/BennyThadikaran/eod2) point it to `src/eod2_data/daily`
    - Optionally, add a `SYM_LIST` with a file path (CSV or TXT file) containing a list of symbols to scan. (One on each line). It will serve as a default watchlist to scan. See [Usage](#usage)
@@ -46,8 +52,6 @@ This program does not provide any buy or sell signals. It only detects the patte
 
 **Show Version:** `py init.py -v`
 
-`py init.py (-f filepath | --sym SYM [SYM ...] | -v) options`
-
 **Scan stocks using a watchlist file.** Pass a file containing stocks (one on each line).
 
 ```bash
@@ -55,7 +59,7 @@ This program does not provide any buy or sell signals. It only detects the patte
 py init.py -f nifty_500.csv
 ```
 
-Scan results are stored in a json file. To plot the results, see [Chart Plot options](#chart-plot-options)
+See [Chart controls](#chart-keyboard-navigation) how to navigate charts.
 
 **Scan stocks from a list of symbols.** Pass a list of symbols space separated.
 
@@ -106,9 +110,17 @@ Pattern string can be one of:
 
 There are other CLI options available for those wanting to tinker.
 
+## Chart keyboard navigation
+
+| Key             | Description    |
+| --------------- | -------------- |
+| n               | Next Chart     |
+| p               | Previous Chart |
+| NUM_KEY + j     | Type the number followed by `j` to jump to index. Press `ESC` to clear  |
+
 ## Chart Plot options
 
-When patterns are detected the results are saved as json files. Filename is same as pattern string, for Ex. vcpu.json
+Results of last scan, are saved as json files. Filename is same as pattern string, for E.g. vcpu.json
 
 **To plot results of scan, use `--plot`**. 
 ```bash
@@ -120,22 +132,17 @@ py init.py --plot vcpu.json
 py init.py --plot vcpu.json --idx 15
 ```
 
-When scanning using a watchlist file, all patterns are tracked in json files stored in `src/state` folder. Files format is <watchlist_name>_<pattern_name>.json for ex. nifty_500_vcpu.json.
+When scanning using a watchlist file, all patterns are tracked in json files stored in `src/state` folder. 
+
+File format is `<watchlist_name>_<pattern_name>.json`. For e.g. `nifty_500_vcpu.json`.
 
 **Only newly detected patterns are notified and plotted on charts.**
 
 **To see all currently active patterns in market, use the `--plot` passing the json file from `state` folder**
+
 ```bash
 py init.py --plot state/nifty_500_vcpu.json
 ```
-
-## Chart keyboard navigation
-
-| Key             | Description    |
-| --------------- | -------------- |
-| n               | Next Chart     |
-| p               | Previous Chart |
-| NUM_KEY + j     | Type the number followed by `j` to jump to index. Press `ESC` to clear  |
 
 ## Configuration
 
@@ -149,9 +156,6 @@ Both absolute and relative file path are supported. Tilde or `~` for home direct
 | SYM_LIST          | Optional. File path containing list of symbols, one per line. Override with `-f` or `--file` |
 | SAVE_FOLDER       | Optional. Folder path to save charts as images. Override with `--save`                       |
 | POST_SCAN_PLOT    | Default False. If True, plots the results on the chart after a scan.                         |
-
-
-
 
 ## Screenshots
 
@@ -174,10 +178,6 @@ Both absolute and relative file path are supported. Tilde or `~` for home direct
 **RECLTD - Double Tops 13th Oct 2021**
 
 ![RECLTD Double Top pattern](https://res.cloudinary.com/doyu4uovr/image/upload/s--lFTiRydt--/c_scale,f_auto,w_700/v1702918852/stock-pattern/recltd-double-top_accoad.png)
-
-## TODO
-
-- Make package available via pip [Delayed].
 
 # Disclaimer
 
