@@ -1008,8 +1008,10 @@ def find_triangles(
 
         if triangle is not None:
             # check if high of C or low of D has been breached
+            # Check if A is indeed the pivot high
             if (
-                c_idx != df.loc[c_idx:, "Close"].idxmax()
+                a == df.at[a_idx, "Low"]
+                or c_idx != df.loc[c_idx:, "Close"].idxmax()
                 or d_idx != df.loc[d_idx:, "Close"].idxmin()
             ):
                 a_idx, a = c_idx, c
