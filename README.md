@@ -10,7 +10,7 @@ If you :heart: my work so far, please :star2: this repo.
 
 These were a series of pattern scanners I wrote for experimentation and fun in 2022. My inspiration was this Medium article [Algorithmically Detecting (and Trading) Technical Chart Patterns with Python](https://medium.com/automation-generation/algorithmically-detecting-and-trading-technical-chart-patterns-with-python-c577b3a396ed)
 
-See Wiki to understand how the code works: [Pattern Algorithms](https://github.com/BennyThadikaran/stock-pattern/wiki/Pattern-Algorithms)
+Understand how the code works: [wiki Pattern Algorithms](https://github.com/BennyThadikaran/stock-pattern/wiki/Pattern-Algorithms)
 
 ## Important Info
 
@@ -33,9 +33,9 @@ This program does not provide any buy or sell signals. It only detects the patte
 3. Run `init.py`. It will generate a `user.json` file
 4. Open `user.json` and edit the `DATA_PATH` with the folder path to your OHLC data. Files must be in CSV format in any timeframe.
    - If using [EOD2](https://github.com/BennyThadikaran/eod2) point it to `src/eod2_data/daily`
-   - Optionally, add a `SYM_LIST` with a file path (CSV or TXT file) containing a list of symbols to scan. (One on each line). It will serve as a default watchlist to scan. See [Usage](#usage)
+   - Optionally, add a `SYM_LIST` with a file path (CSV or TXT file) containing a list of symbols to scan. (One on each line). It will serve as a default watchlist to scan. See [wiki Usage](https://github.com/BennyThadikaran/stock-pattern/wiki/Usage)
    - **Windows users: add an extra backslash for file paths to avoid JSON decode errors. `\\Documents\\python\\stock-pattern`**
-5. See [Configuration](#configuration) for more options
+5. See [wiki Configuration](https://github.com/BennyThadikaran/stock-pattern/wiki/Usage#configuration) for more options
 
 
 ```json
@@ -47,115 +47,9 @@ This program does not provide any buy or sell signals. It only detects the patte
 ```
 
 ## Usage
+See [wiki Usage instructions](https://github.com/BennyThadikaran/stock-pattern/wiki/Usage)
 
-**Display Help:** `py init.py -h`
-
-**Show Version:** `py init.py -v`
-
-**Scan stocks using a watchlist file.** Pass a file containing stocks (one on each line).
-
-```bash
-# starts an interactive prompt
-py init.py -f nifty_500.csv
-```
-
-See [Chart controls](#chart-keyboard-navigation) how to navigate charts.
-
-**Scan stocks from a list of symbols.** Pass a list of symbols space separated.
-
-```bash
-py init.py --sym tcs astral datapattns
-```
-
-**NOTE**: If `SYM_LIST` is specified in `user.json`, `-f` or `--sym` is not required unless you wish to override the default watchlist.
-
-**Identify chart patterns on a specific date.**:
-
-```bash
-# iso date format YYYY-MM-DD
-py init.py -f nifty_500.csv -d 2023-01-01
-```
-
-**Save results as images to folder**
-
-```bash
-# default folder is src/images
-py init.py -f nifty_500.csv --save
-```
-
-```bash
-# add a custom folder
-py init.py -f nifty_500.csv --save ~/Desktop/pattern/
-```
-**To skip the interactive prompt, specify a pattern string:**
-
-```bash
-# Bullish VCP
-py init.py -f nifty_500.csv -p vcpu
-```
-
-Pattern string can be one of:
-| Pattern String | Description                    |
-| -------------- | ------------------------------ |
-| all            | All patterns                   |
-| bull           | All Bullish patterns           |
-| bear           | All Bearish patterns           |
-| vcpu           | VCP **U**p (Bullish)           |
-| vcpd           | VCP **D**own (Bearish)         |
-| dbot           | Double Bottom                  |
-| dtop           | Double Top                     |
-| hnsu           | Head & Shoulder **U**p (Bullish) |
-| hnsd           | Head & Shoulder **D**own (Bearish) |
-| trng           | Triangles (Symmetric, Ascending, Descending) |
-
-There are other CLI options available for those wanting to tinker.
-
-## Chart keyboard navigation
-
-| Key             | Description    |
-| --------------- | -------------- |
-| n               | Next Chart     |
-| p               | Previous Chart |
-| NUM_KEY + j     | Type the number followed by `j` to jump to index. Press `ESC` to clear  |
-
-## Chart Plot options
-
-Results of last scan, are saved as json files. Filename is same as pattern string, for E.g. vcpu.json
-
-**To plot results of scan, use `--plot`**. 
-```bash
-py init.py --plot vcpu.json
-```
-
-**To jump to a particular count in the result, use `--idx`**
-```bash
-py init.py --plot vcpu.json --idx 15
-```
-
-When scanning using a watchlist file, all patterns are tracked in json files stored in `src/state` folder. 
-
-File format is `<watchlist_name>_<pattern_name>.json`. For e.g. `nifty_500_vcpu.json`.
-
-**Only newly detected patterns are notified and plotted on charts.**
-
-**To see all currently active patterns in market, use the `--plot` passing the json file from `state` folder**
-
-```bash
-py init.py --plot state/nifty_500_vcpu.json
-```
-
-## Configuration
-
-`user.json` is used for configuration and is auto-generated on first run. 
-
-Both absolute and relative file path are supported. Tilde or `~` for home directory symbol is also supported.
-
-| Parameter         | Description                                                                                  |
-|-------------------|----------------------------------------------------------------------------------------------|
-| DATA_PATH         | Required. Folder path for OHLC csv data.                                                     |
-| SYM_LIST          | Optional. File path containing list of symbols, one per line. Override with `-f` or `--file` |
-| SAVE_FOLDER       | Optional. Folder path to save charts as images. Override with `--save`                       |
-| POST_SCAN_PLOT    | Default False. If True, plots the results on the chart after a scan.                         |
+For backtest.py usage, see [wiki backtest](https://github.com/BennyThadikaran/stock-pattern/wiki/backtest-usage)
 
 ## Screenshots
 
