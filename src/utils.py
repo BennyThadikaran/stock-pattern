@@ -964,8 +964,6 @@ def find_triangles(
             a = pivots.at[a_idx, "P"]
             continue
 
-        b = pivots.at[b_idx, "P"]
-
         pos_after_b = get_next_index(pivots.index, b_idx)
 
         if pos_after_b >= pivot_len:
