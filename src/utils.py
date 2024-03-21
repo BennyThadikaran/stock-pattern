@@ -63,6 +63,18 @@ def make_serializable(obj: T) -> T:
     return serialize(obj)
 
 
+def has_time_component(datetime_index: pd.DatetimeIndex) -> bool:
+    """Return True if any value in DatetimeIndex has time component
+    other than `00:00:00` (Midnight hour)
+    Ex Datetime(2023, 12, 10)           ->  `00:00:00` (Defaults to midnight)
+       Datetime(2023, 12, 10, 0, 0)     ->  `00:00:00` (Midnight time)
+       Datetime(2023, 12, 10, 12, 10)   ->  `12:10:00`
+    """
+    return any(
+        datetime_index.to_series().dt.time != pd.Timestamp("00:00:00").time()
+    )
+
+
 def get_atr(
     high: pd.Series, low: pd.Series, close: pd.Series, window=15
 ) -> pd.Series:
@@ -950,39 +962,37 @@ def find_triangles(
         b_idx = pivots.loc[a_idx:, "P"].idxmin()
         b = pivots.at[b_idx, "P"]
 
+        if not isinstance(a_idx, pd.Timestamp):
+            raise TypeError("Expected pd.Timestamp")
+
+        pos_after_a = get_next_index(pivots.index, a_idx)
+
+        if pos_after_a >= pivot_len:
+            break
+
         # A is already the lowest point
         if a_idx == b_idx:
-            if not isinstance(a_idx, pd.Timestamp):
-                raise TypeError("Expected pd.Timestamp")
-
-            idx = get_next_index(pivots.index, a_idx)
-
-            if idx >= pivot_len:
-                break
-
-            a_idx = pivots.index[idx]
+            a_idx = pivots.index[pos_after_a]
             a = pivots.at[a_idx, "P"]
             continue
 
-        b = pivots.at[b_idx, "P"]
+        pos_after_b = get_next_index(pivots.index, b_idx)
 
-        idx = get_next_index(pivots.index, b_idx)
-
-        if idx >= pivot_len:
+        if pos_after_b >= pivot_len:
             break
 
-        d_idx = pivots.loc[pivots.index[idx] :, "P"].idxmin()
+        d_idx = pivots.loc[pivots.index[pos_after_b] :, "P"].idxmin()
         d = pivots.at[d_idx, "P"]
 
-        c_idx = pivots.loc[b_idx:d_idx, "P"].idxmax()
+        c_idx = pivots.loc[pivots.index[pos_after_a] :, "P"].idxmax()
         c = pivots.at[c_idx, "P"]
 
-        idx = get_next_index(pivots.index, d_idx)
+        pos_after_c = get_next_index(pivots.index, c_idx)
 
-        if idx >= pivot_len:
+        if pos_after_c >= pivot_len:
             break
 
-        e_idx = pivots.loc[d_idx:f_idx, "P"].idxmax()
+        e_idx = pivots.loc[pivots.index[pos_after_c] :, "P"].idxmax()
         e = pivots.at[e_idx, "P"]
 
         if pivots.index.has_duplicates:
@@ -1008,8 +1018,10 @@ def find_triangles(
 
         if triangle is not None:
             # check if high of C or low of D has been breached
+            # Check if A is indeed the pivot high
             if (
-                c_idx != df.loc[c_idx:, "Close"].idxmax()
+                a == df.at[a_idx, "Low"]
+                or c_idx != df.loc[c_idx:, "Close"].idxmax()
                 or d_idx != df.loc[d_idx:, "Close"].idxmin()
             ):
                 a_idx, a = c_idx, c
@@ -1022,22 +1034,21 @@ def find_triangles(
             lower = generate_trend_line(df.Low, b_idx, d_idx)
 
             # If trendlines have intersected, pattern has played out
-
             if upper.line.end.y < lower.line.end.y:
                 break
 
-            # upper line must not be upsloping, 0 is straight line
-            # allow for some leeway
-            if triangle == "Ascending" and upper.slope > 0.2:
+            if triangle == "Ascending" and (
+                upper.slope > 0.1 or lower.slope < 0.2
+            ):
                 break
 
-            if triangle == "Descending" and lower.slope < -0.2:
+            if triangle == "Descending" and (
+                lower.slope < -0.1 or upper.slope > -0.2
+            ):
                 break
 
-            if (
-                triangle == "Symetric"
-                and upper.slope > -0.01
-                or lower.slope < 0.01
+            if triangle == "Symetric" and (
+                upper.slope > -0.2 or lower.slope < 0.2
             ):
                 break
 
