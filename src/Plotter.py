@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Literal, Optional
 from pathlib import Path
 import matplotlib.pyplot as plt
 import mplfinance as mpf
@@ -18,9 +18,11 @@ class Plotter:
         data,
         source_folder,
         save_folder: Optional[Path] = None,
+        mode: Literal["default", "expand"] = "default",
     ):
         self.source_folder = source_folder
         self.save_folder = save_folder
+        self.mode = mode
 
         self.plot_args = {
             "type": "candle",
@@ -102,6 +104,24 @@ class Plotter:
 
         df = self._prep_dataframe(sym, end_date)
 
+        if self.mode == "expand":
+            start = df.index.get_loc(dct["start"])
+            end = df.index.get_loc(dct["end"])
+
+            if isinstance(start, slice):
+                start = start.start
+
+            if isinstance(end, slice):
+                end = end.start
+
+            if not isinstance(start, int) or not isinstance(end, int):
+                raise TypeError("expected int")
+
+            start = max(start - 120, 0)
+            end = min(end + 120, len(df))
+
+            df = df.iloc[start:end]
+
         if pattern in ("Symetric", "Ascending", "Descending"):
             colors = "midnightblue"
         else:
@@ -169,6 +189,13 @@ class Plotter:
 
     @lru_cache(maxsize=6)
     def _prep_dataframe(self, sym: str, end_date: datetime) -> pd.DataFrame:
+        if self.mode == "expand":
+            return pd.read_csv(
+                self.source_folder / f"{sym.lower()}.csv",
+                index_col="Date",
+                parse_dates=["Date"],
+            )
+
         return csv_loader(
             self.source_folder / f"{sym.lower()}.csv",
             end_date=end_date,
