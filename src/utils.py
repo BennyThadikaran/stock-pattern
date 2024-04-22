@@ -186,7 +186,12 @@ def csv_loader(
 
                 start = newline_index + 1
 
-                current_dt = get_date(start, chunk)
+                try:
+                    current_dt = get_date(start, chunk)
+                except ValueError:
+                    # reached start of file. No valid date to parse
+                    chunks_read.append(chunk)
+                    break
 
                 if start_date is None:
                     start_date = datetime.now() - pd.offsets.BDay(
