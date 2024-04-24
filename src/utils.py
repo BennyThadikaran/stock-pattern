@@ -509,8 +509,8 @@ def generate_trend_line(
     """
     index = series.index
 
-    p1 = series[date1]
-    p2 = series[date2]
+    p1 = float(series[date1])
+    p2 = float(series[date2])
 
     d1 = index.get_loc(date1)
     d2 = index.get_loc(date2)
