@@ -208,7 +208,7 @@ def process(sym_list: List, fns: Tuple[Callable, ...]) -> List[dict]:
 
 
 if __name__ == "__main__":
-    version = "2.1.7"
+    version = "2.1.8"
 
     # Run the below code only when imported
     DIR = Path(__file__).parent
