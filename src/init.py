@@ -14,6 +14,21 @@ except ModuleNotFoundError:
     exit("tqdm is required. Run `pip install tqdm` to install")
 
 
+config_help = """
+Config help
+DATA_PATH: Folder path for OHLC csv data.
+
+SYM_LIST: Optional file with list of symbols, one per line.
+
+SAVE_FOLDER: Optional folder path to save charts as images.
+
+POST_SCAN_PLOT: If True, plots the results on chart, after a scan.
+
+SAVE_STATE: If True, previously detected patterns will not be displayed in
+subsequent scans.
+"""
+
+
 def get_user_input() -> str:
     user_input = input(
         """
@@ -85,7 +100,7 @@ def process(sym_list: List, fns: Tuple[Callable, ...]) -> List[dict]:
     state = None
     state_file = None
 
-    if args.file and not args.date:
+    if config["SAVE_STATE"] and args.file and not args.date:
         state_file = DIR / f"state/{args.file.stem}_{args.pattern}.json"
 
         if not state_file.parent.is_dir():
@@ -208,7 +223,7 @@ def process(sym_list: List, fns: Tuple[Callable, ...]) -> List[dict]:
 
 
 if __name__ == "__main__":
-    version = "2.1.8"
+    version = "2.1.9"
 
     # Run the below code only when imported
     DIR = Path(__file__).parent
@@ -222,19 +237,14 @@ if __name__ == "__main__":
         json_content = {
             "DATA_PATH": "",
             "POST_SCAN_PLOT": True,
+            "SAVE_STATE": False,
         }
 
         CONFIG_PATH.write_text(json.dumps(json_content, indent=2))
 
         print("user.json file generated. Edit `DATA_PATH` to add a data source")
 
-        print(
-            "\nConfig help\n",
-            "DATA_PATH: Folder path for OHLC csv data.\n\n",
-            "SYM_LIST: Optional file with list of symbols, one per line.\n\n",
-            "SAVE_FOLDER: Optional folder path to save charts as images.\n\n",
-            "POST_SCAN_PLOT: If True, plots the results on chart, after a scan.",
-        )
+        print(config_help)
 
         exit()
 
