@@ -42,7 +42,8 @@ This program does not provide any buy or sell signals. It only detects the patte
 {
   "DATA_PATH": "~/Documents/python/eod2/src/eod2_data/daily",
   "POST_SCAN_PLOT": true,
-  "SYM_LIST": "./nifty_500.csv"
+  "SYM_LIST": "./nifty_500.csv",
+  "SAVE_STATE": false
 }
 ```
 
