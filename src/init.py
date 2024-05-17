@@ -1,10 +1,10 @@
+import sys
 import json
 import concurrent.futures
 from pathlib import Path
 from argparse import ArgumentParser
 from datetime import datetime
 from typing import Callable, List, Optional, Tuple, Union, Dict
-from sys import argv
 from Plotter import Plotter
 import utils
 
@@ -13,6 +13,7 @@ try:
 except ModuleNotFoundError:
     exit("tqdm is required. Run `pip install tqdm` to install")
 
+futures: List[concurrent.futures.Future] = []
 
 config_help = """
 Config help
@@ -27,6 +28,15 @@ POST_SCAN_PLOT: If True, plots the results on chart, after a scan.
 SAVE_STATE: If True, previously detected patterns will not be displayed in
 subsequent scans.
 """
+
+
+def uncaught_exception_handler(*args):
+    """
+    Handle all Uncaught Exceptions
+
+    Function passed to sys.excepthook
+    """
+    utils.logger.critical("Uncaught Exception", exc_info=args)
 
 
 def get_user_input() -> str:
@@ -225,6 +235,8 @@ def process(sym_list: List, fns: Tuple[Callable, ...]) -> List[dict]:
 if __name__ == "__main__":
     version = "2.1.10"
 
+    sys.excepthook = uncaught_exception_handler
+
     # Run the below code only when imported
     DIR = Path(__file__).parent
     CONFIG_PATH = DIR / "user.json"
@@ -354,14 +366,14 @@ if __name__ == "__main__":
     )
 
     if sym_list is not None and not (
-        "-f" in argv
-        or "--file" in argv
-        or "--sym" in argv
-        or "-v" in argv
-        or "--version" in argv
-        or "--plot" in argv
+        "-f" in sys.argv
+        or "--file" in sys.argv
+        or "--sym" in sys.argv
+        or "-v" in sys.argv
+        or "--version" in sys.argv
+        or "--plot" in sys.argv
     ):
-        argv.extend(("-f", str(sym_list)))
+        sys.argv.extend(("-f", str(sym_list)))
 
     args = parser.parse_args()
 
