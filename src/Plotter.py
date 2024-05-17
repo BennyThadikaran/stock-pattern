@@ -53,8 +53,8 @@ class Plotter:
             print("\nChart Controls\n\tq: quit\n\tn: Next\n\tp: Previous")
 
     def save(self, dct):
-        if not isinstance(self.save_folder, Path):
-            raise TypeError("Expected pathlib.Path")
+
+        assert isinstance(self.save_folder, Path)
 
         sym = dct["sym"]
         pattern = dct["pattern"]
@@ -119,8 +119,8 @@ class Plotter:
             if isinstance(end, slice):
                 end = end.start
 
-            if not isinstance(start, int) or not isinstance(end, int):
-                raise TypeError("expected int")
+            assert isinstance(start, int)
+            assert isinstance(end, int)
 
             start = max(start - 120, 0)
             end = min(end + 120, len(df))

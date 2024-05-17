@@ -361,18 +361,12 @@ def generate_trend_line(
     lastIdx = index[-1]
     lastIdxPos = index.get_loc(lastIdx)
 
-    if not isinstance(lastIdx, pd.Timestamp):
-        raise TypeError("Expected pd.Timestamp")
-
-    if not isinstance(p1, float) or not isinstance(p2, float):
-        raise TypeError("Expected float")
-
-    if (
-        not isinstance(d1, int)
-        or not isinstance(d2, int)
-        or not isinstance(lastIdxPos, int)
-    ):
-        raise TypeError("Expected integer")
+    assert isinstance(lastIdx, pd.Timestamp)
+    assert isinstance(d1, int)
+    assert isinstance(d2, int)
+    assert isinstance(lastIdxPos, int)
+    assert isinstance(p1, float)
+    assert isinstance(p2, float)
 
     # b = y - mx
     # where m is slope,
@@ -402,8 +396,7 @@ def find_bullish_vcp(
     Else returns an Tuple of dicts containing plot arguments and pattern data.
     """
 
-    if not isinstance(pivots.index, pd.DatetimeIndex):
-        raise TypeError("Expected DatetimeIndex")
+    assert isinstance(pivots.index, pd.DatetimeIndex)
 
     pivot_len = pivots.shape[0]
     a_idx = pivots["P"].idxmax()
@@ -414,8 +407,7 @@ def find_bullish_vcp(
     e = df.at[e_idx, "Close"]
 
     while True:
-        if not isinstance(a_idx, pd.Timestamp):
-            raise TypeError("Expected pd.Timestamp")
+        assert isinstance(a_idx, pd.Timestamp)
 
         pos_after_a = get_next_index(pivots.index, a_idx)
 
@@ -501,8 +493,7 @@ def find_bearish_vcp(
     Else returns an Tuple of dicts containing plot arguments and pattern data.
     """
 
-    if not isinstance(pivots.index, pd.DatetimeIndex):
-        raise TypeError("Expected DatetimeIndex")
+    assert isinstance(pivots.index, pd.DatetimeIndex)
 
     pivot_len = pivots.shape[0]
     a_idx = pivots["P"].idxmin()
@@ -512,8 +503,7 @@ def find_bearish_vcp(
     e = df.at[e_idx, "Close"]
 
     while True:
-        if not isinstance(a_idx, pd.Timestamp):
-            raise TypeError("Expected pd.Timestamp")
+        assert isinstance(a_idx, pd.Timestamp)
 
         pos_after_a = get_next_index(pivots.index, a_idx)
 
@@ -598,8 +588,7 @@ def find_double_bottom(
     Else returns an Tuple of dicts containing plot arguments and pattern data.
     """
 
-    if not isinstance(pivots.index, pd.DatetimeIndex):
-        raise TypeError("Expected DatetimeIndex")
+    assert isinstance(pivots.index, pd.DatetimeIndex)
 
     pivot_len = pivots.shape[0]
     a_idx = pivots["P"].idxmin()
@@ -609,8 +598,7 @@ def find_double_bottom(
 
     atr_ser = get_atr(df.High, df.Low, df.Close)
 
-    if not isinstance(a_idx, pd.Timestamp):
-        raise TypeError("Expected pd.Timestamp")
+    assert isinstance(a_idx, pd.Timestamp)
 
     while True:
         pos_after_a = get_next_index(pivots.index, a_idx)
@@ -699,8 +687,7 @@ def find_double_top(
     Else returns an Tuple of dicts containing plot arguments and pattern data.
     """
 
-    if not isinstance(pivots.index, pd.DatetimeIndex):
-        raise TypeError("Expected DatetimeIndex")
+    assert isinstance(pivots.index, pd.DatetimeIndex)
 
     pivot_len = pivots.shape[0]
     a_idx = pivots["P"].idxmax()
@@ -710,8 +697,7 @@ def find_double_top(
 
     atr_ser = get_atr(df.High, df.Low, df.Close)
 
-    if not isinstance(a_idx, pd.Timestamp):
-        raise TypeError("Expected pd.Timestamp")
+    assert isinstance(a_idx, pd.Timestamp)
 
     while True:
         idx = get_next_index(pivots.index, a_idx)
@@ -796,8 +782,7 @@ def find_triangles(
     Else returns an Tuple of dicts containing plot arguments and pattern data.
     """
 
-    if not isinstance(pivots.index, pd.DatetimeIndex):
-        raise TypeError("Expected DatetimeIndex")
+    assert isinstance(pivots.index, pd.DatetimeIndex)
 
     pivot_len = pivots.shape[0]
     a_idx = pivots["P"].idxmax()
@@ -810,8 +795,7 @@ def find_triangles(
         b_idx = pivots.loc[a_idx:, "P"].idxmin()
         b = pivots.at[b_idx, "P"]
 
-        if not isinstance(a_idx, pd.Timestamp):
-            raise TypeError("Expected pd.Timestamp")
+        assert isinstance(a_idx, pd.Timestamp)
 
         pos_after_a = get_next_index(pivots.index, a_idx)
 
@@ -875,8 +859,7 @@ def find_triangles(
                 a_idx, a = c_idx, c
                 continue
 
-            if not isinstance(a_idx, pd.Timestamp):
-                raise TypeError("Expected pd.Timestamp")
+            assert isinstance(a_idx, pd.Timestamp)
 
             upper = generate_trend_line(df.High, a_idx, c_idx)
             lower = generate_trend_line(df.Low, b_idx, d_idx)
@@ -929,8 +912,7 @@ def find_hns(
     Else returns an Tuple of dicts containing plot arguments and pattern data.
     """
 
-    if not isinstance(pivots.index, pd.DatetimeIndex):
-        raise TypeError("Expected DatetimeIndex")
+    assert isinstance(pivots.index, pd.DatetimeIndex)
 
     pivot_len = pivots.shape[0]
     f_idx = df.index[-1]
@@ -939,8 +921,7 @@ def find_hns(
     c_idx = pivots["P"].idxmax()
     c = pivots.at[c_idx, "P"]
 
-    if not isinstance(c_idx, pd.Timestamp):
-        raise TypeError("Expected pd.Timestamp")
+    assert isinstance(c_idx, pd.Timestamp)
 
     while True:
         pos = get_prev_index(pivots.index, c_idx)
@@ -1021,8 +1002,7 @@ def find_hns(
             # and calculate value of y coordinate using y = mx + b
             x = df.index.get_loc(f_idx)
 
-            if not isinstance(x, int):
-                raise TypeError("Expected Integer")
+            assert isinstance(x, int)
 
             y = tline.slope * x + tline.y_int
 
@@ -1074,8 +1054,7 @@ def find_reverse_hns(
     Else returns an Tuple of dicts containing plot arguments and pattern data.
     """
 
-    if not isinstance(pivots.index, pd.DatetimeIndex):
-        raise TypeError("Expected DatetimeIndex")
+    assert isinstance(pivots.index, pd.DatetimeIndex)
 
     pivot_len = pivots.shape[0]
     f_idx = df.index[-1]
@@ -1084,8 +1063,7 @@ def find_reverse_hns(
     c_idx = pivots["P"].idxmin()
     c = pivots.at[c_idx, "P"]
 
-    if not isinstance(c_idx, pd.Timestamp):
-        raise TypeError("Expected pd.Timestamp")
+    assert isinstance(c_idx, pd.Timestamp)
 
     while True:
         pos = get_prev_index(pivots.index, c_idx)
@@ -1166,8 +1144,7 @@ def find_reverse_hns(
             # and calculate value of y coordinate using y = mx + b
             x = df.index.get_loc(df.index[-1])
 
-            if not isinstance(x, int):
-                raise TypeError("Expected Integer")
+            assert isinstance(x, int)
 
             y = tline.slope * x + tline.y_int
 
