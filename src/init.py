@@ -1,5 +1,6 @@
 import sys
 import json
+import logging
 import concurrent.futures
 from pathlib import Path
 from argparse import ArgumentParser
@@ -29,6 +30,13 @@ SAVE_STATE: If True, previously detected patterns will not be displayed in
 subsequent scans.
 """
 
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(message)s",
+)
+
+logger = logging.getLogger(__name__)
+
 
 def uncaught_exception_handler(*args):
     """
@@ -36,7 +44,7 @@ def uncaught_exception_handler(*args):
 
     Function passed to sys.excepthook
     """
-    utils.logger.critical("Uncaught Exception", exc_info=args)
+    logger.critical("Uncaught Exception", exc_info=args)
 
 
 def get_user_input() -> str:
@@ -140,7 +148,7 @@ def process(sym_list: List, fns: Tuple[Callable, ...]) -> List[dict]:
             file = data_path / f"{sym.lower()}.csv"
 
             if not file.exists():
-                utils.logging.warning(f"File not found: {file}")
+                logger.warning(f"File not found: {file}")
                 continue
 
             future = executor.submit(scan_pattern, sym, file, args.date, fns)
@@ -217,7 +225,7 @@ def process(sym_list: List, fns: Tuple[Callable, ...]) -> List[dict]:
                 future = executor.submit(plotter.save, i.copy())
                 futures.append(future)
 
-            utils.logging.info("Saving images")
+            logger.info("Saving images")
 
             for _ in tqdm(
                 concurrent.futures.as_completed(futures), total=len(futures)
@@ -225,7 +233,7 @@ def process(sym_list: List, fns: Tuple[Callable, ...]) -> List[dict]:
                 pass
 
         if state_file:
-            utils.logging.info(
+            logger.info(
                 f"\nTo view all current market patterns, run `py init.py --plot state/{state_file.name}\n"
             )
 
@@ -421,9 +429,7 @@ if __name__ == "__main__":
 
     fn = fn_dict[key]
 
-    utils.logging.info(
-        f"Scanning `{key.upper()}` patterns. Press Ctrl - C to exit"
-    )
+    logger.info(f"Scanning `{key.upper()}` patterns. Press Ctrl - C to exit")
 
     data = args.file.read_text().strip().split("\n") if args.file else args.sym
 
@@ -448,7 +454,7 @@ if __name__ == "__main__":
         patterns = process(data, fns)
     except KeyboardInterrupt:
         # Is there a better / graceful way to handle this?
-        utils.logging.info("User exit")
+        logger.info("User exit")
         exit()
 
     count = len(patterns)
@@ -458,7 +464,7 @@ if __name__ == "__main__":
 
     (DIR / f"{key.lower()}.json").write_text(json.dumps(patterns, indent=2))
 
-    utils.logging.info(
+    logger.info(
         f"Got {count} patterns for `{key}`.\n\nRun `py init.py --plot {key.lower()}.json` to view results.\n"
     )
 

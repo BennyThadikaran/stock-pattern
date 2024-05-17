@@ -244,7 +244,7 @@ def main(
             results.extend(result)
 
     if len(results):
-        utils.logger.warning(
+        logger.warning(
             f"Got {len(results)} patterns for {args.pattern.upper()}.\nRun `py backtest.py --plot {out_file.name}` to view results."
         )
 
@@ -258,20 +258,23 @@ def main(
 
         out_file.write_text(json.dumps(results, indent=2))
     else:
-        utils.logger.warning("No patterns found.")
+        logger.warning("No patterns found.")
 
 
 if __name__ == "__main__":
-    utils.logger.setLevel(logging.INFO)
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(message)s",
+    )
+
+    logger = logging.getLogger(__name__)
 
     DIR = Path(__file__).parent
 
     config_file = DIR / "user.json"
 
     if not config_file.exists():
-        utils.logger.fatal(
-            "Missing user.json. Run init.py to generate user.json"
-        )
+        logger.fatal("Missing user.json. Run init.py to generate user.json")
         exit()
 
     config = json.loads(config_file.read_bytes())
