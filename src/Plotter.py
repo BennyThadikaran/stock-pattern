@@ -2,10 +2,7 @@ from typing import Literal, Optional
 from pathlib import Path
 import matplotlib.pyplot as plt
 import mplfinance as mpf
-import pandas as pd
-from utils import csv_loader
-from datetime import datetime
-from functools import lru_cache
+from loaders.AbstractLoader import AbstractLoader
 
 
 class Plotter:
@@ -16,13 +13,14 @@ class Plotter:
     def __init__(
         self,
         data,
-        source_folder,
+        loader: AbstractLoader,
         save_folder: Optional[Path] = None,
         mode: Literal["default", "expand"] = "default",
     ):
-        self.source_folder = source_folder
         self.save_folder = save_folder
         self.mode = mode
+        self.loader = loader
+        self.timeframe = loader.tf
 
         self.plot_args = {
             "type": "candle",
@@ -61,21 +59,26 @@ class Plotter:
         sym = dct["sym"]
         pattern = dct["pattern"]
         lines = dct["lines"]
-        end_date = datetime.fromisoformat(dct["df_end"])
 
-        df = self._prep_dataframe(sym, end_date)
+        df = self.loader.get(sym)
+
+        if df is None:
+            raise ValueError(f"Unable to load data for {sym}")
 
         if pattern in ("Symetric", "Ascending", "Descending"):
             colors = "midnightblue"
         else:
             colors = ("green",) + ("midnightblue",) * (len(lines) - 1)
 
+        save_path = self.save_folder / f"{sym}_{pattern}_{self.timeframe}.png"
+
         self.plot_args.update(
             dict(
-                title=f"{sym} - {pattern}",
+                title=f"{sym} - {pattern} - {self.timeframe.capitalize()}",
                 figscale=1.2,
                 savefig=dict(
-                    fname=self.save_folder / f"{sym}_{pattern}.png", dpi=100
+                    fname=save_path,
+                    dpi=100,
                 ),
             )
         )
@@ -100,9 +103,11 @@ class Plotter:
         sym = dct["sym"]
         pattern = dct["pattern"]
         lines = dct["lines"]
-        end_date = datetime.fromisoformat(dct["df_end"])
 
-        df = self._prep_dataframe(sym, end_date)
+        df = self.loader.get(sym)
+
+        if df is None:
+            raise ValueError(f"Unable to load data for {sym}")
 
         if self.mode == "expand":
             start = df.index.get_loc(dct["start"])
@@ -127,7 +132,9 @@ class Plotter:
         else:
             colors = ("green",) + ("midnightblue",) * (len(lines) - 1)
 
-        self.plot_args["title"] = f"{sym} - {pattern}"
+        self.plot_args["title"] = (
+            f"{sym} - {pattern} - {self.timeframe.capitalize()}"
+        )
 
         self.plot_args["alines"].update({"alines": lines, "colors": colors})
 
@@ -186,20 +193,6 @@ class Plotter:
         self.idx_str = ""
         plt.close("all")
         self.plot()
-
-    @lru_cache(maxsize=6)
-    def _prep_dataframe(self, sym: str, end_date: datetime) -> pd.DataFrame:
-        if self.mode == "expand":
-            return pd.read_csv(
-                self.source_folder / f"{sym.lower()}.csv",
-                index_col="Date",
-                parse_dates=["Date"],
-            )
-
-        return csv_loader(
-            self.source_folder / f"{sym.lower()}.csv",
-            end_date=end_date,
-        )
 
     def _alert(self, string=""):
         return self.main_ax.set_title(
