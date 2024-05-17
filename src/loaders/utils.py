@@ -8,7 +8,7 @@ import os
 
 
 @lru_cache(maxsize=6)
-def csv_loader_v2(
+def csv_loader(
     file_path: Path,
     period: int = 160,
     end_date: Optional[datetime] = None,
