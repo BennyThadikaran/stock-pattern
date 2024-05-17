@@ -52,16 +52,16 @@ def get_user_input() -> str:
         """
     Enter a number to select a pattern.
 
-    0. Scan all patterns
-    1: All Bullish patterns
-    2: All Bearish patterns
-    3. Bullish VCP (Volatility Contraction pattern)
-    4. Bearish VCP
-    5. Double Bottom (Bullish)
-    6. Double Top (Bearish)
-    7. Head and Shoulder
-    8. Reverse Head and Shoulder
-    9. Triangles (Symetrical, Ascending, Descending)
+    0. ALL  - Scan all patterns
+    1: BULL - All Bullish patterns
+    2: BEAR - All Bearish patterns
+    3. VCPU - Bullish VCP (Volatility Contraction pattern)
+    4. VCPD - Bearish VCP
+    5. DBOT - Double Bottom (Bullish)
+    6. DTOP - Double Top (Bearish)
+    7. HNSD - Head and Shoulder
+    8. HNSU - Reverse Head and Shoulder
+    9. TRNG - Triangles (Symetrical, Ascending, Descending)
     > """
     )
 
