@@ -2,13 +2,15 @@ import json
 import utils
 import argparse
 import logging
+import importlib
 import concurrent.futures
-from typing import List
+from typing import List, Union
 import pandas as pd
 from datetime import datetime, timedelta
 from pathlib import Path
 from tqdm import tqdm
 from Plotter import Plotter
+from loaders.AbstractLoader import AbstractLoader
 
 """
 Backtest.py | Copyright (C) 2023 Benny Thadikaran
@@ -42,8 +44,6 @@ py backtest.py -p trng --date 2023-12-01 --period 60
 
 
 def parse_cli_args():
-    now = datetime.combine(datetime.now(), datetime.min.time())
-
     key_list = ("vcpu", "vcpd", "dbot", "dtop", "hnsu", "hnsd", "trng")
 
     parser = argparse.ArgumentParser(description="Run backdated pattern scan")
@@ -54,6 +54,12 @@ def parse_cli_args():
         type=lambda x: Path(x).expanduser().resolve(),
         default=None,
         help="Filepath with symbol list. One on each line",
+    )
+
+    parser.add_argument(
+        "--tf",
+        action="store",
+        help="Timeframe string.",
     )
 
     parser.add_argument(
@@ -82,9 +88,8 @@ def parse_cli_args():
     parser.add_argument(
         "-d",
         "--date",
-        type=lambda x: datetime.fromisoformat(x),
-        default=now - timedelta(120),
-        help="Ending date of scan. Defaults to 120 days back",
+        type=lambda x: datetime.fromisoformat(x) if x else x,
+        help="Ending date of scan.",
     )
 
     parser.add_argument(
@@ -103,7 +108,11 @@ def parse_cli_args():
 
 
 def scan(
-    file, end: datetime, period: int, fn: str, sym: str, count: int
+    loader: AbstractLoader,
+    end: Union[datetime, pd.Timestamp],
+    period: int,
+    fn: str,
+    sym: str,
 ) -> List[dict]:
     seen = {}
     results = []
@@ -118,16 +127,26 @@ def scan(
         "hnsu": utils.find_reverse_hns,
     }
 
-    df = pd.read_csv(
-        file,
-        index_col="Date",
-        parse_dates=["Date"],
-    )
+    df = loader.get(sym)
 
-    if df.empty or end < df.index[0] or end > df.index[-1]:
+    if (
+        df is None
+        or df.empty
+        or end is not None
+        and (end < df.index[0] or end > df.index[-1])
+    ):
         return results
 
-    pos = df.index.get_loc(end)
+    assert isinstance(df.index, pd.DatetimeIndex)
+
+    if end is None:
+        dt = df.index[-120]
+
+        assert isinstance(dt, pd.Timestamp)
+
+        end = dt.to_pydatetime()
+
+    pos = df.index.get_loc(df.index.asof(end))
 
     if isinstance(pos, slice):
         pos = pos.start
@@ -137,15 +156,10 @@ def scan(
     if start < df.index[0]:
         return results
 
-    if count == 0:
-        utils.logger.info(
-            f"Scan period: {start:%Y-%m-%d %H:%M} to {end:%Y-%m-%d %H:%M}"
-        )
-
-    if not isinstance(df.index, pd.DatetimeIndex):
-        raise TypeError("SCAN: expected DatetimeIndex")
+    assert isinstance(start, pd.Timestamp)
 
     dt_index = df.index.date
+
     has_time_component = utils.has_time_component(df.index)
 
     if has_time_component:
@@ -200,20 +214,26 @@ def scan(
     return results
 
 
-def main(sym_list: List[str], out_file: Path, source_folder: Path):
+def main(
+    sym_list: List[str],
+    out_file: Path,
+    loader: AbstractLoader,
+    end_date,
+    period,
+):
     results: List[dict] = []
     futures = []
 
     with concurrent.futures.ProcessPoolExecutor() as executor:
-        for count, sym in enumerate(sym_list):
-            file = source_folder / f"{sym.lower()}.csv"
-
-            if not file.exists():
-                utils.logger.warning(f"WARN: File not found {sym}: {file}")
-                continue
+        for sym in sym_list:
 
             future = executor.submit(
-                scan, file, args.date, args.period, args.pattern, sym, count
+                scan,
+                loader,
+                args.date,
+                args.period,
+                args.pattern,
+                sym,
             )
             futures.append(future)
 
@@ -226,6 +246,14 @@ def main(sym_list: List[str], out_file: Path, source_folder: Path):
     if len(results):
         utils.logger.warning(
             f"Got {len(results)} patterns for {args.pattern.upper()}.\nRun `py backtest.py --plot {out_file.name}` to view results."
+        )
+
+        results.append(
+            {
+                "timeframe": loader.tf,
+                "end_date": (end_date + timedelta(120)).isoformat(),
+                "period": period,
+            }
         )
 
         out_file.write_text(json.dumps(results, indent=2))
@@ -250,12 +278,33 @@ if __name__ == "__main__":
 
     args = parse_cli_args()
 
-    source_folder = Path(config["DATA_PATH"]).expanduser().resolve()
+    # Import Loader module
+    loader_name = config.get("LOADER", "EODFileLoader")
+
+    loader_module = importlib.import_module(f"loaders.{loader_name}")
 
     if args.plot:
-        plotter = Plotter(args.plot, source_folder, mode="expand")
+        meta = args.plot.pop()
+
+        loader = getattr(loader_module, loader_name)(
+            config,
+            meta["timeframe"],
+            end_date=datetime.fromisoformat(meta["end_date"]),
+            period=meta["period"],
+        )
+
+        plotter = Plotter(args.plot, loader, mode="expand")
         plotter.plot(args.idx)
         exit()
+
+    period = 120 + args.period + 120
+
+    loader = getattr(loader_module, loader_name)(
+        config,
+        args.tf,
+        end_date=args.date,
+        period=period,
+    )
 
     if args.file:
         file = args.file
@@ -267,6 +316,6 @@ if __name__ == "__main__":
         )
 
     sym_list = file.read_text().strip().split("\n")
-    output_file = DIR / f"bt_{args.pattern}.json"
+    output_file = DIR / f"bt_{args.pattern}_{loader.tf}.json"
 
-    main(sym_list, output_file, source_folder)
+    main(sym_list, output_file, loader, args.date, period)
