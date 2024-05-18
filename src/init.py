@@ -281,30 +281,7 @@ sys.excepthook = uncaught_exception_handler
 
 # Load configuration
 DIR = Path(__file__).parent
-CONFIG_PATH = DIR / "user.json"
 
-if CONFIG_PATH.exists():
-    config = json.loads(CONFIG_PATH.read_bytes())
-
-    data_path = Path(config["DATA_PATH"]).expanduser()
-else:
-    json_content = {
-        "DATA_PATH": "",
-        "POST_SCAN_PLOT": True,
-    }
-
-    CONFIG_PATH.write_text(json.dumps(json_content, indent=2))
-
-    print("user.json file generated. Edit `DATA_PATH` to add a data source")
-
-    print(config_help)
-
-    exit()
-
-if config["DATA_PATH"] == "" or not data_path.exists():
-    exit("`DATA_PATH` not found or not provided. Edit user.json.")
-
-sym_list = Path(config["SYM_LIST"]) if "SYM_LIST" in config else None
 
 key_list = (
     "all",
@@ -323,6 +300,15 @@ key_list = (
 parser = ArgumentParser(
     description="Python CLI tool to identify common Chart patterns",
     epilog="https://github.com/BennyThadikaran/stock-pattern",
+)
+
+parser.add_argument(
+    "-c",
+    "--config",
+    type=lambda x: Path(x).expanduser().resolve(),
+    default=None,
+    metavar="filepath",
+    help="Custom config file",
 )
 
 parser.add_argument(
@@ -412,6 +398,36 @@ group.add_argument(
     default=None,
     help="Plot results from json file",
 )
+
+if "-c" in sys.argv or "--config" in sys.argv:
+    idx = sys.argv.index("-c" if "-c" in sys.argv else "--config")
+
+    CONFIG_PATH = Path(sys.argv[idx + 1]).expanduser().resolve()
+else:
+    CONFIG_PATH = DIR / "user.json"
+
+if CONFIG_PATH.exists():
+    config = json.loads(CONFIG_PATH.read_bytes())
+
+    data_path = Path(config["DATA_PATH"]).expanduser()
+else:
+    json_content = {
+        "DATA_PATH": "",
+        "POST_SCAN_PLOT": True,
+    }
+
+    CONFIG_PATH.write_text(json.dumps(json_content, indent=2))
+
+    print("user.json file generated. Edit `DATA_PATH` to add a data source")
+
+    print(config_help)
+
+    exit()
+
+if config["DATA_PATH"] == "" or not data_path.exists():
+    exit("`DATA_PATH` not found or not provided. Edit user.json.")
+
+sym_list = Path(config["SYM_LIST"]) if "SYM_LIST" in config else None
 
 if sym_list is not None and not (
     "-f" in sys.argv
