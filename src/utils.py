@@ -612,6 +612,8 @@ def find_double_bottom(
         b_idx = pivots.loc[a_idx:c_idx, "P"].idxmax()
         b = pivots.at[b_idx, "P"]
 
+        atr = atr_ser.at[c_idx]
+
         if pivots.index.has_duplicates:
             if isinstance(a, (pd.Series, str)):
                 a = pivots.at[a_idx, "P"].iloc[1]
@@ -628,10 +630,11 @@ def find_double_bottom(
             if isinstance(cVol, (pd.Series, str)):
                 cVol = pivots.at[c_idx, "V"].iloc[1]
 
+            if isinstance(atr, pd.Series):
+                atr = atr_ser.at[c_idx].iloc[1]
+
         df_slice = df.loc[a_idx:c_idx]
         avgBarLength = (df_slice["High"] - df_slice["Low"]).mean()
-
-        atr = atr_ser.at[c_idx]
 
         if is_double_bottom(a, b, c, d, aVol, cVol, avgBarLength, atr):
             if (
@@ -711,6 +714,8 @@ def find_double_top(
         b_idx = pivots.loc[a_idx:c_idx, "P"].idxmin()
         b = pivots.at[b_idx, "P"]
 
+        atr = atr_ser.at[c_idx]
+
         if pivots.index.has_duplicates:
             if isinstance(a, (pd.Series, str)):
                 a = pivots.at[a_idx, "P"].iloc[0]
@@ -727,10 +732,11 @@ def find_double_top(
             if isinstance(cVol, (pd.Series, str)):
                 cVol = pivots.at[c_idx, "V"].iloc[0]
 
+            if isinstance(atr, pd.Series):
+                atr = atr_ser.at[c_idx].iloc[0]
+
         df_slice = df.loc[a_idx:c_idx]
         avgBarLength = (df_slice["High"] - df_slice["Low"]).mean()
-
-        atr = atr_ser.at[c_idx]
 
         if is_double_top(a, b, c, d, aVol, cVol, avgBarLength, atr):
             if (
