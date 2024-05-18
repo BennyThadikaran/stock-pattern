@@ -1,12 +1,9 @@
 from typing import Any, Optional, TypeVar, NamedTuple
-from datetime import datetime
-from pathlib import Path
 import numpy as np
 import pandas as pd
 import logging
-import sys
-import io
-import os
+
+logger = logging.getLogger(__name__)
 
 
 class Point(NamedTuple):
@@ -28,18 +25,6 @@ class Line(NamedTuple):
 T = TypeVar("T")
 
 is_silent = None
-
-
-def log_unhandled_exception(exc_type, exc_value, exc_trace):
-    """
-    Handle all Uncaught Exceptions
-
-    Function passed to sys.excepthook
-    """
-
-    logger.exception(
-        "Uncaught Exception", exc_info=(exc_type, exc_value, exc_trace)
-    )
 
 
 def make_serializable(obj: T) -> T:
@@ -86,148 +71,6 @@ def get_atr(
     tr["tr"] = tr[["h-l", "h-pc", "l-pc"]].max(axis=1)
 
     return tr.tr.rolling(window=window).mean()
-
-
-def csv_loader(
-    file_path: Path,
-    period=160,
-    end_date: Optional[datetime] = None,
-    chunk_size=1024 * 6,
-) -> pd.DataFrame:
-
-    def get_date(start, chunk) -> datetime:
-        end = chunk.find(b",", start)
-
-        date_str = chunk[start:end].decode()
-
-        if len(date_str) > 10:
-            return datetime.strptime(date_str[:16], datetime_fmt)
-
-        return datetime.strptime(date_str, date_fmt)
-
-    size = os.path.getsize(file_path)
-    datetime_fmt = "%Y-%m-%d %H:%M"
-    date_fmt = "%Y-%m-%d"
-
-    if size <= chunk_size and not end_date:
-        return pd.read_csv(
-            file_path, index_col="Date", parse_dates=["Date"]
-        ).iloc[-period:]
-
-    chunks_read = []  # store the bytes chunk in a list
-    start_date = None
-    prev_chunk_start_line = None
-    holiday_offset = max(3, period // 50 * 3)
-
-    if end_date:
-        start_date = end_date - pd.offsets.BDay(period + holiday_offset)
-
-    # Open in binary mode and read from end of file
-    with file_path.open("rb") as f:
-
-        # Read the first line of file to get column names
-        columns = f.readline()
-
-        curr_pos = size
-
-        while curr_pos > 0:
-            read_size = min(chunk_size, curr_pos)
-
-            # Set the current read position in the file
-            f.seek(curr_pos - read_size)
-
-            # From the current position read n bytes
-            chunk = f.read(read_size)
-
-            if end_date:
-                # First line in a chunk may not be complete line
-                # So skip the first line and parse the first date in chunk
-                newline_index = chunk.find(b"\n")
-
-                start = newline_index + 1
-
-                try:
-                    current_dt = get_date(start, chunk)
-                except ValueError:
-                    break
-
-                # start storing chunks once end date has reached
-                if current_dt <= end_date:
-                    if prev_chunk_start_line:
-                        chunk = chunk + prev_chunk_start_line
-                        prev_chunk_start_line = None
-
-                    if start_date and current_dt <= start_date:
-                        # reached starting date
-                        # add the columns to chunk and append it
-                        chunks_read.append(columns + chunk[start:])
-                        break
-
-                    chunks_read.append(chunk)
-                else:
-                    prev_chunk_start_line = chunk[: chunk.find(b"\n")]
-
-            else:
-
-                if curr_pos == size:
-                    # On first chunk, get the last date to calculate start_date
-                    last_newline_index = chunk[:-1].rfind(b"\n")
-
-                    start = last_newline_index + 1
-                    last_dt = get_date(start, chunk)
-
-                    start_date = last_dt - pd.offsets.BDay(
-                        period + holiday_offset
-                    )
-
-                # First line may not be a complete line.
-                # To skip this line, find the first newline character
-                newline_index = chunk.find(b"\n")
-
-                start = newline_index + 1
-
-                try:
-                    current_dt = get_date(start, chunk)
-                except ValueError:
-                    # reached start of file. No valid date to parse
-                    chunks_read.append(chunk)
-                    break
-
-                if start_date is None:
-                    start_date = datetime.now() - pd.offsets.BDay(
-                        period + holiday_offset
-                    )
-
-                if current_dt <= start_date:
-                    # Concatenate the columns and chunk together
-                    # and append to list
-                    chunks_read.append(columns + chunk[start:])
-                    break
-
-                # we are storing the chunks in bottom first order.
-                # This has to be corrected later by reversing the list
-                chunks_read.append(chunk)
-
-            curr_pos -= read_size
-
-        if end_date and not chunks_read:
-            # If chunks_read is empty, end_date was not found in file
-            raise IndexError("Date out of bounds of current DataFrame")
-
-        # Reverse the list and join it into a bytes string.
-        # Store the result in a buffer
-        buffer = io.BytesIO(b"".join(chunks_read[::-1]))
-
-    df = pd.read_csv(
-        buffer,
-        parse_dates=["Date"],
-        index_col="Date",
-    )
-
-    if end_date:
-        return df.loc[:end_date].iloc[-period:]
-    else:
-        return df.iloc[-period:]
 
 
 def is_triangle(
@@ -518,18 +361,12 @@ def generate_trend_line(
     lastIdx = index[-1]
     lastIdxPos = index.get_loc(lastIdx)
 
-    if not isinstance(lastIdx, pd.Timestamp):
-        raise TypeError("Expected pd.Timestamp")
-
-    if not isinstance(p1, float) or not isinstance(p2, float):
-        raise TypeError("Expected float")
-
-    if (
-        not isinstance(d1, int)
-        or not isinstance(d2, int)
-        or not isinstance(lastIdxPos, int)
-    ):
-        raise TypeError("Expected integer")
+    assert isinstance(lastIdx, pd.Timestamp)
+    assert isinstance(d1, int)
+    assert isinstance(d2, int)
+    assert isinstance(lastIdxPos, int)
+    assert isinstance(p1, float)
+    assert isinstance(p2, float)
 
     # b = y - mx
     # where m is slope,
@@ -559,8 +396,7 @@ def find_bullish_vcp(
     Else returns an Tuple of dicts containing plot arguments and pattern data.
     """
 
-    if not isinstance(pivots.index, pd.DatetimeIndex):
-        raise TypeError("Expected DatetimeIndex")
+    assert isinstance(pivots.index, pd.DatetimeIndex)
 
     pivot_len = pivots.shape[0]
     a_idx = pivots["P"].idxmax()
@@ -571,8 +407,7 @@ def find_bullish_vcp(
     e = df.at[e_idx, "Close"]
 
     while True:
-        if not isinstance(a_idx, pd.Timestamp):
-            raise TypeError("Expected pd.Timestamp")
+        assert isinstance(a_idx, pd.Timestamp)
 
         pos_after_a = get_next_index(pivots.index, a_idx)
 
@@ -658,8 +493,7 @@ def find_bearish_vcp(
     Else returns an Tuple of dicts containing plot arguments and pattern data.
     """
 
-    if not isinstance(pivots.index, pd.DatetimeIndex):
-        raise TypeError("Expected DatetimeIndex")
+    assert isinstance(pivots.index, pd.DatetimeIndex)
 
     pivot_len = pivots.shape[0]
     a_idx = pivots["P"].idxmin()
@@ -669,8 +503,7 @@ def find_bearish_vcp(
     e = df.at[e_idx, "Close"]
 
     while True:
-        if not isinstance(a_idx, pd.Timestamp):
-            raise TypeError("Expected pd.Timestamp")
+        assert isinstance(a_idx, pd.Timestamp)
 
         pos_after_a = get_next_index(pivots.index, a_idx)
 
@@ -755,8 +588,7 @@ def find_double_bottom(
     Else returns an Tuple of dicts containing plot arguments and pattern data.
     """
 
-    if not isinstance(pivots.index, pd.DatetimeIndex):
-        raise TypeError("Expected DatetimeIndex")
+    assert isinstance(pivots.index, pd.DatetimeIndex)
 
     pivot_len = pivots.shape[0]
     a_idx = pivots["P"].idxmin()
@@ -766,8 +598,7 @@ def find_double_bottom(
 
     atr_ser = get_atr(df.High, df.Low, df.Close)
 
-    if not isinstance(a_idx, pd.Timestamp):
-        raise TypeError("Expected pd.Timestamp")
+    assert isinstance(a_idx, pd.Timestamp)
 
     while True:
         pos_after_a = get_next_index(pivots.index, a_idx)
@@ -780,6 +611,8 @@ def find_double_bottom(
 
         b_idx = pivots.loc[a_idx:c_idx, "P"].idxmax()
         b = pivots.at[b_idx, "P"]
+
+        atr = atr_ser.at[c_idx]
 
         if pivots.index.has_duplicates:
             if isinstance(a, (pd.Series, str)):
@@ -797,10 +630,11 @@ def find_double_bottom(
             if isinstance(cVol, (pd.Series, str)):
                 cVol = pivots.at[c_idx, "V"].iloc[1]
 
+            if isinstance(atr, pd.Series):
+                atr = atr_ser.at[c_idx].iloc[1]
+
         df_slice = df.loc[a_idx:c_idx]
         avgBarLength = (df_slice["High"] - df_slice["Low"]).mean()
-
-        atr = atr_ser.at[c_idx]
 
         if is_double_bottom(a, b, c, d, aVol, cVol, avgBarLength, atr):
             if (
@@ -856,8 +690,7 @@ def find_double_top(
     Else returns an Tuple of dicts containing plot arguments and pattern data.
     """
 
-    if not isinstance(pivots.index, pd.DatetimeIndex):
-        raise TypeError("Expected DatetimeIndex")
+    assert isinstance(pivots.index, pd.DatetimeIndex)
 
     pivot_len = pivots.shape[0]
     a_idx = pivots["P"].idxmax()
@@ -867,8 +700,7 @@ def find_double_top(
 
     atr_ser = get_atr(df.High, df.Low, df.Close)
 
-    if not isinstance(a_idx, pd.Timestamp):
-        raise TypeError("Expected pd.Timestamp")
+    assert isinstance(a_idx, pd.Timestamp)
 
     while True:
         idx = get_next_index(pivots.index, a_idx)
@@ -881,6 +713,8 @@ def find_double_top(
 
         b_idx = pivots.loc[a_idx:c_idx, "P"].idxmin()
         b = pivots.at[b_idx, "P"]
+
+        atr = atr_ser.at[c_idx]
 
         if pivots.index.has_duplicates:
             if isinstance(a, (pd.Series, str)):
@@ -898,10 +732,11 @@ def find_double_top(
             if isinstance(cVol, (pd.Series, str)):
                 cVol = pivots.at[c_idx, "V"].iloc[0]
 
+            if isinstance(atr, pd.Series):
+                atr = atr_ser.at[c_idx].iloc[0]
+
         df_slice = df.loc[a_idx:c_idx]
         avgBarLength = (df_slice["High"] - df_slice["Low"]).mean()
-
-        atr = atr_ser.at[c_idx]
 
         if is_double_top(a, b, c, d, aVol, cVol, avgBarLength, atr):
             if (
@@ -953,8 +788,7 @@ def find_triangles(
     Else returns an Tuple of dicts containing plot arguments and pattern data.
     """
 
-    if not isinstance(pivots.index, pd.DatetimeIndex):
-        raise TypeError("Expected DatetimeIndex")
+    assert isinstance(pivots.index, pd.DatetimeIndex)
 
     pivot_len = pivots.shape[0]
     a_idx = pivots["P"].idxmax()
@@ -967,8 +801,7 @@ def find_triangles(
         b_idx = pivots.loc[a_idx:, "P"].idxmin()
         b = pivots.at[b_idx, "P"]
 
-        if not isinstance(a_idx, pd.Timestamp):
-            raise TypeError("Expected pd.Timestamp")
+        assert isinstance(a_idx, pd.Timestamp)
 
         pos_after_a = get_next_index(pivots.index, a_idx)
 
@@ -1032,8 +865,7 @@ def find_triangles(
                 a_idx, a = c_idx, c
                 continue
 
-            if not isinstance(a_idx, pd.Timestamp):
-                raise TypeError("Expected pd.Timestamp")
+            assert isinstance(a_idx, pd.Timestamp)
 
             upper = generate_trend_line(df.High, a_idx, c_idx)
             lower = generate_trend_line(df.Low, b_idx, d_idx)
@@ -1086,8 +918,7 @@ def find_hns(
     Else returns an Tuple of dicts containing plot arguments and pattern data.
     """
 
-    if not isinstance(pivots.index, pd.DatetimeIndex):
-        raise TypeError("Expected DatetimeIndex")
+    assert isinstance(pivots.index, pd.DatetimeIndex)
 
     pivot_len = pivots.shape[0]
     f_idx = df.index[-1]
@@ -1096,8 +927,7 @@ def find_hns(
     c_idx = pivots["P"].idxmax()
     c = pivots.at[c_idx, "P"]
 
-    if not isinstance(c_idx, pd.Timestamp):
-        raise TypeError("Expected pd.Timestamp")
+    assert isinstance(c_idx, pd.Timestamp)
 
     while True:
         pos = get_prev_index(pivots.index, c_idx)
@@ -1178,8 +1008,7 @@ def find_hns(
             # and calculate value of y coordinate using y = mx + b
             x = df.index.get_loc(f_idx)
 
-            if not isinstance(x, int):
-                raise TypeError("Expected Integer")
+            assert isinstance(x, int)
 
             y = tline.slope * x + tline.y_int
 
@@ -1231,8 +1060,7 @@ def find_reverse_hns(
     Else returns an Tuple of dicts containing plot arguments and pattern data.
     """
 
-    if not isinstance(pivots.index, pd.DatetimeIndex):
-        raise TypeError("Expected DatetimeIndex")
+    assert isinstance(pivots.index, pd.DatetimeIndex)
 
     pivot_len = pivots.shape[0]
     f_idx = df.index[-1]
@@ -1241,8 +1069,7 @@ def find_reverse_hns(
     c_idx = pivots["P"].idxmin()
     c = pivots.at[c_idx, "P"]
 
-    if not isinstance(c_idx, pd.Timestamp):
-        raise TypeError("Expected pd.Timestamp")
+    assert isinstance(c_idx, pd.Timestamp)
 
     while True:
         pos = get_prev_index(pivots.index, c_idx)
@@ -1323,8 +1150,7 @@ def find_reverse_hns(
             # and calculate value of y coordinate using y = mx + b
             x = df.index.get_loc(df.index[-1])
 
-            if not isinstance(x, int):
-                raise TypeError("Expected Integer")
+            assert isinstance(x, int)
 
             y = tline.slope * x + tline.y_int
 
@@ -1362,15 +1188,3 @@ def find_reverse_hns(
             )
 
         c_idx, c = e_idx, e
-
-
-if __name__ != "__main__":
-    logger = logging.getLogger("__main__")
-
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(message)s",
-        datefmt="%d-%m-%Y %H:%M",
-    )
-
-    sys.excepthook = log_unhandled_exception
