@@ -57,6 +57,9 @@ Note for Window users add an extra backslash `\\` for directory separators in JS
 ```
 
 ## Usage
+
+**Moving to version 3.0.0?** See [Quick usage and config](https://github.com/BennyThadikaran/stock-pattern/wiki/Quick-config-and-usage-summary-%E2%80%90-version-3.0.0)
+
 See [wiki Usage instructions](https://github.com/BennyThadikaran/stock-pattern/wiki/Usage)
 
 For backtest.py usage, see [wiki backtest](https://github.com/BennyThadikaran/stock-pattern/wiki/backtest-usage)
