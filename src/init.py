@@ -427,7 +427,7 @@ else:
 if config["DATA_PATH"] == "" or not data_path.exists():
     exit("`DATA_PATH` not found or not provided. Edit user.json.")
 
-sym_list = Path(config["SYM_LIST"]) if "SYM_LIST" in config else None
+sym_list = config["SYM_LIST"] if "SYM_LIST" in config else None
 
 if sym_list is not None and not (
     "-f" in sys.argv
@@ -437,7 +437,7 @@ if sym_list is not None and not (
     or "--version" in sys.argv
     or "--plot" in sys.argv
 ):
-    sys.argv.extend(("-f", str(sym_list)))
+    sys.argv.extend(("-f", sym_list))
 
 args = parser.parse_args()
 
