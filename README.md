@@ -6,7 +6,7 @@ A Python CLI scanner to detect and plot common chart patterns
 
 If you :heart: my work so far, please :star2: this repo.
 
-![stock-pattern-cli](https://res.cloudinary.com/doyu4uovr/image/upload/s--PG_RPaP6--/c_scale,f_auto,w_800/v1706704565/stock-pattern/stock-pattern-cli_sbw1ny.png)
+![stock-pattern-cli](https://res.cloudinary.com/doyu4uovr/image/upload/s--CieAES1A--/c_scale,f_auto,w_800/v1716034129/stock-pattern/stock-pattern-cli-v3_z92axi.png)
 
 These were a series of pattern scanners I wrote for experimentation and fun in 2022. My inspiration was this Medium article [Algorithmically Detecting (and Trading) Technical Chart Patterns with Python](https://medium.com/automation-generation/algorithmically-detecting-and-trading-technical-chart-patterns-with-python-c577b3a396ed)
 
