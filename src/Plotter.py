@@ -56,7 +56,7 @@ class Plotter:
 
         assert isinstance(self.save_folder, Path)
 
-        sym = dct["sym"]
+        sym = dct["sym"].upper()
         pattern = dct["pattern"]
         lines = dct["lines"]
 
@@ -100,7 +100,7 @@ class Plotter:
         print(stmt, flush=True, end="\r" * len(stmt))
 
         dct = self.data[self.idx]
-        sym = dct["sym"]
+        sym = dct["sym"].upper()
         pattern = dct["pattern"]
         lines = dct["lines"]
 
