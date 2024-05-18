@@ -129,12 +129,7 @@ def scan(
 
     df = loader.get(sym)
 
-    if (
-        df is None
-        or df.empty
-        or end is not None
-        and (end < df.index[0] or end > df.index[-1])
-    ):
+    if df is None or df.empty or end is not None and end < df.index[0]:
         return results
 
     assert isinstance(df.index, pd.DatetimeIndex)
