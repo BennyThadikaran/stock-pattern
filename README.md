@@ -41,9 +41,18 @@ This program does not provide any buy or sell signals. It only detects the patte
 ```json
 {
   "DATA_PATH": "~/Documents/python/eod2/src/eod2_data/daily",
+  "SYM_LIST": "~/Desktop/nifty_500.csv",
   "POST_SCAN_PLOT": true,
-  "SYM_LIST": "./nifty_500.csv",
-  "SAVE_STATE": false
+}
+```
+
+Note for Window users add an extra backslash `\\` for directory separators in JSON. This will avoid JSON decode errors.
+
+```json
+{
+  "DATA_PATH": "%USERPROFILE%\\Documents\\python\\eod2\\src\\eod2_data\\daily",
+  "SYM_LIST": "%USERPROFILE%\\Documents\\python\\stock-pattern\\src\\data.csv",
+  "POST_SCAN_PLOT": true
 }
 ```
 
