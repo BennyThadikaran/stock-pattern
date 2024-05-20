@@ -17,7 +17,7 @@ except ModuleNotFoundError:
     exit("tqdm is required. Run `pip install tqdm` to install")
 
 
-version = "3.0.1"
+version = "3.0.2"
 
 futures: List[concurrent.futures.Future] = []
 
