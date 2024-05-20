@@ -630,9 +630,6 @@ def find_double_bottom(
             if isinstance(cVol, (pd.Series, str)):
                 cVol = pivots.at[c_idx, "V"].iloc[1]
 
-            if isinstance(atr, pd.Series):
-                atr = atr_ser.at[c_idx].iloc[1]
-
         df_slice = df.loc[a_idx:c_idx]
         avgBarLength = (df_slice["High"] - df_slice["Low"]).mean()
 
@@ -732,9 +729,6 @@ def find_double_top(
             if isinstance(cVol, (pd.Series, str)):
                 cVol = pivots.at[c_idx, "V"].iloc[0]
 
-            if isinstance(atr, pd.Series):
-                atr = atr_ser.at[c_idx].iloc[0]
-
         df_slice = df.loc[a_idx:c_idx]
         avgBarLength = (df_slice["High"] - df_slice["Low"]).mean()
 
@@ -796,6 +790,9 @@ def find_triangles(
 
     f_idx = df.index[-1]
     f = df.at[f_idx, "Close"]
+
+    if isinstance(f, pd.Series):
+        f = f.iloc[1]
 
     while True:
         b_idx = pivots.loc[a_idx:, "P"].idxmin()
@@ -928,6 +925,9 @@ def find_hns(
     c = pivots.at[c_idx, "P"]
 
     assert isinstance(c_idx, pd.Timestamp)
+
+    if isinstance(f, pd.Series):
+        f = f.iloc[1]
 
     while True:
         pos = get_prev_index(pivots.index, c_idx)
@@ -1070,6 +1070,9 @@ def find_reverse_hns(
     c = pivots.at[c_idx, "P"]
 
     assert isinstance(c_idx, pd.Timestamp)
+
+    if isinstance(f, pd.Series):
+        f = f.iloc[1]
 
     while True:
         pos = get_prev_index(pivots.index, c_idx)
