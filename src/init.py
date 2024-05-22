@@ -17,27 +17,6 @@ except ModuleNotFoundError:
     exit("tqdm is required. Run `pip install tqdm` to install")
 
 
-version = "3.0.2"
-
-futures: List[concurrent.futures.Future] = []
-
-config_help = """
-Config help
-DATA_PATH: Folder path for OHLC csv data.
-
-SYM_LIST: Optional file with list of symbols, one per line.
-
-SAVE_FOLDER: Optional folder path to save charts as images.
-"""
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(message)s",
-)
-
-logger = logging.getLogger(__name__)
-
-
 def uncaught_exception_handler(*args):
     """
     Handle all Uncaught Exceptions
@@ -277,297 +256,320 @@ def process(
 
 
 # START
-sys.excepthook = uncaught_exception_handler
 
-# Load configuration
-DIR = Path(__file__).parent
+# Differentiate between the main thread and child threads on Windows
+# see https://stackoverflow.com/a/57811249
+if __name__ == "__main__":
+    version = "3.0.2"
 
+    futures: List[concurrent.futures.Future] = []
 
-key_list = (
-    "all",
-    "bull",
-    "bear",
-    "vcpu",
-    "dbot",
-    "hnsu",
-    "vcpd",
-    "dtop",
-    "hnsd",
-    "trng",
-)
+    config_help = """
+    Config help
+    DATA_PATH: Folder path for OHLC csv data.
 
-# Parse CLI arguments
-parser = ArgumentParser(
-    description="Python CLI tool to identify common Chart patterns",
-    epilog="https://github.com/BennyThadikaran/stock-pattern",
-)
+    SYM_LIST: Optional file with list of symbols, one per line.
 
-parser.add_argument(
-    "-c",
-    "--config",
-    type=lambda x: Path(x).expanduser().resolve(),
-    default=None,
-    metavar="filepath",
-    help="Custom config file",
-)
-
-parser.add_argument(
-    "-d",
-    "--date",
-    type=datetime.fromisoformat,
-    metavar="str",
-    help="ISO format date YYYY-MM-DD.",
-)
-
-parser.add_argument(
-    "--tf",
-    action="store",
-    help="Timeframe string.",
-)
-
-parser.add_argument(
-    "-p",
-    "--pattern",
-    type=str,
-    metavar="str",
-    choices=key_list,
-    help=f"String pattern. One of {', '.join(key_list)}",
-)
-
-parser.add_argument(
-    "-l",
-    "--left",
-    type=int,
-    metavar="int",
-    default=6,
-    help="Number of candles on left side of pivot",
-)
-
-parser.add_argument(
-    "-r",
-    "--right",
-    type=int,
-    metavar="int",
-    default=6,
-    help="Number of candles on right side of pivot",
-)
-
-parser.add_argument(
-    "--save",
-    type=Path,
-    nargs="?",
-    const=DIR / "images",
-    help="Specify the save directory",
-)
-
-parser.add_argument(
-    "--idx",
-    type=int,
-    default=0,
-    help="Index to plot",
-)
-
-group = parser.add_mutually_exclusive_group(required=True)
-
-group.add_argument(
-    "-f",
-    "--file",
-    type=lambda x: Path(x).expanduser().resolve(),
-    default=None,
-    metavar="filepath",
-    help="File containing list of stocks. One on each line",
-)
-
-group.add_argument(
-    "--sym",
-    nargs="+",
-    metavar="SYM",
-    help="Space separated list of stock symbols.",
-)
-
-group.add_argument(
-    "-v",
-    "--version",
-    action="store_true",
-    help="Print the current version.",
-)
-
-group.add_argument(
-    "--plot",
-    type=lambda x: Path(x).expanduser().resolve(),
-    default=None,
-    help="Plot results from json file",
-)
-
-if "-c" in sys.argv or "--config" in sys.argv:
-    idx = sys.argv.index("-c" if "-c" in sys.argv else "--config")
-
-    CONFIG_PATH = Path(sys.argv[idx + 1]).expanduser().resolve()
-else:
-    CONFIG_PATH = DIR / "user.json"
-
-if CONFIG_PATH.exists():
-    config = json.loads(CONFIG_PATH.read_bytes())
-
-    data_path = Path(config["DATA_PATH"]).expanduser()
-else:
-    json_content = {
-        "DATA_PATH": "",
-        "POST_SCAN_PLOT": True,
-    }
-
-    CONFIG_PATH.write_text(json.dumps(json_content, indent=2))
-
-    print("user.json file generated. Edit `DATA_PATH` to add a data source")
-
-    print(config_help)
-
-    exit()
-
-if config["DATA_PATH"] == "" or not data_path.exists():
-    exit("`DATA_PATH` not found or not provided. Edit user.json.")
-
-sym_list = config["SYM_LIST"] if "SYM_LIST" in config else None
-
-if sym_list is not None and not (
-    "-f" in sys.argv
-    or "--file" in sys.argv
-    or "--sym" in sys.argv
-    or "-v" in sys.argv
-    or "--version" in sys.argv
-    or "--plot" in sys.argv
-):
-    sys.argv.extend(("-f", sym_list))
-
-args = parser.parse_args()
-
-# Print version
-if args.version:
-    exit(
-        f"""
-    Stock-Pattern | Version {version}
-    Copyright (C) 2023 Benny Thadikaran 
-
-    Github: https://github.com/BennyThadikaran/stock-pattern
-
-    This program comes with ABSOLUTELY NO WARRANTY.
-    This is free software, and you are welcome to redistribute it
-    under certain conditions.
-    See license: https://www.gnu.org/licenses/gpl-3.0.en.html#license-text
+    SAVE_FOLDER: Optional folder path to save charts as images.
     """
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(message)s",
     )
 
-# Load data loader from config. Default loader is EODFileLoader
-loader_name = config.get("LOADER", "EODFileLoader")
+    logger = logging.getLogger(__name__)
 
-loader_module = importlib.import_module(f"loaders.{loader_name}")
+    sys.excepthook = uncaught_exception_handler
 
-if args.plot:
-    data = json.loads(args.plot.read_bytes())
+    # Load configuration
+    DIR = Path(__file__).parent
 
-    # Last item contains meta data about the timeframe used, end_date etc
-    meta = data.pop()
-
-    end_date = None
-
-    if meta["end_date"]:
-        end_date = datetime.fromisoformat(meta["end_date"])
-
-    loader = getattr(loader_module, loader_name)(
-        config,
-        meta["timeframe"],
-        end_date=end_date,
+    key_list = (
+        "all",
+        "bull",
+        "bear",
+        "vcpu",
+        "dbot",
+        "hnsu",
+        "vcpd",
+        "dtop",
+        "hnsd",
+        "trng",
     )
 
-    plotter = Plotter(data, loader)
-    plotter.plot(args.idx)
-    cleanup(loader, futures)
-    exit()
+    # Parse CLI arguments
+    parser = ArgumentParser(
+        description="Python CLI tool to identify common Chart patterns",
+        epilog="https://github.com/BennyThadikaran/stock-pattern",
+    )
 
-loader = getattr(loader_module, loader_name)(
-    config,
-    args.tf,
-    end_date=args.date,
-)
+    parser.add_argument(
+        "-c",
+        "--config",
+        type=lambda x: Path(x).expanduser().resolve(),
+        default=None,
+        metavar="filepath",
+        help="Custom config file",
+    )
 
-fn_dict: Dict[str, Union[str, Callable]] = {
-    "all": "all",
-    "bull": "bull",
-    "bear": "bear",
-    "vcpu": utils.find_bullish_vcp,
-    "dbot": utils.find_double_bottom,
-    "hnsu": utils.find_reverse_hns,
-    "vcpd": utils.find_bearish_vcp,
-    "dtop": utils.find_double_top,
-    "hnsd": utils.find_hns,
-    "trng": utils.find_triangles,
-}
+    parser.add_argument(
+        "-d",
+        "--date",
+        type=datetime.fromisoformat,
+        metavar="str",
+        help="ISO format date YYYY-MM-DD.",
+    )
 
-if args.pattern:
-    key: str = args.pattern
-else:
-    try:
-        user_input = get_user_input()
-    except KeyboardInterrupt:
+    parser.add_argument(
+        "--tf",
+        action="store",
+        help="Timeframe string.",
+    )
+
+    parser.add_argument(
+        "-p",
+        "--pattern",
+        type=str,
+        metavar="str",
+        choices=key_list,
+        help=f"String pattern. One of {', '.join(key_list)}",
+    )
+
+    parser.add_argument(
+        "-l",
+        "--left",
+        type=int,
+        metavar="int",
+        default=6,
+        help="Number of candles on left side of pivot",
+    )
+
+    parser.add_argument(
+        "-r",
+        "--right",
+        type=int,
+        metavar="int",
+        default=6,
+        help="Number of candles on right side of pivot",
+    )
+
+    parser.add_argument(
+        "--save",
+        type=Path,
+        nargs="?",
+        const=DIR / "images",
+        help="Specify the save directory",
+    )
+
+    parser.add_argument(
+        "--idx",
+        type=int,
+        default=0,
+        help="Index to plot",
+    )
+
+    group = parser.add_mutually_exclusive_group(required=True)
+
+    group.add_argument(
+        "-f",
+        "--file",
+        type=lambda x: Path(x).expanduser().resolve(),
+        default=None,
+        metavar="filepath",
+        help="File containing list of stocks. One on each line",
+    )
+
+    group.add_argument(
+        "--sym",
+        nargs="+",
+        metavar="SYM",
+        help="Space separated list of stock symbols.",
+    )
+
+    group.add_argument(
+        "-v",
+        "--version",
+        action="store_true",
+        help="Print the current version.",
+    )
+
+    group.add_argument(
+        "--plot",
+        type=lambda x: Path(x).expanduser().resolve(),
+        default=None,
+        help="Plot results from json file",
+    )
+
+    if "-c" in sys.argv or "--config" in sys.argv:
+        idx = sys.argv.index("-c" if "-c" in sys.argv else "--config")
+
+        CONFIG_PATH = Path(sys.argv[idx + 1]).expanduser().resolve()
+    else:
+        CONFIG_PATH = DIR / "user.json"
+
+    if CONFIG_PATH.exists():
+        config = json.loads(CONFIG_PATH.read_bytes())
+
+        data_path = Path(config["DATA_PATH"]).expanduser()
+    else:
+        json_content = {
+            "DATA_PATH": "",
+            "POST_SCAN_PLOT": True,
+        }
+
+        CONFIG_PATH.write_text(json.dumps(json_content, indent=2))
+
+        print("user.json file generated. Edit `DATA_PATH` to add a data source")
+
+        print(config_help)
+
+        exit()
+
+    if config["DATA_PATH"] == "" or not data_path.exists():
+        exit("`DATA_PATH` not found or not provided. Edit user.json.")
+
+    sym_list = config["SYM_LIST"] if "SYM_LIST" in config else None
+
+    if sym_list is not None and not (
+        "-f" in sys.argv
+        or "--file" in sys.argv
+        or "--sym" in sys.argv
+        or "-v" in sys.argv
+        or "--version" in sys.argv
+        or "--plot" in sys.argv
+    ):
+        sys.argv.extend(("-f", sym_list))
+
+    args = parser.parse_args()
+
+    # Print version
+    if args.version:
+        exit(
+            f"""
+        Stock-Pattern | Version {version}
+        Copyright (C) 2023 Benny Thadikaran 
+
+        Github: https://github.com/BennyThadikaran/stock-pattern
+
+        This program comes with ABSOLUTELY NO WARRANTY.
+        This is free software, and you are welcome to redistribute it
+        under certain conditions.
+        See license: https://www.gnu.org/licenses/gpl-3.0.en.html#license-text
+        """
+        )
+
+    # Load data loader from config. Default loader is EODFileLoader
+    loader_name = config.get("LOADER", "EODFileLoader")
+
+    loader_module = importlib.import_module(f"loaders.{loader_name}")
+
+    if args.plot:
+        data = json.loads(args.plot.read_bytes())
+
+        # Last item contains meta data about the timeframe used, end_date etc
+        meta = data.pop()
+
+        end_date = None
+
+        if meta["end_date"]:
+            end_date = datetime.fromisoformat(meta["end_date"])
+
+        loader = getattr(loader_module, loader_name)(
+            config,
+            meta["timeframe"],
+            end_date=end_date,
+        )
+
+        plotter = Plotter(data, loader)
+        plotter.plot(args.idx)
         cleanup(loader, futures)
         exit()
 
-    key = key_list[int(user_input)]
-
-    args.pattern = key
-
-fn = fn_dict[key]
-
-logger.info(
-    f"Scanning `{key.upper()}` patterns on `{loader.tf}`. Press Ctrl - C to exit"
-)
-
-data = args.file.read_text().strip().split("\n") if args.file else args.sym
-
-patterns: List[dict] = []
-
-if callable(fn):
-    fns = (fn,)
-elif fn == "bull":
-    fns = tuple(
-        v for k, v in fn_dict.items() if k in key_list[3:6] and callable(v)
-    )
-elif fn == "bear":
-    fns = tuple(
-        v for k, v in fn_dict.items() if k in key_list[6:9] and callable(v)
-    )
-else:
-    fns = tuple(
-        v for k, v in fn_dict.items() if k in key_list[3:] and callable(v)
+    loader = getattr(loader_module, loader_name)(
+        config,
+        args.tf,
+        end_date=args.date,
     )
 
-try:
-    patterns = process(data, fns, futures)
-except KeyboardInterrupt:
+    fn_dict: Dict[str, Union[str, Callable]] = {
+        "all": "all",
+        "bull": "bull",
+        "bear": "bear",
+        "vcpu": utils.find_bullish_vcp,
+        "dbot": utils.find_double_bottom,
+        "hnsu": utils.find_reverse_hns,
+        "vcpd": utils.find_bearish_vcp,
+        "dtop": utils.find_double_top,
+        "hnsd": utils.find_hns,
+        "trng": utils.find_triangles,
+    }
+
+    if args.pattern:
+        key: str = args.pattern
+    else:
+        try:
+            user_input = get_user_input()
+        except KeyboardInterrupt:
+            cleanup(loader, futures)
+            exit()
+
+        key = key_list[int(user_input)]
+
+        args.pattern = key
+
+    fn = fn_dict[key]
+
+    logger.info(
+        f"Scanning `{key.upper()}` patterns on `{loader.tf}`. Press Ctrl - C to exit"
+    )
+
+    data = args.file.read_text().strip().split("\n") if args.file else args.sym
+
+    patterns: List[dict] = []
+
+    if callable(fn):
+        fns = (fn,)
+    elif fn == "bull":
+        fns = tuple(
+            v for k, v in fn_dict.items() if k in key_list[3:6] and callable(v)
+        )
+    elif fn == "bear":
+        fns = tuple(
+            v for k, v in fn_dict.items() if k in key_list[6:9] and callable(v)
+        )
+    else:
+        fns = tuple(
+            v for k, v in fn_dict.items() if k in key_list[3:] and callable(v)
+        )
+
+    try:
+        patterns = process(data, fns, futures)
+    except KeyboardInterrupt:
+        cleanup(loader, futures)
+        logger.info("User exit")
+        exit()
+
+    count = len(patterns)
+
+    if count == 0:
+        cleanup(loader, futures)
+        exit("No patterns detected")
+
+    fname = f"{key.lower()}-{loader.tf}.json"
+
+    (DIR / fname).write_text(json.dumps(patterns, indent=2))
+
+    logger.info(
+        f"Got {count} patterns for `{key}`.\n\nRun `py init.py --plot {fname}` to view results."
+    )
+
+    if config.get("POST_SCAN_PLOT", True):
+        # last item in patterns is the meta data like timeframe, end_date etc
+        # Pop it out as we don't require it here
+        patterns.pop()
+
+        plotter = Plotter(patterns, loader)
+        plotter.plot()
+
     cleanup(loader, futures)
-    logger.info("User exit")
-    exit()
-
-count = len(patterns)
-
-if count == 0:
-    cleanup(loader, futures)
-    exit("No patterns detected")
-
-fname = f"{key.lower()}-{loader.tf}.json"
-
-(DIR / fname).write_text(json.dumps(patterns, indent=2))
-
-logger.info(
-    f"Got {count} patterns for `{key}`.\n\nRun `py init.py --plot {fname}` to view results."
-)
-
-if config.get("POST_SCAN_PLOT", True):
-    # last item in patterns is the meta data like timeframe, end_date etc
-    # Pop it out as we don't require it here
-    patterns.pop()
-
-    plotter = Plotter(patterns, loader)
-    plotter.plot()
-
-cleanup(loader, futures)
