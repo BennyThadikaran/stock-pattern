@@ -872,17 +872,17 @@ def find_triangles(
                 break
 
             if triangle == "Ascending" and (
-                upper.slope > 0.1 or lower.slope < 0.2
+                upper.slope > 0.1 and lower.slope < 0.2
             ):
                 break
 
             if triangle == "Descending" and (
-                lower.slope < -0.1 or upper.slope > -0.2
+                lower.slope < -0.1 and upper.slope > -0.2
             ):
                 break
 
             if triangle == "Symetric" and (
-                upper.slope > -0.2 or lower.slope < 0.2
+                upper.slope > -0.2 and lower.slope < 0.2
             ):
                 break
 
