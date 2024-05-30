@@ -41,7 +41,7 @@ def get_user_input() -> str:
     6. DTOP - Double Top (Bearish)
     7. HNSD - Head and Shoulder
     8. HNSU - Reverse Head and Shoulder
-    9. TRNG - Triangles (Symetrical, Ascending, Descending)
+    9. TRNG - Triangles (Symmetrical, Ascending, Descending)
     > """
     )
 
