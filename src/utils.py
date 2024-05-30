@@ -89,24 +89,35 @@ def is_triangle(
        /    \    /  \  /\
       /      \  /    \/  F
      /        \/      D
-    /         B
+    /         B            Symmetric
 
-    Height = A - B
+        A
+       /\      C
+      /  \    /\    E
+     /    \  /  \  /\ 
+    /      \/    \/  F
+           B     D         Descending
+
+         A       C     E
+        /\      /\    /\
+       /  \    /  \  /  \
+      /    \  /    \/    F
+     /      \/     D
+    /        B             Ascending
     """
-    if a > c > e and b < d < f and e > f:
-        return "Symetric"
+    is_ac_straight_line = abs(a - c) <= avgBarLength
+    is_ce_straight_line = abs(c - e) <= avgBarLength
 
-    a_c = abs(a - c) <= avgBarLength
-    c_e = abs(c - e) <= avgBarLength
-
-    if a_c and c_e and b < d < f < e:
+    if is_ac_straight_line and is_ce_straight_line and b < d < f < e:
         return "Ascending"
 
-    b_d = abs(b - d) <= avgBarLength
-    result = b_d and a > c > e > f and f > d
+    is_bd_straight_line = abs(b - d) <= avgBarLength
 
-    if result:
+    if is_bd_straight_line and a > c > e > f and f >= d:
         return "Descending"
+
+    if a > c > e and b < d < f and e > f:
+        return "Symmetric"
 
     return None
 
@@ -775,7 +786,7 @@ def find_triangles(
     df: pd.DataFrame,
     pivots: pd.DataFrame,
 ) -> Optional[dict]:
-    """Find Triangles - Symetric, Ascending, Descending.
+    """Find Triangles - Symmetric, Ascending, Descending.
 
     Returns None if no patterns found.
 
@@ -872,17 +883,17 @@ def find_triangles(
                 break
 
             if triangle == "Ascending" and (
-                upper.slope > 0.1 or lower.slope < 0.2
+                upper.slope > 0.1 and lower.slope < 0.2
             ):
                 break
 
             if triangle == "Descending" and (
-                lower.slope < -0.1 or upper.slope > -0.2
+                lower.slope < -0.1 and upper.slope > -0.2
             ):
                 break
 
-            if triangle == "Symetric" and (
-                upper.slope > -0.2 or lower.slope < 0.2
+            if triangle == "Symmetric" and (
+                upper.slope > -0.2 and lower.slope < 0.2
             ):
                 break
 

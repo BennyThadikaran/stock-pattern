@@ -41,7 +41,7 @@ def get_user_input() -> str:
     6. DTOP - Double Top (Bearish)
     7. HNSD - Head and Shoulder
     8. HNSU - Reverse Head and Shoulder
-    9. TRNG - Triangles (Symetrical, Ascending, Descending)
+    9. TRNG - Triangles (Symmetrical, Ascending, Descending)
     > """
     )
 
@@ -260,7 +260,7 @@ def process(
 # Differentiate between the main thread and child threads on Windows
 # see https://stackoverflow.com/a/57811249
 if __name__ == "__main__":
-    version = "3.0.3"
+    version = "3.1.0"
 
     futures: List[concurrent.futures.Future] = []
 

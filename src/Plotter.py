@@ -65,7 +65,7 @@ class Plotter:
         if df is None:
             raise ValueError(f"Unable to load data for {sym}")
 
-        if pattern in ("Symetric", "Ascending", "Descending"):
+        if pattern in ("Symmetric", "Ascending", "Descending"):
             colors = "midnightblue"
         else:
             colors = ("green",) + ("midnightblue",) * (len(lines) - 1)
@@ -127,7 +127,7 @@ class Plotter:
 
             df = df.iloc[start:end]
 
-        if pattern in ("Symetric", "Ascending", "Descending"):
+        if pattern in ("Symmetric", "Ascending", "Descending"):
             colors = "midnightblue"
         else:
             colors = ("green",) + ("midnightblue",) * (len(lines) - 1)
