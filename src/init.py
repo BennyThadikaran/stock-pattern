@@ -77,6 +77,9 @@ def scan_pattern(
     if df is None or df.empty:
         return patterns
 
+    if df.index.has_duplicates:
+        df = df[~df.index.duplicated()]
+
     pivots = utils.get_max_min(df, barsLeft=bars_left, barsRight=bars_right)
 
     if not pivots.shape[0]:
