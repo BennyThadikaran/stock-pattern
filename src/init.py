@@ -553,7 +553,7 @@ if __name__ == "__main__":
         logger.info("User exit")
         exit()
 
-    count = len(patterns) - 1
+    count = len(patterns)
 
     if count == 0:
         cleanup(loader, futures)
@@ -564,7 +564,7 @@ if __name__ == "__main__":
     (DIR / fname).write_text(json.dumps(patterns, indent=2))
 
     logger.info(
-        f"Got {count} patterns for `{key}`.\n\nRun `py init.py --plot {fname}` to view results."
+        f"Got {count - 1} patterns for `{key}`.\n\nRun `py init.py --plot {fname}` to view results."
     )
 
     if config.get("POST_SCAN_PLOT", True):
