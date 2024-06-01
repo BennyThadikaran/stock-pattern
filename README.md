@@ -23,35 +23,36 @@ This program does not provide any buy or sell signals. It only detects the patte
 > **Stock-Pattern is being constantly updated with new features and bug fixes. Run `git pull` to get the latest updates.**
 
 1. Clone or download the repo:
-    ```
-    git clone https://github.com/BennyThadikaran/stock-pattern.git
-    ```
-2. Install dependencies: 
-    ```
-    pip install -r requirements.txt
-    ```
+   ```
+   git clone https://github.com/BennyThadikaran/stock-pattern.git
+   ```
+2. Install dependencies:
+   ```
+   pip install -r requirements.txt
+   ```
 3. Run `init.py`. It will generate a `user.json` file
 4. Open `user.json` and edit the `DATA_PATH` with the folder path to your OHLC data. Files must be in CSV format in any timeframe.
    - If using [EOD2](https://github.com/BennyThadikaran/eod2) point it to `src/eod2_data/daily`
-   - Optionally, add a `SYM_LIST` with a file path (CSV or TXT file) containing a list of symbols to scan. (One on each line). It will serve as a default watchlist to scan. See [wiki Usage](https://github.com/BennyThadikaran/stock-pattern/wiki/Usage)
-   - **Windows users: add an extra backslash for file paths to avoid JSON decode errors. `\\Documents\\python\\stock-pattern`**
-5. See [wiki Configuration](https://github.com/BennyThadikaran/stock-pattern/wiki/Usage#configuration) for more options
-
+5. Optionally, add a `SYM_LIST` with a file path (CSV or TXT file) containing a list of symbols to scan. (One on each line). It will serve as a default watchlist to scan. See [wiki Usage](https://github.com/BennyThadikaran/stock-pattern/wiki/Usage)
+6. See [wiki Configuration](https://github.com/BennyThadikaran/stock-pattern/wiki/Usage#configuration) for more options
 
 ```json
 {
   "DATA_PATH": "~/Documents/python/eod2/src/eod2_data/daily",
   "SYM_LIST": "~/Desktop/nifty_500.csv",
-  "POST_SCAN_PLOT": true,
+  "POST_SCAN_PLOT": true
 }
 ```
 
-Note for Window users add an extra backslash `\\` for directory separators in JSON. This will avoid JSON decode errors.
+**Note for Window users**
+
+- Add an extra backslash `\\` for directory separators in JSON. This will avoid JSON decode errors.
+- Tilde `~` works on both Windows and Linux and expands to user's folder
 
 ```json
 {
-  "DATA_PATH": "%USERPROFILE%\\Documents\\python\\eod2\\src\\eod2_data\\daily",
-  "SYM_LIST": "%USERPROFILE%\\Documents\\python\\stock-pattern\\src\\data.csv",
+  "DATA_PATH": "~\\Documents\\python\\eod2\\src\\eod2_data\\daily",
+  "SYM_LIST": "~\\Documents\\python\\stock-pattern\\src\\data.csv",
   "POST_SCAN_PLOT": true
 }
 ```
