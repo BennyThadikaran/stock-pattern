@@ -414,12 +414,12 @@ def find_bullish_vcp(
 
     a = pivots.at[a_idx, "P"]
 
+    assert isinstance(a_idx, pd.Timestamp)
+
     e_idx = df.index[-1]
     e = df.at[e_idx, "Close"]
 
     while True:
-        assert isinstance(a_idx, pd.Timestamp)
-
         pos_after_a = get_next_index(pivots.index, a_idx)
 
         if pos_after_a >= pivot_len:
@@ -510,12 +510,12 @@ def find_bearish_vcp(
     a_idx = pivots["P"].idxmin()
     a = pivots.at[a_idx, "P"]
 
+    assert isinstance(a_idx, pd.Timestamp)
+
     e_idx = df.index[-1]
     e = df.at[e_idx, "Close"]
 
     while True:
-        assert isinstance(a_idx, pd.Timestamp)
-
         pos_after_a = get_next_index(pivots.index, a_idx)
 
         if pos_after_a >= pivot_len:
@@ -802,9 +802,6 @@ def find_triangles(
     f_idx = df.index[-1]
     f = df.at[f_idx, "Close"]
 
-    if isinstance(f, pd.Series):
-        f = f.iloc[1]
-
     while True:
         b_idx = pivots.loc[a_idx:, "P"].idxmin()
         b = pivots.at[b_idx, "P"]
@@ -873,8 +870,6 @@ def find_triangles(
                 a_idx, a = c_idx, c
                 continue
 
-            assert isinstance(a_idx, pd.Timestamp)
-
             upper = generate_trend_line(df.High, a_idx, c_idx)
             lower = generate_trend_line(df.Low, b_idx, d_idx)
 
@@ -936,9 +931,6 @@ def find_hns(
     c = pivots.at[c_idx, "P"]
 
     assert isinstance(c_idx, pd.Timestamp)
-
-    if isinstance(f, pd.Series):
-        f = f.iloc[1]
 
     while True:
         pos = get_prev_index(pivots.index, c_idx)
@@ -1081,9 +1073,6 @@ def find_reverse_hns(
     c = pivots.at[c_idx, "P"]
 
     assert isinstance(c_idx, pd.Timestamp)
-
-    if isinstance(f, pd.Series):
-        f = f.iloc[1]
 
     while True:
         pos = get_prev_index(pivots.index, c_idx)
