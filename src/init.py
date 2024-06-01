@@ -553,7 +553,7 @@ if __name__ == "__main__":
         logger.info("User exit")
         exit()
 
-    count = len(patterns)
+    count = len(patterns) - 1
 
     if count == 0:
         cleanup(loader, futures)
