@@ -297,11 +297,11 @@ if __name__ == "__main__":
         "bull",
         "bear",
         "vcpu",
-        "dbot",
-        "hnsu",
         "vcpd",
+        "dbot",
         "dtop",
         "hnsd",
+        "hnsu",
         "trng",
     )
 
@@ -538,12 +538,16 @@ if __name__ == "__main__":
     if callable(fn):
         fns = (fn,)
     elif fn == "bull":
+        bull_list = ("vcpu", "hnsu", "dbot")
+
         fns = tuple(
-            v for k, v in fn_dict.items() if k in key_list[3:6] and callable(v)
+            v for k, v in fn_dict.items() if k in bull_list and callable(v)
         )
     elif fn == "bear":
+        bear_list = ("vcpd", "hnsd", "dtop")
+
         fns = tuple(
-            v for k, v in fn_dict.items() if k in key_list[6:9] and callable(v)
+            v for k, v in fn_dict.items() if k in bear_list and callable(v)
         )
     else:
         fns = tuple(
