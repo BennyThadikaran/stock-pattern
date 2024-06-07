@@ -89,7 +89,11 @@ def scan_pattern(
         if not callable(fn):
             raise TypeError(f"Expected callable. Got {type(fn)}")
 
-        result = fn(sym, df, pivots)
+        try:
+            result = fn(sym, df, pivots)
+        except Exception as e:
+            logger.exception(f"SYMBOL name: {sym}", exc_info=e)
+            return patterns
 
         if result:
             patterns.append(utils.make_serializable(result))
