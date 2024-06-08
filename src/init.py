@@ -89,7 +89,11 @@ def scan_pattern(
         if not callable(fn):
             raise TypeError(f"Expected callable. Got {type(fn)}")
 
-        result = fn(sym, df, pivots)
+        try:
+            result = fn(sym, df, pivots)
+        except Exception as e:
+            logger.exception(f"SYMBOL name: {sym}", exc_info=e)
+            return patterns
 
         if result:
             patterns.append(utils.make_serializable(result))
@@ -263,7 +267,7 @@ def process(
 # Differentiate between the main thread and child threads on Windows
 # see https://stackoverflow.com/a/57811249
 if __name__ == "__main__":
-    version = "3.1.1"
+    version = "3.1.2"
 
     futures: List[concurrent.futures.Future] = []
 
@@ -293,11 +297,11 @@ if __name__ == "__main__":
         "bull",
         "bear",
         "vcpu",
-        "dbot",
-        "hnsu",
         "vcpd",
+        "dbot",
         "dtop",
         "hnsd",
+        "hnsu",
         "trng",
     )
 
@@ -534,12 +538,16 @@ if __name__ == "__main__":
     if callable(fn):
         fns = (fn,)
     elif fn == "bull":
+        bull_list = ("vcpu", "hnsu", "dbot")
+
         fns = tuple(
-            v for k, v in fn_dict.items() if k in key_list[3:6] and callable(v)
+            v for k, v in fn_dict.items() if k in bull_list and callable(v)
         )
     elif fn == "bear":
+        bear_list = ("vcpd", "hnsd", "dtop")
+
         fns = tuple(
-            v for k, v in fn_dict.items() if k in key_list[6:9] and callable(v)
+            v for k, v in fn_dict.items() if k in bear_list and callable(v)
         )
     else:
         fns = tuple(
