@@ -31,10 +31,20 @@ This program does not provide any buy or sell signals. It only detects the patte
    pip install -r requirements.txt
    ```
 3. Run `init.py`. It will generate a `user.json` file
-4. Open `user.json` and edit the `DATA_PATH` with the folder path to your OHLC data. Files must be in CSV format in any timeframe.
+4. Open `user.json` and edit the `DATA_PATH` with the folder path to your OHLC data.
+   - Files must be in CSV format in any timeframe and filenames must be lowercase. For ex. infy.csv
    - If using [EOD2](https://github.com/BennyThadikaran/eod2) point it to `src/eod2_data/daily`
-5. Optionally, add a `SYM_LIST` with a file path (CSV or TXT file) containing a list of symbols to scan. (One on each line). It will serve as a default watchlist to scan. See [wiki Usage](https://github.com/BennyThadikaran/stock-pattern/wiki/Usage)
-6. See [wiki Configuration](https://github.com/BennyThadikaran/stock-pattern/wiki/Usage#configuration) for more options
+6. Optionally, add a `SYM_LIST` with a file path (CSV or TXT file) containing a list of symbols to scan (One on each line).
+   
+```
+# Assuming your files are named infy.csv etc.
+infy
+tcs
+marksans
+godrejind
+```
+
+7. See [wiki Configuration](https://github.com/BennyThadikaran/stock-pattern/wiki/Usage#configuration) for more options
 
 ```json
 {
@@ -64,6 +74,10 @@ This program does not provide any buy or sell signals. It only detects the patte
 See [wiki Usage instructions](https://github.com/BennyThadikaran/stock-pattern/wiki/Usage)
 
 For backtest.py usage, see [wiki backtest](https://github.com/BennyThadikaran/stock-pattern/wiki/backtest-usage)
+
+## Notes on structure of OHLC data
+- The following columns are expected: **Date, Open, High, Low, Close, Volume.** Additonal columns may exist.
+- Dates must be in Descending order (Oldest to Newest).
 
 ## Screenshots
 
