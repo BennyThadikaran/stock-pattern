@@ -5,6 +5,16 @@ import pandas as pd
 import json
 import os
 
+"""
+This script help you configure the user.json. Just answer the questions asked
+with the choices provided.
+
+You can use Tab key to autocomplete filepath.
+
+File separator is a forward slash `/` for all OS platforms.
+
+All filepaths are relative to the users home folder.
+"""
 
 try:
     import questionary
