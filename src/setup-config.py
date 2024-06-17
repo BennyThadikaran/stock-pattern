@@ -123,7 +123,7 @@ def validate_watchlist_file(file_path: Path) -> bool:
 
 def ask_default_source(user: Path) -> str:
     return questionary.path(
-        "Whats the folder path to your OHLC data? Press Tab to autocomplete",
+        "Provide folder path to OHLC data? Press Tab to autocomplete",
         only_directories=True,
         get_paths=lambda: [str(user)],
         validate=lambda fpath: Path(f"{user}/{fpath}").is_dir(),
@@ -167,7 +167,7 @@ def ask_default_timeframe(loader: str) -> str:
 def ask_watchlist(user: Path) -> Path:
 
     watchlist_path = questionary.path(
-        """What's the filepath to your watchlist?
+        """Provide the filepath to watchlist file?
     A text or CSV file with symbol names (one on each line).
     Press Tab to Autocomplete.""",
         get_paths=lambda: [str(user)],
@@ -197,7 +197,7 @@ def main() -> Tuple[Path, dict]:
         config_choice_list = ["Edit user.json", "Create custom config"]
 
         config_choice = questionary.select(
-            "What do wish to do?",
+            "What do you wish to do?",
             choices=config_choice_list,
         ).ask()
 
