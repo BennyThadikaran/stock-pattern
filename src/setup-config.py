@@ -4,6 +4,7 @@ from typing import Tuple, BinaryIO
 import pandas as pd
 import json
 import os
+import re
 
 """
 This script help you configure the user.json. Just answer the questions asked
@@ -101,6 +102,25 @@ def validate_ohlc_file(folder: Path) -> bool:
     return is_valid
 
 
+def validate_watchlist_file(file_path: Path) -> bool:
+    regex = re.compile(rb"[,;\t/]")
+    err_str = "Comma, semicolon and tab chars not allowed."
+    count = 0
+
+    with file_path.open("rb") as f:
+        while True:
+            line = f.readline().strip()
+
+            if not line:
+                break
+
+            if re.findall(regex, line):
+                print(f"Line no: {count}: {line.decode()}\n{err_str}")
+                return False
+
+    return True
+
+
 def ask_default_source(user: Path) -> str:
     return questionary.path(
         "Whats the folder path to your OHLC data? Press Tab to autocomplete",
@@ -144,7 +164,7 @@ def ask_default_timeframe(loader: str) -> str:
     return tf.lower()
 
 
-def ask_watchlist(user: Path) -> str:
+def ask_watchlist(user: Path) -> Path:
 
     watchlist_path = questionary.path(
         """What's the filepath to your watchlist?
@@ -154,7 +174,7 @@ def ask_watchlist(user: Path) -> str:
         validate=lambda fpath: (user / fpath).is_file(),
     ).ask()
 
-    return str(user / watchlist_path)
+    return user / watchlist_path
 
 
 def main() -> Tuple[Path, dict]:
@@ -214,7 +234,7 @@ def main() -> Tuple[Path, dict]:
                     # EDIT SYM_LIST
                     watchlist_path = ask_watchlist(user)
 
-                    config["SYM_LIST"] = watchlist_path
+                    config["SYM_LIST"] = str(watchlist_path)
                 else:
                     # EDIT LOADER and DEFAULT_TF
                     loader_choice = ask_loader_name()
@@ -250,7 +270,14 @@ def main() -> Tuple[Path, dict]:
     if needs_watchlist:
         watchlist_path = ask_watchlist(user)
 
-        config["SYM_LIST"] = watchlist_path
+        config["SYM_LIST"] = str(watchlist_path)
+
+        print("Validating Watchlist file")
+
+        if not validate_watchlist_file(watchlist_path):
+            exit("Please correct issues in your watchlist file")
+
+        print("✓ Passed validation")
 
     return config_file, config
 
