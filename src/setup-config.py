@@ -76,7 +76,10 @@ def validate_ohlc_file(folder: Path) -> bool:
                 if col in columns:
                     continue
 
-                print(f"WARNING: {file.name} - {missing_cols}")
+                questionary.print(
+                    f"WARNING: {file.name} - {missing_cols}",
+                    style=warning_color,
+                )
                 is_valid = False
 
             second_line = f.readline()
@@ -88,12 +91,18 @@ def validate_ohlc_file(folder: Path) -> bool:
             last_date = get_last_date(f)
 
             if pd.isna(start_date) or pd.isna(last_date):
-                print(f"WARNING: {file.name} - {invalid_dates}")
+                questionary.print(
+                    f"WARNING: {file.name} - {invalid_dates}",
+                    style=warning_color,
+                )
                 is_valid = False
                 break
 
             if start_date > last_date:
-                print(f"WARNING: {file.name} - {invalid_date_format}")
+                questionary.print(
+                    f"WARNING: {file.name} - {invalid_date_format}",
+                    style=warning_color,
+                )
                 is_valid = False
                 break
 
@@ -115,7 +124,10 @@ def validate_watchlist_file(file_path: Path) -> bool:
                 break
 
             if re.findall(regex, line):
-                print(f"Line no: {count}: {line.decode()}\n{err_str}")
+                questionary.print(
+                    f"Line no: {count}: {line.decode()}\n{err_str}",
+                    style=warning_color,
+                )
                 return False
 
     return True
@@ -189,8 +201,14 @@ def main() -> Tuple[Path, dict]:
 
     user = Path("~").expanduser()
 
-    print("Press Tab to autocomplete Filepath or Folders\n")
-    print(f"Filepaths are relative to: {user}\n")
+    questionary.print(
+        "# Press TAB key to autocomplete filepath or folders\n",
+        style=notice_color,
+    )
+
+    questionary.print(
+        f"# Filepaths are relative to: {user}\n", style=notice_color
+    )
 
     # DEFAULT OR CUSTOM CONFIG
     if config_file.exists():
@@ -251,8 +269,12 @@ def main() -> Tuple[Path, dict]:
     # OHLC DATA FOLDER
     data_path = ask_default_source(user)
 
+    print("Validating OHLC files")
+
     if not validate_ohlc_file(user / data_path):
-        print("Please correct OHLC files issues and try again.")
+        exit("Please correct OHLC file issues and try again.")
+
+    questionary.print("✓ Passed validation", style=success_color)
 
     config["DATA_PATH"] = str(user / data_path)
 
@@ -277,12 +299,16 @@ def main() -> Tuple[Path, dict]:
         if not validate_watchlist_file(watchlist_path):
             exit("Please correct issues in your watchlist file")
 
-        print("✓ Passed validation")
+        questionary.print("✓ Passed validation", style=success_color)
 
     return config_file, config
 
 
 if __name__ == "__main__":
+
+    warning_color = "fg:red"
+    success_color = "fg:green"
+    notice_color = "fg:yellow"
 
     config_file, config = main()
 
