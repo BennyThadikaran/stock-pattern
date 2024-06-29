@@ -23,27 +23,6 @@ except ModuleNotFoundError:
     exit("Missing package questionary. Run `pip install questionary`")
 
 
-def get_last_date(f: BinaryIO) -> datetime:
-    # source: https://stackoverflow.com/a/68413780
-    try:
-        # seek 2 bytes to the last line ending ( \n )
-        f.seek(-2, os.SEEK_END)
-
-        # seek backwards 2 bytes till the next line ending
-        while f.read(1) != b"\n":
-            f.seek(-2, os.SEEK_CUR)
-
-    except OSError:
-        # catch OSError in case of a one line file
-        f.seek(0)
-
-    # we have the last line
-    last_line = f.readline()
-    date = last_line[: last_line.find(b",")].decode()
-
-    return pd.to_datetime(date, errors="coerce")
-
-
 def validate_ohlc_file(folder: Path) -> bool:
     """
     Check for empty files, missing columns, wrong date order and
@@ -55,10 +34,6 @@ def validate_ohlc_file(folder: Path) -> bool:
     expected_columns = (b"Date", b"Open", b"High", b"Low", b"Close", b"Volume")
 
     missing_cols = "Files must have Open, High, Low, Close and Volume columns"
-
-    invalid_dates = "OHLC dates must be in ascending order (Oldest to Newest)"
-
-    invalid_date_format = "OHLC date format is not valid."
 
     for file in folder.iterdir():
         # validate only three files
@@ -81,30 +56,6 @@ def validate_ohlc_file(folder: Path) -> bool:
                     style=warning_color,
                 )
                 is_valid = False
-
-            second_line = f.readline()
-
-            start_date = pd.to_datetime(
-                second_line[: second_line.find(b",")].decode(), errors="coerce"
-            )
-
-            last_date = get_last_date(f)
-
-            if pd.isna(start_date) or pd.isna(last_date):
-                questionary.print(
-                    f"WARNING: {file.name} - {invalid_dates}",
-                    style=warning_color,
-                )
-                is_valid = False
-                break
-
-            if start_date > last_date:
-                questionary.print(
-                    f"WARNING: {file.name} - {invalid_date_format}",
-                    style=warning_color,
-                )
-                is_valid = False
-                break
 
         i += 1
 
