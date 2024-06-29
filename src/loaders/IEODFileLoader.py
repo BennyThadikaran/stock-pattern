@@ -51,6 +51,7 @@ class IEODFileLoader(AbstractLoader):
 
         # Default timeframe is 1 min.
         self.default_tf = str(config.get("DEFAULT_TF", "1"))
+        self.is_24_7 = config.get("24_7", False)
         self.end_date = end_date
 
         valid_values = ", ".join(self.timeframes.keys())
@@ -67,7 +68,7 @@ class IEODFileLoader(AbstractLoader):
 
         self.tf = tf
         self.offset_str = self.timeframes[tf]
-        self.period = period
+        self.period = self._get_period(period)
 
         self.data_path = Path(config["DATA_PATH"]).expanduser()
 
@@ -78,6 +79,30 @@ class IEODFileLoader(AbstractLoader):
             Close="last",
             Volume="sum",
         )
+
+    def _get_period(self, period: int) -> int:
+        if "h" in self.tf:
+            tf = int(self.tf[:-1]) * 60
+        else:
+            tf = int(self.tf)
+
+        if "h" in self.default_tf:
+            default_tf = int(self.default_tf[:-1]) * 60
+        else:
+            default_tf = int(self.default_tf)
+
+        if tf == default_tf:
+            return period
+
+        if tf < default_tf:
+            raise ValueError("Timeframe cannot be less than default timeframe.")
+
+        if tf % default_tf != 0:
+            raise ValueError(
+                f"Resampling {default_tf}min to {tf}min wont be accurate."
+            )
+
+        return tf // default_tf * period
 
     def get(self, symbol: str) -> Optional[pd.DataFrame]:
 
