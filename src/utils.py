@@ -862,11 +862,7 @@ def find_triangles(
         if triangle is not None:
             # check if high of C or low of D has been breached
             # Check if A is indeed the pivot high
-            if (
-                a == df.at[a_idx, "Low"]
-                or c_idx != df.loc[c_idx:, "Close"].idxmax()
-                or d_idx != df.loc[d_idx:, "Close"].idxmin()
-            ):
+            if a == df.at[a_idx, "Low"]:
                 a_idx, a = c_idx, c
                 continue
 
@@ -890,6 +886,17 @@ def find_triangles(
             if triangle == "Symmetric" and (
                 upper.slope > -0.2 and lower.slope < 0.2
             ):
+                break
+
+            # Check if trendlines have been breached
+            pos = df.reset_index().index
+
+            # calculate the y-axis price for every point on the slope
+            upper_slope = upper.slope * pos + upper.y_int
+            lower_slope = lower.slope * pos + lower.y_int
+
+            # Check if close has violated the upper or lower trendline
+            if (df.Close > upper_slope).any() or (df.Close < lower_slope).any():
                 break
 
             logger.debug(f"{sym} - {triangle}")
