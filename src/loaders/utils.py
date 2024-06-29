@@ -7,6 +7,22 @@ import io
 import os
 
 
+def process_df(df: pd.DataFrame, end_date: Optional[datetime], period: int):
+    if end_date:
+        df = df.loc[:end_date]
+
+    if len(df) < period:
+        return df
+
+    dt = df.index[-period]
+
+    assert isinstance(dt, pd.Timestamp)
+
+    dt = dt.replace(hour=0, minute=0, second=0, microsecond=0)
+
+    return df.loc[dt:]
+
+
 @lru_cache(maxsize=6)
 def csv_loader(
     file_path: Path,
@@ -68,7 +84,7 @@ def csv_loader(
             if not df.empty and end_date < dt:
                 raise IndexError("Date out of bounds of current DataFrame")
 
-            return df.loc[:end_date].iloc[-period:]
+            return process_df(df, end_date, period)
 
         return df.iloc[-period:]
 
@@ -177,6 +193,6 @@ def csv_loader(
     )
 
     if end_date:
-        return df.loc[:end_date].iloc[-period:]
+        return process_df(df, end_date, period)
     else:
-        return df.iloc[-period:]
+        return process_df(df, None, period)
