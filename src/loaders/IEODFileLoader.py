@@ -53,19 +53,16 @@ class IEODFileLoader(AbstractLoader):
         self.default_tf = str(config.get("DEFAULT_TF", "1"))
         self.end_date = end_date
 
-        if self.default_tf not in self.timeframes:
-            valid_values = ", ".join(self.timeframes.keys())
+        valid_values = ", ".join(self.timeframes.keys())
 
+        if self.default_tf not in self.timeframes:
             raise ValueError(
                 f"`DEFAULT_TF` in config must be one of {valid_values}"
             )
 
         if tf is None:
             tf = self.default_tf
-
-        if not tf in self.timeframes:
-            valid_values = ", ".join(self.timeframes.keys())
-
+        elif tf not in self.timeframes:
             raise ValueError(f"Timeframe must be one of {valid_values}")
 
         self.tf = tf
