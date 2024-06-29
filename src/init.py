@@ -78,7 +78,11 @@ def scan_pattern(
         return patterns
 
     if df.index.has_duplicates:
-        df = df[~df.index.duplicated()]
+        df = df.loc[~df.index.duplicated()]
+
+    # Reverse datetime order if descending (Newest to oldest)
+    if df.index.is_monotonic_decreasing:
+        df = df.loc[::-1]
 
     pivots = utils.get_max_min(df, barsLeft=bars_left, barsRight=bars_right)
 
@@ -267,7 +271,7 @@ def process(
 # Differentiate between the main thread and child threads on Windows
 # see https://stackoverflow.com/a/57811249
 if __name__ == "__main__":
-    version = "3.1.2"
+    version = "3.1.3"
 
     futures: List[concurrent.futures.Future] = []
 
@@ -482,22 +486,30 @@ if __name__ == "__main__":
         if meta["end_date"]:
             end_date = datetime.fromisoformat(meta["end_date"])
 
-        loader = getattr(loader_module, loader_name)(
-            config,
-            meta["timeframe"],
-            end_date=end_date,
-        )
+        try:
+            loader = getattr(loader_module, loader_name)(
+                config,
+                meta["timeframe"],
+                end_date=end_date,
+            )
+        except ValueError as e:
+            logger.exception(e, exc_info=e)
+            exit()
 
         plotter = Plotter(data, loader)
         plotter.plot(args.idx)
         cleanup(loader, futures)
         exit()
 
-    loader = getattr(loader_module, loader_name)(
-        config,
-        args.tf,
-        end_date=args.date,
-    )
+    try:
+        loader = getattr(loader_module, loader_name)(
+            config,
+            args.tf,
+            end_date=args.date,
+        )
+    except ValueError as e:
+        logger.exception(e, exc_info=e)
+        exit()
 
     fn_dict: Dict[str, Union[str, Callable]] = {
         "all": "all",

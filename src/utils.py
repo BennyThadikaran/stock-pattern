@@ -441,7 +441,7 @@ def find_bullish_vcp(
         c = pivots.at[c_idx, "P"]
 
         df_slice = df.loc[a_idx:c_idx]
-        avgBarLength = (df_slice["High"] - df_slice["Low"]).mean()
+        avgBarLength = (df_slice["High"] - df_slice["Low"]).median()
 
         if pivots.index.has_duplicates:
             if isinstance(a, (pd.Series, str)):
@@ -537,7 +537,7 @@ def find_bearish_vcp(
         c = pivots.at[c_idx, "P"]
 
         df_slice = df.loc[a_idx:c_idx]
-        avgBarLength = (df_slice["High"] - df_slice["Low"]).mean()
+        avgBarLength = (df_slice["High"] - df_slice["Low"]).median()
 
         if pivots.index.has_duplicates:
             if isinstance(a, (pd.Series, str)):
@@ -642,7 +642,7 @@ def find_double_bottom(
                 cVol = pivots.at[c_idx, "V"].iloc[1]
 
         df_slice = df.loc[a_idx:c_idx]
-        avgBarLength = (df_slice["High"] - df_slice["Low"]).mean()
+        avgBarLength = (df_slice["High"] - df_slice["Low"]).median()
 
         if is_double_bottom(a, b, c, d, aVol, cVol, avgBarLength, atr):
             if (
@@ -741,7 +741,7 @@ def find_double_top(
                 cVol = pivots.at[c_idx, "V"].iloc[0]
 
         df_slice = df.loc[a_idx:c_idx]
-        avgBarLength = (df_slice["High"] - df_slice["Low"]).mean()
+        avgBarLength = (df_slice["High"] - df_slice["Low"]).median()
 
         if is_double_top(a, b, c, d, aVol, cVol, avgBarLength, atr):
             if (
@@ -855,18 +855,14 @@ def find_triangles(
                 e = pivots.at[e_idx, "P"].iloc[0]
 
         df_slice = df.loc[a_idx:d_idx]
-        avgBarLength = (df_slice["High"] - df_slice["Low"]).mean()
+        avgBarLength = (df_slice["High"] - df_slice["Low"]).median()
 
         triangle = is_triangle(a, b, c, d, e, f, avgBarLength)
 
         if triangle is not None:
             # check if high of C or low of D has been breached
             # Check if A is indeed the pivot high
-            if (
-                a == df.at[a_idx, "Low"]
-                or c_idx != df.loc[c_idx:, "Close"].idxmax()
-                or d_idx != df.loc[d_idx:, "Close"].idxmin()
-            ):
+            if a == df.at[a_idx, "Low"]:
                 a_idx, a = c_idx, c
                 continue
 
@@ -890,6 +886,17 @@ def find_triangles(
             if triangle == "Symmetric" and (
                 upper.slope > -0.2 and lower.slope < 0.2
             ):
+                break
+
+            # Check if trendlines have been breached
+            pos = df.reset_index().index
+
+            # calculate the y-axis price for every point on the slope
+            upper_slope = upper.slope * pos + upper.y_int
+            lower_slope = lower.slope * pos + lower.y_int
+
+            # Check if close has violated the upper or lower trendline
+            if (df.Close > upper_slope).any() or (df.Close < lower_slope).any():
                 break
 
             logger.debug(f"{sym} - {triangle}")
@@ -976,7 +983,7 @@ def find_hns(
                 e = pivots.at[e_idx, "P"].iloc[0]
 
         df_slice = df.loc[b_idx:d_idx]
-        avgBarLength = (df_slice["High"] - df_slice["Low"]).mean()
+        avgBarLength = (df_slice["High"] - df_slice["Low"]).median()
 
         if is_hns(a, b, c, d, e, f, avgBarLength):
             if (
@@ -1118,7 +1125,7 @@ def find_reverse_hns(
                 e = pivots.loc[e_idx, "P"].iloc[1]
 
         df_slice = df.loc[b_idx:d_idx]
-        avgBarLength = (df_slice["High"] - df_slice["Low"]).mean()
+        avgBarLength = (df_slice["High"] - df_slice["Low"]).median()
 
         if is_reverse_hns(a, b, c, d, e, f, avgBarLength):
             if (
