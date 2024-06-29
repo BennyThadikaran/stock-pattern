@@ -486,22 +486,30 @@ if __name__ == "__main__":
         if meta["end_date"]:
             end_date = datetime.fromisoformat(meta["end_date"])
 
-        loader = getattr(loader_module, loader_name)(
-            config,
-            meta["timeframe"],
-            end_date=end_date,
-        )
+        try:
+            loader = getattr(loader_module, loader_name)(
+                config,
+                meta["timeframe"],
+                end_date=end_date,
+            )
+        except ValueError as e:
+            logger.exception(e, exc_info=e)
+            exit()
 
         plotter = Plotter(data, loader)
         plotter.plot(args.idx)
         cleanup(loader, futures)
         exit()
 
-    loader = getattr(loader_module, loader_name)(
-        config,
-        args.tf,
-        end_date=args.date,
-    )
+    try:
+        loader = getattr(loader_module, loader_name)(
+            config,
+            args.tf,
+            end_date=args.date,
+        )
+    except ValueError as e:
+        logger.exception(e, exc_info=e)
+        exit()
 
     fn_dict: Dict[str, Union[str, Callable]] = {
         "all": "all",
