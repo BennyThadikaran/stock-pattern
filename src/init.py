@@ -78,7 +78,11 @@ def scan_pattern(
         return patterns
 
     if df.index.has_duplicates:
-        df = df[~df.index.duplicated()]
+        df = df.loc[~df.index.duplicated()]
+
+    # Reverse datetime order if descending (Newest to oldest)
+    if df.index.is_monotonic_decreasing:
+        df = df.loc[::-1]
 
     pivots = utils.get_max_min(df, barsLeft=bars_left, barsRight=bars_right)
 
