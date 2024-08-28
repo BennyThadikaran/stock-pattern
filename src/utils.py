@@ -1,7 +1,8 @@
-from typing import Any, Optional, TypeVar, NamedTuple
+import logging
+from typing import Any, NamedTuple, Optional, TypeVar
+
 import numpy as np
 import pandas as pd
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -799,7 +800,7 @@ def find_double_top(
 def find_triangles(
     sym: str,
     df: pd.DataFrame,
-    pivots: pd.DataFrame,
+    pivots: pd.DataFrame
 ) -> Optional[dict]:
     """Find Triangles - Symmetric, Ascending, Descending.
 
