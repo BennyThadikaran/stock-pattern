@@ -1,15 +1,16 @@
-import sys
-import json
-import utils
-import logging
-import importlib
 import concurrent.futures
-from pathlib import Path
+import importlib
+import json
+import logging
+import sys
 from argparse import ArgumentParser
 from datetime import datetime
-from typing import Callable, List, Optional, Tuple, Union, Dict
-from Plotter import Plotter
+from pathlib import Path
+from typing import Callable, Dict, List, Optional, Tuple, Union
+
+import utils
 from loaders.AbstractLoader import AbstractLoader
+from Plotter import Plotter
 
 try:
     from tqdm import tqdm

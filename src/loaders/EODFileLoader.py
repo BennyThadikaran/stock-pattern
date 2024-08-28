@@ -1,11 +1,12 @@
-from pathlib import Path
+import logging
 from datetime import datetime, timedelta
+from pathlib import Path
 from typing import Optional
+
+import pandas as pd
+
 from .AbstractLoader import AbstractLoader
 from .utils import csv_loader
-import pandas as pd
-import logging
-
 
 logger = logging.getLogger(__name__)
 

@@ -1,10 +1,11 @@
-from datetime import datetime
-from pathlib import Path
-from typing import Tuple, BinaryIO
-import pandas as pd
 import json
 import os
 import re
+from datetime import datetime
+from pathlib import Path
+from typing import BinaryIO, Tuple
+
+import pandas as pd
 
 """
 This script help you configure the user.json. Just answer the questions asked
