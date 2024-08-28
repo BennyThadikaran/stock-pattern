@@ -1,4 +1,4 @@
-mplfinance>=0.12.*
-pandas>=2.*
-tqdm>=4.*.*
+mplfinance==0.12.10b0
+pandas==2.2.2
 questionary==2.0.1
+tqdm==4.66.5
