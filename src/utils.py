@@ -26,6 +26,21 @@ T = TypeVar("T")
 
 is_silent = None
 
+def get_screen_size():
+    try:
+        from tkinter import Tk
+    except ModuleNotFoundError:
+        logger.warning("""Module tkinter not found. Tkinter module required to
+        determine screen size to autofit chart window.""")
+        return False
+
+    root = Tk()
+    root.withdraw()
+    mm = 25.4
+
+    width, height = root.winfo_screenmmwidth(), root.winfo_screenmmheight()
+
+    return (round(width / mm), round(height / mm))
 
 def make_serializable(obj: T) -> T:
     """Convert pandas.Timestamp and numpy.Float32 objects in obj
