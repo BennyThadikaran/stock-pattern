@@ -1,16 +1,18 @@
-import json
-import utils
 import argparse
-import logging
-import importlib
 import concurrent.futures
-from typing import List, Union
-import pandas as pd
+import importlib
+import json
+import logging
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import List, Union
+
+import pandas as pd
 from tqdm import tqdm
-from Plotter import Plotter
+
+import utils
 from loaders.AbstractLoader import AbstractLoader
+from Plotter import Plotter
 
 """
 Backtest.py | Copyright (C) 2023 Benny Thadikaran

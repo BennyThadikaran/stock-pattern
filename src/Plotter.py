@@ -1,7 +1,9 @@
-from typing import Literal, Optional
 from pathlib import Path
+from typing import Literal, Optional
+
 import matplotlib.pyplot as plt
 import mplfinance as mpf
+
 from loaders.AbstractLoader import AbstractLoader
 
 
