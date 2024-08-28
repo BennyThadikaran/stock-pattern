@@ -456,7 +456,7 @@ def find_bullish_vcp(
         c = pivots.at[c_idx, "P"]
 
         df_slice = df.loc[a_idx:c_idx]
-        avgBarLength = (df_slice["High"] - df_slice["Low"]).mean()
+        avgBarLength = (df_slice["High"] - df_slice["Low"]).median()
 
         if pivots.index.has_duplicates:
             if isinstance(a, (pd.Series, str)):
@@ -552,7 +552,7 @@ def find_bearish_vcp(
         c = pivots.at[c_idx, "P"]
 
         df_slice = df.loc[a_idx:c_idx]
-        avgBarLength = (df_slice["High"] - df_slice["Low"]).mean()
+        avgBarLength = (df_slice["High"] - df_slice["Low"]).median()
 
         if pivots.index.has_duplicates:
             if isinstance(a, (pd.Series, str)):
@@ -657,7 +657,7 @@ def find_double_bottom(
                 cVol = pivots.at[c_idx, "V"].iloc[1]
 
         df_slice = df.loc[a_idx:c_idx]
-        avgBarLength = (df_slice["High"] - df_slice["Low"]).mean()
+        avgBarLength = (df_slice["High"] - df_slice["Low"]).median()
 
         if is_double_bottom(a, b, c, d, aVol, cVol, avgBarLength, atr):
             if (
@@ -756,7 +756,7 @@ def find_double_top(
                 cVol = pivots.at[c_idx, "V"].iloc[0]
 
         df_slice = df.loc[a_idx:c_idx]
-        avgBarLength = (df_slice["High"] - df_slice["Low"]).mean()
+        avgBarLength = (df_slice["High"] - df_slice["Low"]).median()
 
         if is_double_top(a, b, c, d, aVol, cVol, avgBarLength, atr):
             if (
@@ -870,7 +870,7 @@ def find_triangles(
                 e = pivots.at[e_idx, "P"].iloc[0]
 
         df_slice = df.loc[a_idx:d_idx]
-        avgBarLength = (df_slice["High"] - df_slice["Low"]).mean()
+        avgBarLength = (df_slice["High"] - df_slice["Low"]).median()
 
         triangle = is_triangle(a, b, c, d, e, f, avgBarLength)
 
@@ -991,7 +991,7 @@ def find_hns(
                 e = pivots.at[e_idx, "P"].iloc[0]
 
         df_slice = df.loc[b_idx:d_idx]
-        avgBarLength = (df_slice["High"] - df_slice["Low"]).mean()
+        avgBarLength = (df_slice["High"] - df_slice["Low"]).median()
 
         if is_hns(a, b, c, d, e, f, avgBarLength):
             if (
@@ -1133,7 +1133,7 @@ def find_reverse_hns(
                 e = pivots.loc[e_idx, "P"].iloc[1]
 
         df_slice = df.loc[b_idx:d_idx]
-        avgBarLength = (df_slice["High"] - df_slice["Low"]).mean()
+        avgBarLength = (df_slice["High"] - df_slice["Low"]).median()
 
         if is_reverse_hns(a, b, c, d, e, f, avgBarLength):
             if (
