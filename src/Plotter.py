@@ -50,7 +50,7 @@ class Plotter:
             self.data = list(data.values()) if isinstance(data, dict) else data
             self.len = len(data) - 1
 
-            self.plot_args.update(dict(figscale=2, returnfig=True))
+            self.plot_args.update(dict(figscale=1, returnfig=True))
 
             print("\nChart Controls\n\tq: quit\n\tn: Next\n\tp: Previous")
 
@@ -149,6 +149,11 @@ class Plotter:
         )
 
         self.fig.canvas.mpl_connect("key_press_event", self._on_key_press)
+
+        window_manager = plt.get_current_fig_manager()
+
+        if window_manager:
+            window_manager.full_screen_toggle()
 
         mpf.show(block=True)
 
