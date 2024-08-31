@@ -1,3 +1,4 @@
+import sys
 from pathlib import Path
 from typing import Literal, Optional
 
@@ -153,7 +154,14 @@ class Plotter:
         window_manager = plt.get_current_fig_manager()
 
         if window_manager:
-            window_manager.full_screen_toggle()
+            if "win" in sys.platform:
+                try:
+                    # Only works with tkAgg backend
+                    window_manager.window.state("zoomed")
+                except AttributeError:
+                    window_manager.full_screen_toggle()
+            else:
+                window_manager.full_screen_toggle()
 
         mpf.show(block=True)
 
