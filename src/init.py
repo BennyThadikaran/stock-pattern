@@ -233,9 +233,7 @@ def process(
         # Save the images if required
         if save_folder:
 
-            plotter = Plotter(
-                None, loader, save_folder=save_folder, config=config
-            )
+            plotter = Plotter(None, loader, save_folder=save_folder)
 
             for i in patterns_to_output:
                 future = executor.submit(plotter.save, i.copy())
@@ -270,7 +268,7 @@ def process(
 # Differentiate between the main thread and child threads on Windows
 # see https://stackoverflow.com/a/57811249
 if __name__ == "__main__":
-    version = "3.1.3"
+    version = "3.1.4"
 
     futures: List[concurrent.futures.Future] = []
 
@@ -469,10 +467,6 @@ if __name__ == "__main__":
         """
         )
 
-    if config.get("SCREEN_SIZE", None) is None:
-        config["SCREEN_SIZE"] = utils.get_screen_size()
-        CONFIG_PATH.write_text(json.dumps(config, indent=2))
-
     # Load data loader from config. Default loader is EODFileLoader
     loader_name = config.get("LOADER", "EODFileLoader")
 
@@ -495,7 +489,7 @@ if __name__ == "__main__":
             end_date=end_date,
         )
 
-        plotter = Plotter(data, loader, config=config)
+        plotter = Plotter(data, loader)
         plotter.plot(args.idx)
         cleanup(loader, futures)
         exit()
@@ -587,7 +581,7 @@ if __name__ == "__main__":
         # Pop it out as we don't require it here
         patterns.pop()
 
-        plotter = Plotter(patterns, loader, config=config)
+        plotter = Plotter(patterns, loader)
         plotter.plot()
 
     cleanup(loader, futures)
