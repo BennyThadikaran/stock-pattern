@@ -16,7 +16,6 @@ class Plotter:
         self,
         data,
         loader: AbstractLoader,
-        config: dict,
         save_folder: Optional[Path] = None,
         mode: Literal["default", "expand"] = "default",
     ):
@@ -51,12 +50,7 @@ class Plotter:
             self.data = list(data.values()) if isinstance(data, dict) else data
             self.len = len(data) - 1
 
-            if config.get("SCREEN_SIZE", None):
-                self.plot_args["figsize"] = config["SCREEN_SIZE"]
-            else:
-                self.plot_args["figscale"] = 2
-
-            self.plot_args["returnfig"] = True
+            self.plot_args.update(dict(figscale=2, returnfig=True))
 
             print("\nChart Controls\n\tq: quit\n\tn: Next\n\tp: Previous")
 
