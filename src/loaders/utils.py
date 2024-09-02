@@ -1,10 +1,11 @@
+import io
+import os
+from datetime import datetime
 from functools import lru_cache
 from pathlib import Path
 from typing import Optional
-from datetime import datetime
+
 import pandas as pd
-import io
-import os
 
 
 @lru_cache(maxsize=6)
@@ -75,6 +76,7 @@ def csv_loader(
 
         # Read the first line of file to get column names
         columns = f.readline()
+        first_row_pos = f.tell()
 
         if end_date:
             dt = get_date(0, f.readline())
@@ -85,11 +87,11 @@ def csv_loader(
         curr_pos = size  # set current position to end of file
         lines_per_chunk = lines_read = 0
 
-        while curr_pos >= 0:
-            if curr_pos == 0:
-                break
+        while curr_pos >= first_row_pos:
+            read_size = min(chunk_size, curr_pos - first_row_pos)
 
-            read_size = min(chunk_size, curr_pos)
+            if read_size == 0:
+                break
 
             # Set the current read position in the file
             f.seek(curr_pos - read_size)
