@@ -131,7 +131,7 @@ def scan(
 
     df = loader.get(sym)
 
-    if df is None or df.empty or end is not None and end < df.index[0]:
+    if df is None or df.empty or end < df.index[0]:
         return results
 
     if df.index.has_duplicates:
@@ -141,13 +141,6 @@ def scan(
         df = df.sort_index(ascending=True)
 
     assert isinstance(df.index, pd.DatetimeIndex)
-
-    if end is None:
-        dt = df.index[-120]
-
-        assert isinstance(dt, pd.Timestamp)
-
-        end = dt.to_pydatetime()
 
     pos = df.index.get_loc(df.index.asof(end))
 
@@ -222,8 +215,8 @@ def main(
     sym_list: List[str],
     out_file: Path,
     loader: AbstractLoader,
-    end_date,
-    period,
+    end_date: datetime,
+    period: int,
 ):
     results: List[dict] = []
     futures = []
@@ -303,6 +296,9 @@ if __name__ == "__main__":
         plotter = Plotter(args.plot, loader, mode="expand")
         plotter.plot(args.idx)
         exit()
+
+    if args.date is None:
+        exit("-d/--date argument is required")
 
     period = 120 + args.period + 120
 
