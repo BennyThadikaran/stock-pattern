@@ -134,6 +134,9 @@ def scan(
     if df is None or df.empty or end is not None and end < df.index[0]:
         return results
 
+    if df.index.has_duplicates:
+        df = df[~df.index.duplicated()]
+
     if not df.index.is_monotonic_increasing:
         df = df.sort_index(ascending=True)
 
