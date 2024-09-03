@@ -154,7 +154,8 @@ def scan(
     if isinstance(pos, slice):
         pos = pos.start
 
-    start = df.index[pos - period]
+    # If start date is out of bounds, start at first available date in DataFrame
+    start = df.index[pos - period if pos > period else 0]
 
     if start < df.index[0]:
         return results
