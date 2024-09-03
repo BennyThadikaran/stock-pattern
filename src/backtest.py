@@ -91,7 +91,7 @@ def parse_cli_args():
         "-d",
         "--date",
         type=lambda x: datetime.fromisoformat(x) if x else x,
-        help="Ending date of scan.",
+        help="Ending date of scan. ISO FORMAT date YYYY-MM-DDTHH:MM",
     )
 
     parser.add_argument(
