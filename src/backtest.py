@@ -160,8 +160,8 @@ def scan(
     has_time_component = utils.has_time_component(df.index)
 
     if has_time_component:
-        start_dt = df[start.date() == dt_index].index.max()
-        end_dt = df[end.date() == dt_index].index.max()
+        start_dt = df.loc[start.date() == dt_index].index.max()
+        end_dt = df.loc[end.date() == dt_index].index.max()
     else:
         start_dt = start
         end_dt = end
