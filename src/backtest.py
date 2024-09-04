@@ -91,7 +91,7 @@ def parse_cli_args():
         "-d",
         "--date",
         type=lambda x: datetime.fromisoformat(x) if x else x,
-        help="Ending date of scan.",
+        help="Ending date of scan. ISO FORMAT date YYYY-MM-DDTHH:MM",
     )
 
     parser.add_argument(
@@ -131,24 +131,24 @@ def scan(
 
     df = loader.get(sym)
 
-    if df is None or df.empty or end is not None and end < df.index[0]:
+    if df is None or df.empty or end < df.index[0]:
         return results
 
+    if df.index.has_duplicates:
+        df = df[~df.index.duplicated()]
+
+    if not df.index.is_monotonic_increasing:
+        df = df.sort_index(ascending=True)
+
     assert isinstance(df.index, pd.DatetimeIndex)
-
-    if end is None:
-        dt = df.index[-120]
-
-        assert isinstance(dt, pd.Timestamp)
-
-        end = dt.to_pydatetime()
 
     pos = df.index.get_loc(df.index.asof(end))
 
     if isinstance(pos, slice):
         pos = pos.start
 
-    start = df.index[pos - period]
+    # If start date is out of bounds, start at first available date in DataFrame
+    start = df.index[pos - period if pos > period else 0]
 
     if start < df.index[0]:
         return results
@@ -160,8 +160,8 @@ def scan(
     has_time_component = utils.has_time_component(df.index)
 
     if has_time_component:
-        start_dt = df[start.date() == dt_index].index.max()
-        end_dt = df[end.date() == dt_index].index.max()
+        start_dt = df.loc[start.date() == dt_index].index.max()
+        end_dt = df.loc[end.date() == dt_index].index.max()
     else:
         start_dt = start
         end_dt = end
@@ -215,8 +215,8 @@ def main(
     sym_list: List[str],
     out_file: Path,
     loader: AbstractLoader,
-    end_date,
-    period,
+    end_date: datetime,
+    period: int,
 ):
     results: List[dict] = []
     futures = []
@@ -296,6 +296,9 @@ if __name__ == "__main__":
         plotter = Plotter(args.plot, loader, mode="expand")
         plotter.plot(args.idx)
         exit()
+
+    if args.date is None:
+        exit("-d/--date argument is required")
 
     period = 120 + args.period + 120
 

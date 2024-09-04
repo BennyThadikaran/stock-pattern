@@ -81,6 +81,9 @@ def scan_pattern(
     if df.index.has_duplicates:
         df = df[~df.index.duplicated()]
 
+    if not df.index.is_monotonic_increasing:
+        df = df.sort_index(ascending=True)
+
     pivots = utils.get_max_min(df, barsLeft=bars_left, barsRight=bars_right)
 
     if not pivots.shape[0]:
@@ -268,7 +271,7 @@ def process(
 # Differentiate between the main thread and child threads on Windows
 # see https://stackoverflow.com/a/57811249
 if __name__ == "__main__":
-    version = "3.1.6"
+    version = "3.1.7"
 
     futures: List[concurrent.futures.Future] = []
 
