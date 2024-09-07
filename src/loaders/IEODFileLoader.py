@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
+from typing import Dict, Optional
 
 import pandas as pd
 
@@ -52,6 +52,7 @@ class IEODFileLoader(AbstractLoader):
 
         # Default timeframe is 1 min.
         self.default_tf = str(config.get("DEFAULT_TF", "1"))
+        self.is_24_7 = config.get("24_7", False)
         self.end_date = end_date
 
         valid_values = ", ".join(self.timeframes.keys())
@@ -100,6 +101,9 @@ class IEODFileLoader(AbstractLoader):
         if self.tf == self.default_tf or df.empty:
             return df
 
+        if not self.is_24_7 and self.tf in ("25", "75", "125"):
+            return self._resample_df(df, self.offset_str, self.ohlc_dict)
+
         df = (
             df.resample(self.offset_str, origin="start")
             .agg(self.ohlc_dict)
@@ -137,3 +141,36 @@ class IEODFileLoader(AbstractLoader):
             )
 
         return tf // default_tf * period
+
+    @staticmethod
+    def _resample_df(
+        df: pd.DataFrame,
+        target_tf: str,
+        ohlc_dict: Dict[str, str],
+    ) -> pd.DataFrame:
+        """
+        Resample 25, 75 and 125 mins
+        """
+        lst = []
+        dt = None
+
+        while dt is None or dt <= df.index[-1]:
+            dt = df.index[0] if dt is None else dt + pd.Timedelta(days=1)
+
+            if dt not in df.index:
+                continue
+
+            slice_df = df.loc[
+                dt : dt.replace(
+                    hour=23,
+                    minute=59,
+                    second=59,
+                    microsecond=10**6 - 1,
+                )
+            ]
+
+            lst.append(
+                slice_df.resample(target_tf, origin="start").agg(ohlc_dict)
+            )
+
+        return pd.concat(lst).dropna()
