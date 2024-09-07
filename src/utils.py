@@ -862,9 +862,7 @@ def find_triangles(
 
         if triangle is not None:
             # Check if A is indeed the pivot high
-            if (
-                a == df.at[a_idx, "Low"]
-            ):
+            if a == df.at[a_idx, "Low"]:
                 a_idx, a = c_idx, c
                 continue
 
