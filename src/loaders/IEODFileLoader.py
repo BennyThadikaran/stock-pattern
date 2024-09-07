@@ -68,7 +68,7 @@ class IEODFileLoader(AbstractLoader):
 
         self.tf = tf
         self.offset_str = self.timeframes[tf]
-        self.period = period
+        self.period = self._get_period(period)
 
         self.data_path = Path(config["DATA_PATH"]).expanduser()
 
@@ -113,3 +113,27 @@ class IEODFileLoader(AbstractLoader):
     def close(self):
         """Not required as nothing to close"""
         pass
+
+    def _get_period(self, period: int) -> int:
+        if "h" in self.tf:
+            tf = int(self.tf[:-1]) * 60
+        else:
+            tf = int(self.tf)
+
+        if "h" in self.default_tf:
+            default_tf = int(self.default_tf[:-1]) * 60
+        else:
+            default_tf = int(self.default_tf)
+
+        if tf == default_tf:
+            return period
+
+        if tf < default_tf:
+            raise ValueError("Timeframe cannot be less than default timeframe.")
+
+        if tf % default_tf != 0:
+            raise ValueError(
+                f"Resampling {default_tf}min to {tf}min wont be accurate."
+            )
+
+        return tf // default_tf * period
