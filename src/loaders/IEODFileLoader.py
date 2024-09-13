@@ -53,9 +53,15 @@ class IEODFileLoader(AbstractLoader):
         # Default timeframe is 1 min.
         self.default_tf = str(config.get("DEFAULT_TF", "1"))
         self.is_24_7 = config.get("24_7", False)
+        self.start_time = config.get("START_TIME", None)
         self.end_date = end_date
 
         valid_values = ", ".join(self.timeframes.keys())
+
+        if not self.is_24_7 and self.start_time is None:
+            raise ValueError(
+                "Add `START_TIME` to config with the market start time in format `HH:MM`"
+            )
 
         if self.default_tf not in self.timeframes:
             raise ValueError(
@@ -103,8 +109,13 @@ class IEODFileLoader(AbstractLoader):
         if self.tf == self.default_tf or df.empty:
             return df
 
-        if not self.is_24_7 and self.tf in ("25", "75", "125"):
-            return self._resample_df(df, self.offset_str, self.ohlc_dict)
+        if not self.is_24_7:
+            hour, minute = self.start_time.split(":")
+            start_ts = df.index[0].replace(hour=int(hour), minute=int(minute))
+
+            return self._resample_df(
+                df, self.offset_str, self.ohlc_dict, start_ts
+            )
 
         df = (
             df.resample(self.offset_str, origin="start")
@@ -149,6 +160,7 @@ class IEODFileLoader(AbstractLoader):
         df: pd.DataFrame,
         target_tf: str,
         ohlc_dict: Dict[str, str],
+        start_ts: pd.Timestamp,
     ) -> pd.DataFrame:
         """
         Resample 25, 75 and 125 mins
@@ -157,7 +169,7 @@ class IEODFileLoader(AbstractLoader):
         dt = None
 
         while dt is None or dt <= df.index[-1]:
-            dt = df.index[0] if dt is None else dt + pd.Timedelta(days=1)
+            dt = start_ts if dt is None else dt + pd.Timedelta(days=1)
 
             if dt not in df.index:
                 continue
@@ -171,8 +183,6 @@ class IEODFileLoader(AbstractLoader):
                 )
             ]
 
-            lst.append(
-                slice_df.resample(target_tf, origin="start").agg(ohlc_dict)
-            )
+            lst.append(slice_df.resample(target_tf, origin=dt).agg(ohlc_dict))
 
         return pd.concat(lst).dropna()
