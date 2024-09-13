@@ -424,17 +424,9 @@ if __name__ == "__main__":
 
         data_path = Path(config["DATA_PATH"]).expanduser()
     else:
-        json_content = {
-            "DATA_PATH": "",
-            "POST_SCAN_PLOT": True,
-        }
-
-        CONFIG_PATH.write_text(json.dumps(json_content, indent=2))
-
-        print("user.json file generated. Edit `DATA_PATH` to add a data source")
-
-        print(config_help)
-
+        print(
+            "Configuration file is missing. Run `setup-config.py` to setup a `user.json` file"
+        )
         exit()
 
     if config["DATA_PATH"] == "" or not data_path.exists():
