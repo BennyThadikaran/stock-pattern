@@ -53,7 +53,7 @@ class IEODFileLoader(AbstractLoader):
         # Default timeframe is 1 min.
         self.default_tf = str(config.get("DEFAULT_TF", "1"))
         self.is_24_7 = config.get("24_7", False)
-        self.start_time = config.get("START_TIME", None)
+        self.start_time = config.get("EXCHANGE_START_TIME", None)
         self.end_date = end_date
 
         valid_values = ", ".join(self.timeframes.keys())
