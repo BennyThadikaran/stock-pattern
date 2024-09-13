@@ -115,7 +115,7 @@ def validate_watchlist_file(file_path: Path) -> bool:
 
 def ask_default_source(user: Path) -> str:
     return questionary.path(
-        "Provide folder path to OHLC data? Press Tab to autocomplete",
+        "Please provide the folder path to the OHLC data. Press Tab to autocomplete",
         only_directories=True,
         get_paths=lambda: [str(user)],
         validate=lambda fpath: Path(f"{user}/{fpath}").is_dir(),
@@ -123,10 +123,10 @@ def ask_default_source(user: Path) -> str:
 
 
 def ask_loader_name() -> str:
-    loader_choice_list = ("Daily and Higher timeframe", "Intraday")
+    loader_choice_list = ("Daily or Higher timeframe", "Intraday")
 
     loader_choice = questionary.select(
-        "What timeframe is your OHLC data?",
+        "What is the timeframe of your OHLC data?",
         choices=loader_choice_list,
     ).ask()
 
@@ -138,27 +138,22 @@ def ask_loader_name() -> str:
 
 def ask_default_timeframe(loader: str) -> str:
     if loader == "EODFileLoader":
-        # DEFAULT OHLC TIMEFRAME
-        tf = questionary.select(
-            "Select the timeframe of your OHLC Data?",
-            choices=("Daily", "Weekly", "Monthly"),
-        ).ask()
-
+        tfs = ("Daily", "Weekly", "Monthly")
     else:
         tfs = ("1", "5", "10", "15", "25", "30", "60", "75", "125", "2h", "4h")
 
-        # DEFAULT OHLC TIMEFRAME
-        tf = questionary.select(
-            "Select the timeframe of your OHLC Data?",
-            choices=tfs,
-        ).ask()
+    # DEFAULT OHLC TIMEFRAME
+    tf = questionary.select(
+        "Select the timeframe of your OHLC Data",
+        choices=tfs,
+    ).ask()
 
     return tf.lower()
 
 
 def ask_market_hours():
     response = questionary.select(
-        "Is your market operating 24/7? For example Crypto or Forex market",
+        "Is the market operating 24/7? For example, cryptocurrency or forex markets.",
         choices=("Yes", "No"),
     ).ask()
 
@@ -169,9 +164,9 @@ def ask_market_hours():
 def ask_watchlist(user: Path) -> Path:
 
     watchlist_path = questionary.path(
-        """Provide the filepath to watchlist file?
+        """Please provide the filepath to the watchlist file.
     A text or CSV file with symbol names (one on each line).
-    Press Tab to Autocomplete.""",
+    """,
         get_paths=lambda: [str(user)],
         validate=lambda fpath: (user / fpath).is_file(),
     ).ask()
@@ -221,7 +216,7 @@ def main() -> Tuple[Path, dict]:
             if config_choice == config_choice_list[1]:
                 while True:
                     fname = questionary.text(
-                        "Enter the config file name to edit",
+                        "Enter the name of the configuration file you want to edit.",
                         instruction=".json will be added to the name",
                     ).ask()
 
@@ -276,7 +271,7 @@ def main() -> Tuple[Path, dict]:
 
         else:
             fname = questionary.text(
-                "Provide a name for the custom config file",
+                "Please provide a name for the custom configuration file.",
                 instruction=".json will be added to the name",
             ).ask()
 
@@ -290,7 +285,7 @@ def main() -> Tuple[Path, dict]:
     csv_check_result = validate_ohlc_file(user / data_path)
 
     if csv_check_result == False:
-        exit("Please correct OHLC file issues and try again.")
+        exit("Please correct the issues with the OHLC file and try again.")
 
     if isinstance(csv_check_result, str):
         config["DATE_COLUMN"] = csv_check_result
@@ -316,7 +311,7 @@ def main() -> Tuple[Path, dict]:
         else:
             while True:
                 exchange_start_time = questionary.text(
-                    "Please provide the start time of the Exchange in HH:MM format? Example 09:30",
+                    "Please provide the exchange start time in HH:MM format (e.g., 09:30).",
                 ).ask()
 
                 if validate_timestring(exchange_start_time):
