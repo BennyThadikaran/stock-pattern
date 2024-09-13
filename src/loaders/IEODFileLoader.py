@@ -118,7 +118,7 @@ class IEODFileLoader(AbstractLoader):
             )
 
         df = (
-            df.resample(self.offset_str, origin="start")
+            df.resample(self.offset_str, origin="start_day")
             .agg(self.ohlc_dict)
             .dropna()
         )
