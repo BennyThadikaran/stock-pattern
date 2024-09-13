@@ -34,18 +34,20 @@ This program does not provide any buy or sell signals. It only detects the patte
 
 3. Setup configuration file with setup-config.py and answer the questions to generate a user.json
 
+   ```bash
+   py setup-config.py
+   ```
+
    - Use direction keys to select a choice and press `ENTER`.
    - `TAB` key can be used to autocomplete filepaths. Use forward slashes `/` regardless of your OS to specify filepaths.
    - By default, filepath is mapped to your home folder `/home/YourUsername` on mac/linux and `C:/Users/YourUsername` on Windows.
    - You can use `../../` to go to C drive.
 
-   ```bash
-   py setup-config.py
-   ```
+   **Alternatively, I've written step by step instructions to [create user.json manually](https://github.com/BennyThadikaran/stock-pattern/wiki/Writing-JSON-configuration-manually)**
 
 ## Usage
 
-**Moving to version 3.0.0?** See [Quick usage and config](https://github.com/BennyThadikaran/stock-pattern/wiki/Quick-config-and-usage-summary-%E2%80%90-version-3.0.0)
+See [Quick usage summary](https://github.com/BennyThadikaran/stock-pattern/wiki/Quick-usage-summary)
 
 See [wiki Usage instructions](https://github.com/BennyThadikaran/stock-pattern/wiki/Usage)
 
