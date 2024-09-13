@@ -110,7 +110,11 @@ class EODFileLoader(AbstractLoader):
                 chunk_size=self.chunk_size,
                 date_column=self.date_column,
             )
-        except (IndexError, ValueError):
+        except IndexError:
+            return
+        except Exception as e:
+            # Any other error log it with the symbol name
+            logger.warning(f"{symbol}: Error loading file - {e!r}")
             return
 
         if self.tf == self.default_tf or df.empty:

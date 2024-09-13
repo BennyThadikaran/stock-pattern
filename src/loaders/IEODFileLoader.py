@@ -69,7 +69,7 @@ class IEODFileLoader(AbstractLoader):
             )
 
         if tf is None:
-            tf = self.default_tf
+            tf: str = self.default_tf
         elif tf not in self.timeframes:
             raise ValueError(f"Timeframe must be one of {valid_values}")
 
@@ -103,7 +103,11 @@ class IEODFileLoader(AbstractLoader):
                 end_date=self.end_date,
                 date_column=self.date_column,
             )
-        except (IndexError, ValueError):
+        except IndexError:
+            return
+        except Exception as e:
+            # Any other error log it with the symbol name
+            logger.warning(f"{symbol}: Error loading file - {e!r}")
             return
 
         if self.tf == self.default_tf or df.empty:
