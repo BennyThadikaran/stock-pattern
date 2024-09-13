@@ -202,7 +202,11 @@ def main() -> Tuple[Path, dict]:
 
     # DEFAULT OR CUSTOM CONFIG
     if config_file.exists():
-        config_choice_list = ["Edit user.json", "Create custom config"]
+        config_choice_list = [
+            "Edit user.json",
+            "Edit custom config file",
+            "Create custom config",
+        ]
 
         config_choice = questionary.select(
             "What do you wish to do?",
@@ -210,7 +214,24 @@ def main() -> Tuple[Path, dict]:
         ).ask()
 
         # EDIT user.json
-        if config_choice == config_choice_list[0]:
+        if (
+            config_choice == config_choice_list[0]
+            or config_choice == config_choice_list[1]
+        ):
+            if config_choice == config_choice_list[1]:
+                while True:
+                    fname = questionary.text(
+                        "Enter the config file name to edit",
+                        instruction=".json will be added to the name",
+                    ).ask()
+
+                    config_file = DIR / f"{fname}.json"
+
+                    if not config_file.exists():
+                        questionary.print(f"{config_file} not found")
+                        continue
+                    break
+
             # load user.json
             config = json.loads(config_file.read_bytes())
 
@@ -272,8 +293,7 @@ def main() -> Tuple[Path, dict]:
         exit("Please correct OHLC file issues and try again.")
 
     if isinstance(csv_check_result, str):
-        if "date" in csv_check_result:
-            config["DATE_COLUMN"] = csv_check_result
+        config["DATE_COLUMN"] = csv_check_result
 
     questionary.print("✓ Passed validation", style=success_color)
 
