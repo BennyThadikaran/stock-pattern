@@ -131,16 +131,18 @@ class IEODFileLoader(AbstractLoader):
         """Not required as nothing to close"""
         pass
 
-    def _get_period(self, period: int) -> int:
-        if "h" in self.tf:
-            tf = int(self.tf[:-1]) * 60
-        else:
-            tf = int(self.tf)
+    def _tf_minutes(self, tf) -> int:
+        """
+        Convert timeframe string to minutes
+            2h -> 120
+            30 -> 30
+        """
+        return int(tf[:-1]) * 60 if "h" in tf else int(tf)
 
-        if "h" in self.default_tf:
-            default_tf = int(self.default_tf[:-1]) * 60
-        else:
-            default_tf = int(self.default_tf)
+    def _get_period(self, period: int) -> int:
+        tf = self._tf_minutes(self.tf)
+
+        default_tf = self._tf_minutes(self.default_tf)
 
         if tf == default_tf:
             return period
