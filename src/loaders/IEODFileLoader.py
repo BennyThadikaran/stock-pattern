@@ -53,9 +53,15 @@ class IEODFileLoader(AbstractLoader):
         # Default timeframe is 1 min.
         self.default_tf = str(config.get("DEFAULT_TF", "1"))
         self.is_24_7 = config.get("24_7", False)
+        self.start_time = config.get("EXCHANGE_START_TIME", None)
         self.end_date = end_date
 
         valid_values = ", ".join(self.timeframes.keys())
+
+        if not self.is_24_7 and self.start_time is None:
+            raise ValueError(
+                "Add `START_TIME` to config with the market start time in format `HH:MM`"
+            )
 
         if self.default_tf not in self.timeframes:
             raise ValueError(
@@ -63,13 +69,14 @@ class IEODFileLoader(AbstractLoader):
             )
 
         if tf is None:
-            tf = self.default_tf
+            tf: str = self.default_tf
         elif tf not in self.timeframes:
             raise ValueError(f"Timeframe must be one of {valid_values}")
 
         self.tf = tf
         self.offset_str = self.timeframes[tf]
         self.period = self._get_period(period)
+        self.date_column = config.get("DATE_COLUMN", "Date")
 
         self.data_path = Path(config["DATA_PATH"]).expanduser()
 
@@ -94,18 +101,28 @@ class IEODFileLoader(AbstractLoader):
                 file,
                 period=self.period,
                 end_date=self.end_date,
+                date_column=self.date_column,
             )
-        except (IndexError, ValueError):
+        except IndexError:
+            return
+        except Exception as e:
+            # Any other error log it with the symbol name
+            logger.warning(f"{symbol}: Error loading file - {e!r}")
             return
 
         if self.tf == self.default_tf or df.empty:
             return df
 
-        if not self.is_24_7 and self.tf in ("25", "75", "125"):
-            return self._resample_df(df, self.offset_str, self.ohlc_dict)
+        if not self.is_24_7:
+            hour, minute = self.start_time.split(":")
+            start_ts = df.index[0].replace(hour=int(hour), minute=int(minute))
+
+            return self._resample_df(
+                df, self.offset_str, self.ohlc_dict, start_ts
+            )
 
         df = (
-            df.resample(self.offset_str, origin="start")
+            df.resample(self.offset_str, origin="start_day")
             .agg(self.ohlc_dict)
             .dropna()
         )
@@ -118,16 +135,18 @@ class IEODFileLoader(AbstractLoader):
         """Not required as nothing to close"""
         pass
 
-    def _get_period(self, period: int) -> int:
-        if "h" in self.tf:
-            tf = int(self.tf[:-1]) * 60
-        else:
-            tf = int(self.tf)
+    def _tf_minutes(self, tf) -> int:
+        """
+        Convert timeframe string to minutes
+            2h -> 120
+            30 -> 30
+        """
+        return int(tf[:-1]) * 60 if "h" in tf else int(tf)
 
-        if "h" in self.default_tf:
-            default_tf = int(self.default_tf[:-1]) * 60
-        else:
-            default_tf = int(self.default_tf)
+    def _get_period(self, period: int) -> int:
+        tf = self._tf_minutes(self.tf)
+
+        default_tf = self._tf_minutes(self.default_tf)
 
         if tf == default_tf:
             return period
@@ -147,6 +166,7 @@ class IEODFileLoader(AbstractLoader):
         df: pd.DataFrame,
         target_tf: str,
         ohlc_dict: Dict[str, str],
+        start_ts: pd.Timestamp,
     ) -> pd.DataFrame:
         """
         Resample 25, 75 and 125 mins
@@ -155,7 +175,7 @@ class IEODFileLoader(AbstractLoader):
         dt = None
 
         while dt is None or dt <= df.index[-1]:
-            dt = df.index[0] if dt is None else dt + pd.Timedelta(days=1)
+            dt = start_ts if dt is None else dt + pd.Timedelta(days=1)
 
             if dt not in df.index:
                 continue
@@ -169,8 +189,6 @@ class IEODFileLoader(AbstractLoader):
                 )
             ]
 
-            lst.append(
-                slice_df.resample(target_tf, origin="start").agg(ohlc_dict)
-            )
+            lst.append(slice_df.resample(target_tf, origin=dt).agg(ohlc_dict))
 
         return pd.concat(lst).dropna()

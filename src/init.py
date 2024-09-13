@@ -271,7 +271,7 @@ def process(
 # Differentiate between the main thread and child threads on Windows
 # see https://stackoverflow.com/a/57811249
 if __name__ == "__main__":
-    version = "3.1.8"
+    version = "3.1.9"
 
     futures: List[concurrent.futures.Future] = []
 
@@ -424,17 +424,9 @@ if __name__ == "__main__":
 
         data_path = Path(config["DATA_PATH"]).expanduser()
     else:
-        json_content = {
-            "DATA_PATH": "",
-            "POST_SCAN_PLOT": True,
-        }
-
-        CONFIG_PATH.write_text(json.dumps(json_content, indent=2))
-
-        print("user.json file generated. Edit `DATA_PATH` to add a data source")
-
-        print(config_help)
-
+        print(
+            "Configuration file is missing. Run `setup-config.py` to setup a `user.json` file"
+        )
         exit()
 
     if config["DATA_PATH"] == "" or not data_path.exists():
@@ -486,22 +478,30 @@ if __name__ == "__main__":
         if meta["end_date"]:
             end_date = datetime.fromisoformat(meta["end_date"])
 
-        loader = getattr(loader_module, loader_name)(
-            config,
-            meta["timeframe"],
-            end_date=end_date,
-        )
+        try:
+            loader = getattr(loader_module, loader_name)(
+                config,
+                meta["timeframe"],
+                end_date=end_date,
+            )
+        except ValueError as e:
+            logger.exception("", exc_info=e)
+            exit()
 
         plotter = Plotter(data, loader)
         plotter.plot(args.idx)
         cleanup(loader, futures)
         exit()
 
-    loader = getattr(loader_module, loader_name)(
-        config,
-        args.tf,
-        end_date=args.date,
-    )
+    try:
+        loader = getattr(loader_module, loader_name)(
+            config,
+            args.tf,
+            end_date=args.date,
+        )
+    except ValueError as e:
+        logger.exception("", exc_info=e)
+        exit()
 
     fn_dict: Dict[str, Union[str, Callable]] = {
         "all": "all",

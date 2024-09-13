@@ -2,7 +2,7 @@
 
 A Python CLI scanner to detect and plot common chart patterns
 
-**Supports Python >= 3.8** (As of v1.1.1-alpha)
+**Supports Python >= 3.8**
 
 If you :heart: my work so far, please :star2: this repo.
 
@@ -20,52 +20,28 @@ This program does not provide any buy or sell signals. It only detects the patte
 
 ## Installation
 
-> **Stock-Pattern is being constantly updated with new features and bug fixes. Run `git pull` to get the latest updates.**
-
 1. Clone or download the repo:
+
    ```
    git clone https://github.com/BennyThadikaran/stock-pattern.git
    ```
+
 2. Install dependencies:
+
    ```
    pip install -r requirements.txt
    ```
-3. Run `init.py`. It will generate a `user.json` file
-4. Open `user.json` and edit the `DATA_PATH` with the folder path to your OHLC data.
-   - Files must be in CSV format in any timeframe and filenames must be lowercase. For ex. infy.csv
-   - If using [EOD2](https://github.com/BennyThadikaran/eod2) point it to `src/eod2_data/daily`
-6. Optionally, add a `SYM_LIST` with a file path (CSV or TXT file) containing a list of symbols to scan (One on each line).
-   
-```
-# Assuming your files are named infy.csv etc.
-infy
-tcs
-marksans
-godrejind
-```
 
-7. See [wiki Configuration](https://github.com/BennyThadikaran/stock-pattern/wiki/Usage#configuration) for more options
+3. Setup configuration file with setup-config.py and answer the questions to generate a user.json
 
-```json
-{
-  "DATA_PATH": "~/Documents/python/eod2/src/eod2_data/daily",
-  "SYM_LIST": "~/Desktop/nifty_500.csv",
-  "POST_SCAN_PLOT": true
-}
-```
+   - Use direction keys to select a choice and press `ENTER`.
+   - `TAB` key can be used to autocomplete filepaths. Use forward slashes `/` regardless of your OS to specify filepaths.
+   - By default, filepath is mapped to your home folder `/home/YourUsername` on mac/linux and `C:/Users/YourUsername` on Windows.
+   - You can use `../../` to go to C drive.
 
-**Note for Window users**
-
-- Add an extra backslash `\\` for directory separators in JSON. This will avoid JSON decode errors.
-- Tilde `~` works on both Windows and Linux and expands to user's folder
-
-```json
-{
-  "DATA_PATH": "~\\Documents\\python\\eod2\\src\\eod2_data\\daily",
-  "SYM_LIST": "~\\Documents\\python\\stock-pattern\\src\\data.csv",
-  "POST_SCAN_PLOT": true
-}
-```
+   ```bash
+   py setup-config.py
+   ```
 
 ## Usage
 
@@ -76,8 +52,8 @@ See [wiki Usage instructions](https://github.com/BennyThadikaran/stock-pattern/w
 For backtest.py usage, see [wiki backtest](https://github.com/BennyThadikaran/stock-pattern/wiki/backtest-usage)
 
 ## Notes on structure of OHLC data
-- The following columns are expected: **Date, Open, High, Low, Close, Volume.** Additonal columns may exist.
-- Dates must be in Descending order (Oldest to Newest).
+
+- The following columns are expected: **Open, High, Low, Close, Volume.** Additonal columns may exist.
 
 ## Screenshots
 

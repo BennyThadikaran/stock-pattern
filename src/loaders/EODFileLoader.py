@@ -60,6 +60,7 @@ class EODFileLoader(AbstractLoader):
         self.offset_str = self.timeframes[tf]
 
         self.end_date = end_date
+        self.date_column = config.get("DATE_COLUMN", "Date")
 
         if end_date:
             if self.tf == "weekly":
@@ -107,8 +108,13 @@ class EODFileLoader(AbstractLoader):
                 period=self.period,
                 end_date=self.end_date,
                 chunk_size=self.chunk_size,
+                date_column=self.date_column,
             )
-        except (IndexError, ValueError):
+        except IndexError:
+            return
+        except Exception as e:
+            # Any other error log it with the symbol name
+            logger.warning(f"{symbol}: Error loading file - {e!r}")
             return
 
         if self.tf == self.default_tf or df.empty:
