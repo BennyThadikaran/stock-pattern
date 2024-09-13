@@ -70,6 +70,7 @@ class IEODFileLoader(AbstractLoader):
         self.tf = tf
         self.offset_str = self.timeframes[tf]
         self.period = self._get_period(period)
+        self.date_column = config.get("DATE_COLUMN", "Date")
 
         self.data_path = Path(config["DATA_PATH"]).expanduser()
 
@@ -94,6 +95,7 @@ class IEODFileLoader(AbstractLoader):
                 file,
                 period=self.period,
                 end_date=self.end_date,
+                date_column=self.date_column,
             )
         except (IndexError, ValueError):
             return
