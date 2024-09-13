@@ -1,9 +1,8 @@
 import json
 import os
 import re
-from datetime import datetime
 from pathlib import Path
-from typing import BinaryIO, Tuple
+from typing import Tuple, Union
 
 import pandas as pd
 
@@ -24,42 +23,18 @@ except ModuleNotFoundError:
     exit("Missing package questionary. Run `pip install questionary`")
 
 
-def get_last_date(f: BinaryIO) -> datetime:
-    # source: https://stackoverflow.com/a/68413780
-    try:
-        # seek 2 bytes to the last line ending ( \n )
-        f.seek(-2, os.SEEK_END)
-
-        # seek backwards 2 bytes till the next line ending
-        while f.read(1) != b"\n":
-            f.seek(-2, os.SEEK_CUR)
-
-    except OSError:
-        # catch OSError in case of a one line file
-        f.seek(0)
-
-    # we have the last line
-    last_line = f.readline()
-    date = last_line[: last_line.find(b",")].decode()
-
-    return pd.to_datetime(date, errors="coerce")
-
-
-def validate_ohlc_file(folder: Path) -> bool:
+def validate_ohlc_file(folder: Path) -> Union[bool, str]:
     """
-    Check for empty files, missing columns, wrong date order and
-    invalid date formats
+    Check for invalid date formats, invalid columns headings
+
+    Returns False on errors or a date column name if not Date
     """
     i = 0
 
-    is_valid = True
-    expected_columns = (b"Date", b"Open", b"High", b"Low", b"Close", b"Volume")
-
+    expected_columns = (b"Open", b"High", b"Low", b"Close", b"Volume")
     missing_cols = "Files must have Open, High, Low, Close and Volume columns"
-
-    invalid_dates = "OHLC dates must be in ascending order (Oldest to Newest)"
-
-    invalid_date_format = "OHLC date format is not valid."
+    invalid_date_format = "Date format is not valid."
+    date_column = b"Date"
 
     for file in folder.iterdir():
         # validate only three files
@@ -73,6 +48,9 @@ def validate_ohlc_file(folder: Path) -> bool:
             # Check the column names are correct
             columns = f.readline().strip(b"\n").split(b",")
 
+            if columns[0] != b"Date":
+                date_column = columns[0]
+
             for col in expected_columns:
                 if col in columns:
                     continue
@@ -81,7 +59,7 @@ def validate_ohlc_file(folder: Path) -> bool:
                     f"WARNING: {file.name} - {missing_cols}",
                     style=warning_color,
                 )
-                is_valid = False
+                return False
 
             second_line = f.readline()
 
@@ -89,27 +67,28 @@ def validate_ohlc_file(folder: Path) -> bool:
                 second_line[: second_line.find(b",")].decode(), errors="coerce"
             )
 
-            last_date = get_last_date(f)
-
-            if pd.isna(start_date) or pd.isna(last_date):
-                questionary.print(
-                    f"WARNING: {file.name} - {invalid_dates}",
-                    style=warning_color,
-                )
-                is_valid = False
-                break
-
-            if start_date > last_date:
+            if pd.isna(start_date):
                 questionary.print(
                     f"WARNING: {file.name} - {invalid_date_format}",
                     style=warning_color,
                 )
-                is_valid = False
-                break
+                return False
 
         i += 1
 
-    return is_valid
+    if date_column != b"Date":
+        return date_column.decode("utf-8")
+
+    return True
+
+
+def validate_timestring(txt) -> bool:
+    if not ":" in txt:
+        return False
+
+    hour, min = txt.split(":")
+
+    return 0 <= int(hour) < 24 and 0 <= int(min) < 60
 
 
 def validate_watchlist_file(file_path: Path) -> bool:
@@ -175,6 +154,16 @@ def ask_default_timeframe(loader: str) -> str:
         ).ask()
 
     return tf.lower()
+
+
+def ask_market_hours():
+    response = questionary.select(
+        "Is your market operating 24/7? For example Crypto or Forex market",
+        choices=("Yes", "No"),
+    ).ask()
+
+    if response == "Yes":
+        return True
 
 
 def ask_watchlist(user: Path) -> Path:
@@ -265,15 +254,26 @@ def main() -> Tuple[Path, dict]:
             return config_file, config
 
         else:
-            config_file = DIR / "custom.json"
+            fname = questionary.text(
+                "Provide a name for the custom config file",
+                instruction=".json will be added to the name",
+            ).ask()
+
+            config_file = DIR / f"{fname}.json"
 
     # OHLC DATA FOLDER
     data_path = ask_default_source(user)
 
     print("Validating OHLC files")
 
-    if not validate_ohlc_file(user / data_path):
+    csv_check_result = validate_ohlc_file(user / data_path)
+
+    if csv_check_result == False:
         exit("Please correct OHLC file issues and try again.")
+
+    if isinstance(csv_check_result, str):
+        if "date" in csv_check_result:
+            config["DATE_COLUMN"] = csv_check_result
 
     questionary.print("✓ Passed validation", style=success_color)
 
@@ -284,6 +284,25 @@ def main() -> Tuple[Path, dict]:
     config["LOADER"] = loader_choice
 
     config["DEFAULT_TF"] = ask_default_timeframe(loader_choice)
+
+    if config["LOADER"] == "IEODFileLoader":
+        is_24_7 = questionary.select(
+            "Is your market operating 24/7? For example Crypto or Forex market",
+            choices=("Yes", "No"),
+        ).ask()
+
+        if is_24_7 == "Yes":
+            config["24_7"] = True
+        else:
+            while True:
+                exchange_start_time = questionary.text(
+                    "Please provide the start time of the Exchange in HH:MM format? Example 09:30",
+                ).ask()
+
+                if validate_timestring(exchange_start_time):
+                    break
+
+            config["EXCHANGE_START_TIME"] = exchange_start_time
 
     # DEFAULT WATCHLIST FILE
     needs_watchlist = questionary.confirm(
