@@ -69,7 +69,7 @@ class IEODFileLoader(AbstractLoader):
             )
 
         if tf is None:
-            tf: str = self.default_tf
+            tf = str(self.default_tf)
         elif tf not in self.timeframes:
             raise ValueError(f"Timeframe must be one of {valid_values}")
 
