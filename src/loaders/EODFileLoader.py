@@ -26,7 +26,7 @@ class EODFileLoader(AbstractLoader):
 
     """
 
-    timeframes = dict(daily="D", weekly="W-SUN", monthly="MS")
+    timeframes = dict(daily="D", weekly="W-SUN", monthly="MS", quarterly="QE")
 
     def __init__(
         self,
@@ -88,6 +88,8 @@ class EODFileLoader(AbstractLoader):
         elif tf == "monthly":
             days = 7 if self.default_tf == "weekly" else 1
             self.period = 30 * period // days
+        elif tf == "quarterly":
+            self.period = 30 * 3 * period
 
     def get(self, symbol: str) -> Optional[pd.DataFrame]:
 
@@ -97,8 +99,8 @@ class EODFileLoader(AbstractLoader):
             logger.warning(f"File not found: {file}")
             return
 
-        if self.tf == "monthly":
-            # It is faster to load the entire file for monthly
+        if self.tf == "monthly" or self.tf == "quarterly":
+            # It is faster to load the entire file for monthly or quarterly
             # considering average size of file
             return self.process_monthly(file, self.end_date)
 
