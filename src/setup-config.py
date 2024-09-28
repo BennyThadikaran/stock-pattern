@@ -46,7 +46,7 @@ def validate_ohlc_file(folder: Path) -> Union[bool, str]:
 
         with file.open("rb") as f:
             # Check the column names are correct
-            columns = f.readline().strip(b"\n").split(b",")
+            columns = f.readline().strip().split(b",")
 
             if columns[0] != b"Date":
                 date_column = columns[0]
