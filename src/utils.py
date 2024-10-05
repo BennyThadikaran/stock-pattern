@@ -1494,3 +1494,124 @@ def find_uptrend_line(
         )
 
     return selected
+
+def find_bullish_abcd(
+    sym: str, df: pd.DataFrame, pivots: pd.DataFrame
+) -> Optional[dict]:
+    """
+    Bullish AB = CD harmonic pattern
+
+    """
+
+    fib_ser = pd.Series((0.382, 0.5, 0.618, 0.707, 0.786, 0.886))
+    pivot_len = pivots.shape[0]
+
+    a_idx = pivots["P"].idxmax()
+    a = pivots.at[a_idx, "P"]
+
+    assert isinstance(pivots.index, pd.DatetimeIndex)
+    assert isinstance(a_idx, pd.Timestamp)
+
+    selected: Optional[dict] = None
+
+    while True:
+        pos_after_a = get_next_index(pivots.index, a_idx)
+
+        if pos_after_a >= pivot_len:
+            break
+
+        c_idx = pivots.loc[pivots.index[pos_after_a] :, "P"].idxmax()
+
+        c = pivots.at[c_idx, "P"]
+
+        b_idx = pivots.loc[a_idx:c_idx, "P"].idxmin()
+        b = pivots.at[b_idx, "P"]
+
+        if b_idx == c_idx:
+            break
+
+        d_idx = df.index[-1]
+        d = df.at[d_idx, "Close"]
+
+        if pivots.index.has_duplicates:
+            if isinstance(a, pd.Series):
+                a = pivots.at[a_idx, "P"].iloc[0]
+
+            if isinstance(b, pd.Series):
+                b = pivots.at[b_idx, "P"].iloc[1]
+
+            if isinstance(c, pd.Series):
+                c = pivots.at[c_idx, "P"].iloc[0]
+
+        bc_diff = c - b
+        c_retracement = bc_diff / (a - b)
+
+        # Get the FIB ratio nearest to point C
+        c_nearest_fib = fib_ser.loc[(fib_ser - c_retracement).abs().idxmin()]
+
+        if c_retracement < 0.382 or c_retracement > 0.886:
+            a, a_idx = c, c_idx
+            continue
+
+        c_fib_inverse = 1 / c_nearest_fib
+
+        bc_extension = c - (a - b)
+        bc_fib_extension = c - (bc_diff * c_fib_inverse)
+
+        completion_point = min(bc_extension, bc_fib_extension)
+
+        # Add a 1.5 % (98.5 %) threshold below the completion_point
+        if d < b and d > completion_point * 0.985:
+
+            lowest_close_after_b = df.loc[b_idx:, "Close"].min()
+
+            if (
+                lowest_close_after_b < completion_point
+                or d != lowest_close_after_b
+            ):
+                a, a_idx = c, c_idx
+                continue
+
+            completion_diff = abs(bc_extension - bc_fib_extension) / max(
+                bc_extension, bc_fib_extension
+            )
+
+            if completion_diff > 0.1:
+                a, a_idx = c, c_idx
+                continue
+
+            c_fib_inverse = 1 / c_nearest_fib
+
+            bc_extension = c - (a - b)
+            bc_fib_extension = c - (bc_diff * c_fib_inverse)
+
+            entryLine = ((c_idx, c), (d_idx, c))
+            ab = ((a_idx, a), (b_idx, b))
+            bc = ((b_idx, b), (c_idx, c))
+            cd = ((c_idx, c), (d_idx, d))
+
+            completion_line = ((b_idx, bc_extension), (d_idx, bc_extension))
+            fib_ext_line = (
+                (b_idx, bc_fib_extension),
+                (d_idx, bc_fib_extension),
+            )
+
+            selected = dict(
+                start=a_idx,
+                end=d_idx,
+                lines=(entryLine, ab, bc, cd, completion_line, fib_ext_line),
+            )
+
+        a, a_idx = c, c_idx
+
+    if selected:
+        selected.update(
+            dict(
+                sym=sym,
+                pattern="BULL AB=CD",
+                df_start=df.index[0],
+                df_end=df.index[-1],
+            )
+        )
+
+    return selected
