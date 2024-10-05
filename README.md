@@ -4,6 +4,8 @@ A Python CLI scanner to detect and plot common chart patterns
 
 **Supports Python >= 3.8**
 
+**UPDATE:** v3.2.2 adds support for trendline detection and AB=CD harmonic pattern (Experimental work-in-progress)
+
 If you :heart: my work so far, please :star2: this repo.
 
 ![stock-pattern-cli](https://res.cloudinary.com/doyu4uovr/image/upload/s--CieAES1A--/c_scale,f_auto,w_800/v1716034129/stock-pattern/stock-pattern-cli-v3_z92axi.png)
