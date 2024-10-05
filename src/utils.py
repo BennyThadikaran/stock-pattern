@@ -28,6 +28,17 @@ T = TypeVar("T")
 is_silent = None
 
 
+def getY(slope, yintercept, x_value) -> float:
+    """
+    Returns the value of the Y-axis (Price) at the given X-axis value
+
+    Useful for calculating the price on a trendline at the specified date.
+    """
+    # y = mx + b
+    # where m is slope, b is yintercept
+    return slope * x_value + yintercept
+
+
 def make_serializable(obj: T) -> T:
     """Convert pandas.Timestamp and numpy.Float32 objects in obj
     to serializable native types"""
