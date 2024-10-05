@@ -1543,6 +1543,9 @@ def find_bullish_abcd(
             if isinstance(c, pd.Series):
                 c = pivots.at[c_idx, "P"].iloc[0]
 
+        if b == c:
+            break
+
         bc_diff = c - b
         c_retracement = bc_diff / (a - b)
 
