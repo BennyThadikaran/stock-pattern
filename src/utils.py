@@ -299,11 +299,14 @@ def is_bullish_vcp(
     )
 
 
-def get_max_min(df: pd.DataFrame, barsLeft=6, barsRight=6) -> pd.DataFrame:
+def get_max_min(
+    df: pd.DataFrame, barsLeft=6, barsRight=6, pivot_type="both"
+) -> pd.DataFrame:
+
     window = barsLeft + 1 + barsRight
 
-    l_max_dt = []
-    l_min_dt = []
+    local_max_dt = []
+    local_min_dt = []
     cols = ["P", "V"]
 
     for win in df.rolling(window):
@@ -312,19 +315,25 @@ def get_max_min(df: pd.DataFrame, barsLeft=6, barsRight=6) -> pd.DataFrame:
 
         idx = win.index[barsLeft + 1]  # center candle
 
-        if win["High"].idxmax() == idx:
-            l_max_dt.append(idx)
+        if win.High.idxmax() == idx:
+            local_max_dt.append(idx)
 
-        if win["Low"].idxmin() == idx:
-            l_min_dt.append(idx)
+        if win.Low.idxmin() == idx:
+            local_min_dt.append(idx)
 
-    maxima = pd.DataFrame(df.loc[l_max_dt, ["High", "Volume"]])
+    maxima = pd.DataFrame(df.loc[local_max_dt, ["High", "Volume"]])
     maxima.columns = cols
 
-    minima = pd.DataFrame(df.loc[l_min_dt, ["Low", "Volume"]])
+    minima = pd.DataFrame(df.loc[local_min_dt, ["Low", "Volume"]])
     minima.columns = cols
 
-    return pd.concat([maxima, minima]).sort_index()
+    if pivot_type == "high":
+        return maxima
+
+    if pivot_type == "low":
+        return minima
+
+    return pd.concat([maxima, minima], axis=0).sort_index()
 
 
 def get_next_index(index: pd.DatetimeIndex, idx: pd.Timestamp) -> int:
