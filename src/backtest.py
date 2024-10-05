@@ -46,7 +46,18 @@ py backtest.py -p trng --date 2023-12-01 --period 60
 
 
 def parse_cli_args():
-    key_list = ("vcpu", "vcpd", "dbot", "dtop", "hnsu", "hnsd", "trng")
+    key_list = (
+        "vcpu",
+        "vcpd",
+        "dbot",
+        "dtop",
+        "hnsu",
+        "hnsd",
+        "trng",
+        "uptl",
+        "dntl",
+        "abcdu",
+    )
 
     parser = argparse.ArgumentParser(description="Run backdated pattern scan")
 
@@ -127,6 +138,9 @@ def scan(
         "trng": utils.find_triangles,
         "hnsd": utils.find_hns,
         "hnsu": utils.find_reverse_hns,
+        "uptl": utils.find_uptrend_line,
+        "dntl": utils.find_downtrend_line,
+        "abcdu": utils.find_bullish_abcd,
     }
 
     df = loader.get(sym)
@@ -175,7 +189,16 @@ def scan(
     if isinstance(end_pos, slice):
         end_pos = end_pos.start
 
-    pivots_all = utils.get_max_min(df.iloc[start_pos - 160 : end_pos])
+    if fn == "uptl":
+        pivot_type = "low"
+    elif fn == "dntl":
+        pivot_type = "high"
+    else:
+        pivot_type = "both"
+
+    pivots_all = utils.get_max_min(
+        df.iloc[start_pos - 160 : end_pos], pivot_type=pivot_type
+    )
 
     for i in df.loc[start_dt:end_dt].index:
         pos = df.index.get_loc(i)

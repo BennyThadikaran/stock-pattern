@@ -33,20 +33,23 @@ def get_user_input() -> str:
         """
     Enter a number to select a pattern.
 
-    0. ALL  - Scan all patterns
-    1: BULL - All Bullish patterns
-    2: BEAR - All Bearish patterns
-    3. VCPU - Bullish VCP (Volatility Contraction pattern)
-    4. VCPD - Bearish VCP
-    5. DBOT - Double Bottom (Bullish)
-    6. DTOP - Double Top (Bearish)
-    7. HNSD - Head and Shoulder
-    8. HNSU - Reverse Head and Shoulder
-    9. TRNG - Triangles (Symmetrical, Ascending, Descending)
+    0.  ALL   - Scan all patterns
+    1:  BULL  - All Bullish patterns
+    2:  BEAR  - All Bearish patterns
+    3.  VCPU  - Bullish VCP (Volatility Contraction pattern)
+    4.  VCPD  - Bearish VCP
+    5.  DBOT  - Double Bottom (Bullish)
+    6.  DTOP  - Double Top (Bearish)
+    7.  HNSD  - Head and Shoulder
+    8.  HNSU  - Reverse Head and Shoulder
+    9.  TRNG  - Triangles (Symmetrical, Ascending, Descending)
+    10. UPTL  - Uptrend line
+    11. DNTL  - Downtrend line
+    12. ABCDU - AB=CD Bullish Harmonic pattern (EXPERIMENTAL - WIP)
     > """
     )
 
-    if not (user_input.isdigit() and int(user_input) in range(10)):
+    if not user_input.isdigit() and int(user_input) not in range(10):
         print("Enter a key from the list")
         return get_user_input()
 
@@ -66,6 +69,7 @@ def cleanup(loader: AbstractLoader, futures: List[concurrent.futures.Future]):
 
 def scan_pattern(
     sym: str,
+    pattern: str,
     fns: Tuple[Callable, ...],
     loader: AbstractLoader,
     bars_left=6,
@@ -79,14 +83,23 @@ def scan_pattern(
         return patterns
 
     if df.index.has_duplicates:
-        df = df[~df.index.duplicated()]
+        df = df.loc[~df.index.duplicated()]
 
     if not df.index.is_monotonic_increasing:
         df = df.sort_index(ascending=True)
 
-    pivots = utils.get_max_min(df, barsLeft=bars_left, barsRight=bars_right)
+    if pattern == "uptl":
+        pivot_type = "low"
+    elif pattern == "dntl":
+        pivot_type = "high"
+    else:
+        pivot_type = "both"
 
-    if not pivots.shape[0]:
+    pivots = utils.get_max_min(
+        df, barsLeft=bars_left, barsRight=bars_right, pivot_type=pivot_type
+    )
+
+    if not len(pivots):
         return patterns
 
     for fn in fns:
@@ -107,6 +120,7 @@ def scan_pattern(
 
 def process(
     sym_list: List,
+    pattern: str,
     fns: Tuple[Callable, ...],
     futures: List[concurrent.futures.Future],
 ) -> List[dict]:
@@ -148,6 +162,7 @@ def process(
             future = executor.submit(
                 scan_pattern,
                 sym,
+                pattern,
                 fns,
                 loader,
                 bars_left=args.left,
@@ -271,18 +286,9 @@ def process(
 # Differentiate between the main thread and child threads on Windows
 # see https://stackoverflow.com/a/57811249
 if __name__ == "__main__":
-    version = "3.2.1"
+    version = "3.2.2"
 
     futures: List[concurrent.futures.Future] = []
-
-    config_help = """
-    Config help
-    DATA_PATH: Folder path for OHLC csv data.
-
-    SYM_LIST: Optional file with list of symbols, one per line.
-
-    SAVE_FOLDER: Optional folder path to save charts as images.
-    """
 
     logging.basicConfig(
         level=logging.INFO,
@@ -307,6 +313,9 @@ if __name__ == "__main__":
         "hnsd",
         "hnsu",
         "trng",
+        "uptl",
+        "dntl",
+        "abcdu",
     )
 
     # Parse CLI arguments
@@ -514,6 +523,9 @@ if __name__ == "__main__":
         "dtop": utils.find_double_top,
         "hnsd": utils.find_hns,
         "trng": utils.find_triangles,
+        "uptl": utils.find_uptrend_line,
+        "dntl": utils.find_downtrend_line,
+        "abcdu": utils.find_bullish_abcd,
     }
 
     if args.pattern:
@@ -555,11 +567,11 @@ if __name__ == "__main__":
         )
     else:
         fns = tuple(
-            v for k, v in fn_dict.items() if k in key_list[3:] and callable(v)
+            v for k, v in fn_dict.items() if k in key_list[3:10] and callable(v)
         )
 
     try:
-        patterns = process(data, fns, futures)
+        patterns = process(data, key, fns, futures)
     except KeyboardInterrupt:
         cleanup(loader, futures)
         logger.info("User exit")

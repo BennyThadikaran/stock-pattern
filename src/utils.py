@@ -28,6 +28,17 @@ T = TypeVar("T")
 is_silent = None
 
 
+def getY(slope, yintercept, x_value) -> float:
+    """
+    Returns the value of the Y-axis (Price) at the given X-axis value
+
+    Useful for calculating the price on a trendline at the specified date.
+    """
+    # y = mx + b
+    # where m is slope, b is yintercept
+    return slope * x_value + yintercept
+
+
 def make_serializable(obj: T) -> T:
     """Convert pandas.Timestamp and numpy.Float32 objects in obj
     to serializable native types"""
@@ -299,11 +310,14 @@ def is_bullish_vcp(
     )
 
 
-def get_max_min(df: pd.DataFrame, barsLeft=6, barsRight=6) -> pd.DataFrame:
+def get_max_min(
+    df: pd.DataFrame, barsLeft=6, barsRight=6, pivot_type="both"
+) -> pd.DataFrame:
+
     window = barsLeft + 1 + barsRight
 
-    l_max_dt = []
-    l_min_dt = []
+    local_max_dt = []
+    local_min_dt = []
     cols = ["P", "V"]
 
     for win in df.rolling(window):
@@ -312,19 +326,25 @@ def get_max_min(df: pd.DataFrame, barsLeft=6, barsRight=6) -> pd.DataFrame:
 
         idx = win.index[barsLeft + 1]  # center candle
 
-        if win["High"].idxmax() == idx:
-            l_max_dt.append(idx)
+        if win.High.idxmax() == idx:
+            local_max_dt.append(idx)
 
-        if win["Low"].idxmin() == idx:
-            l_min_dt.append(idx)
+        if win.Low.idxmin() == idx:
+            local_min_dt.append(idx)
 
-    maxima = pd.DataFrame(df.loc[l_max_dt, ["High", "Volume"]])
+    maxima = pd.DataFrame(df.loc[local_max_dt, ["High", "Volume"]])
     maxima.columns = cols
 
-    minima = pd.DataFrame(df.loc[l_min_dt, ["Low", "Volume"]])
+    minima = pd.DataFrame(df.loc[local_min_dt, ["Low", "Volume"]])
     minima.columns = cols
 
-    return pd.concat([maxima, minima]).sort_index()
+    if pivot_type == "high":
+        return maxima
+
+    if pivot_type == "low":
+        return minima
+
+    return pd.concat([maxima, minima], axis=0).sort_index()
 
 
 def get_next_index(index: pd.DatetimeIndex, idx: pd.Timestamp) -> int:
@@ -866,7 +886,6 @@ def find_triangles(
                 a_idx, a = c_idx, c
                 continue
 
-
             upper = generate_trend_line(df.High, a_idx, c_idx)
             lower = generate_trend_line(df.Low, b_idx, d_idx)
 
@@ -1199,3 +1218,403 @@ def find_reverse_hns(
             )
 
         c_idx, c = e_idx, e
+
+
+def find_downtrend_line(
+    sym: str, df: pd.DataFrame, pivots: pd.DataFrame
+) -> Optional[dict]:
+    """Downtrend line detection"""
+
+    selected: Optional[dict] = None
+
+    pivots_len = len(pivots)
+
+    if not pivots_len:
+        return
+
+    # Get the highest point in pivots.
+    a_idx = pivots.P.idxmax()
+    a = pivots.at[a_idx, "P"]
+
+    b = b_idx = None
+
+    if isinstance(a, pd.Series):
+        a = a.iloc[-1]
+
+    threshold = a * 0.001
+    last_idx = df.index[-1]
+
+    # A is the last pivot
+    if a_idx == pivots.index[-1]:
+        return None
+
+    assert isinstance(pivots.index, pd.DatetimeIndex)
+
+    while True:
+        if selected is None:
+            assert isinstance(a_idx, pd.Timestamp)
+
+            pos = get_next_index(pivots.index, a_idx)
+
+            if pos >= pivots_len:
+                break
+
+            idx_after_a = pivots.index[pos]
+
+            # Get the next highest point in pivots after A
+            b_idx = pivots["P"].loc[idx_after_a:].idxmax()
+            b = pivots.at[b_idx, "P"]
+
+        assert isinstance(b_idx, pd.Timestamp)
+
+        # Calculate the slope and y-intercept of the trendline AB.
+        try:
+            tline = generate_trend_line(df.High, a_idx, b_idx)
+        except ZeroDivisionError:
+            return
+
+        y_close = getY(tline.slope, tline.y_int, len(df) - 1)
+
+        close = df.at[last_idx, "Close"]
+
+        pct_close = (close - y_close) / y_close * 100
+
+        if close > y_close or pct_close < -10:
+            a_idx, a = b_idx, b
+            continue
+
+        # Calculate y values for trendline at each pivot.
+        y_values = pivots.index.map(
+            lambda x: getY(tline.slope, tline.y_int, df.index.get_loc(x))
+        )
+
+        # Get the absolute distance of each pivot from trendline.
+        diff = pivots.P - y_values
+
+        # Count pivots with distance from line, within a fixed threshold.
+        touch_count = (diff.abs() <= threshold).sum()
+
+        if touch_count > 2:
+            closes = df.loc[a_idx:last_idx, "Close"]
+
+            y_values = closes.index.map(
+                lambda x: getY(tline.slope, tline.y_int, df.index.get_loc(x))
+            )
+
+            if (closes > y_values).sum() > 0:
+                a_idx, a = b_idx, b
+                continue
+
+            # Filter the distances for pivots located above the trendline
+            # and use the absolute sum of their distances as the score.
+            # For two lines with equal touch points, the lower score indicates
+            # a better fitting line.
+            # The lowest possible score is 0. Sum of empty Series is 0
+            score = abs(diff[diff < threshold].sum())
+
+            # Update if no trendline is detected yet or
+            # if we have higher touch counts.
+            # if touch count is same, check for lower scores
+            if selected is None or (
+                touch_count > selected["touches"]
+                or (
+                    touch_count == selected["touches"]
+                    and score < selected["score"]
+                )
+            ):
+                selected = dict(
+                    touches=touch_count,
+                    start=a_idx,
+                    end=b_idx,
+                    slope=tline.slope,
+                    y_intercept=tline.y_int,
+                    lines=tline.line,
+                    score=score,
+                )
+
+            pos = get_next_index(pivots.index, b_idx)
+
+            if pos >= pivots_len:
+                break
+
+            idx_after_b = pivots.index[pos]
+
+            # Get the next highest point in pivots after B
+            b_idx = pivots["P"].loc[idx_after_b:].idxmax()
+            b = pivots.at[b_idx, "P"]
+            continue
+
+        a_idx, a = b_idx, b
+
+    if selected:
+        selected.update(
+            dict(
+                sym=sym,
+                pattern="DNTL",
+                df_start=df.index[0],
+                df_end=last_idx,
+            )
+        )
+
+    return selected
+
+
+def find_uptrend_line(
+    sym: str, df: pd.DataFrame, pivots: pd.DataFrame
+) -> Optional[dict]:
+    """Uptrend line detection"""
+
+    selected: Optional[dict] = None
+    pivots_len = len(pivots)
+
+    if not pivots_len:
+        return
+
+    # Get the lowest point in pivots.
+    a_idx = pivots.P.idxmin()
+    a = pivots.at[a_idx, "P"]
+
+    b = b_idx = None
+
+    threshold = a * 0.001
+    last_idx = df.index[-1]
+
+    # A is the last pivot
+    if a_idx == pivots.index[-1]:
+        return
+
+    assert isinstance(pivots.index, pd.DatetimeIndex)
+
+    while True:
+
+        if selected is None:
+            assert isinstance(a_idx, pd.Timestamp)
+
+            pos = get_next_index(pivots.index, a_idx)
+
+            if pos >= pivots_len:
+                break
+
+            idx_after_a = pivots.index[pos]
+
+            # Get the next lowest point in pivots.
+            b_idx = pivots.loc[idx_after_a:, "P"].idxmin()
+            b = pivots.at[b_idx, "P"]
+
+        assert isinstance(b_idx, pd.Timestamp)
+
+        # Calculate the slope and y-intercept of the trendline AB.
+        try:
+            tline = generate_trend_line(df.Low, a_idx, b_idx)
+        except ZeroDivisionError:
+            return
+
+        y_close = getY(tline.slope, tline.y_int, len(df) - 1)
+
+        close = df.at[last_idx, "Close"]
+
+        pct_close = (close - y_close) / y_close * 100
+
+        if close < y_close or pct_close > 10:
+            a_idx, a = b_idx, b
+            continue
+
+        # Calculate y values for trendline at each pivot.
+        y_values = pivots.index.map(
+            lambda x: getY(tline.slope, tline.y_int, df.index.get_loc(x))
+        )
+
+        # Get the distance of each pivot from trendline.
+        diff = pivots.P - y_values
+
+        # Count pivots, whose absolute distance from line is
+        # within a fixed threshold.
+        touch_count = (diff.abs() <= threshold).sum()
+
+        if touch_count > 2:
+            closes = df.loc[a_idx:last_idx, "Close"]
+
+            y_values = closes.index.map(
+                lambda x: getY(tline.slope, tline.y_int, df.index.get_loc(x))
+            )
+
+            if (closes < y_values).sum() > 0:
+                a_idx, a = b_idx, b
+                continue
+
+            # Filter the distances for pivots located below the trendline
+            # and use the absolute sum of their distances as the score.
+            # For two lines with equal touch points, the lower score indicates
+            # a better fitting line.
+            # The lowest possible score is 0. Sum of empty Series is 0
+            score = abs(diff[diff < -threshold].sum())
+
+            # Update if no trendline is detected yet or
+            # if we have higher touch counts.
+            # if touch count is same, check for lower scores
+            if selected is None or (
+                touch_count > selected["touches"]
+                or (
+                    touch_count == selected["touches"]
+                    and score < selected["score"]
+                )
+            ):
+                selected = dict(
+                    touches=touch_count,
+                    start=a_idx,
+                    end=b_idx,
+                    slope=tline.slope,
+                    y_intercept=tline.y_int,
+                    lines=tline.line,
+                    score=score,
+                )
+
+            pos = get_next_index(pivots.index, b_idx)
+
+            if pos >= pivots_len:
+                break
+
+            idx_after_b = pivots.index[pos]
+
+            # Get the next lowest point in pivots.
+            b_idx = pivots.loc[idx_after_b:, "P"].idxmin()
+            b = pivots.at[b_idx, "P"]
+            continue
+
+        a_idx, a = b_idx, b
+
+    if selected:
+        selected.update(
+            dict(
+                sym=sym,
+                pattern="UPTL",
+                df_start=df.index[0],
+                df_end=last_idx,
+            )
+        )
+
+    return selected
+
+def find_bullish_abcd(
+    sym: str, df: pd.DataFrame, pivots: pd.DataFrame
+) -> Optional[dict]:
+    """
+    Bullish AB = CD harmonic pattern
+
+    """
+
+    fib_ser = pd.Series((0.382, 0.5, 0.618, 0.707, 0.786, 0.886))
+    pivot_len = pivots.shape[0]
+
+    a_idx = pivots["P"].idxmax()
+    a = pivots.at[a_idx, "P"]
+
+    assert isinstance(pivots.index, pd.DatetimeIndex)
+    assert isinstance(a_idx, pd.Timestamp)
+
+    selected: Optional[dict] = None
+
+    while True:
+        pos_after_a = get_next_index(pivots.index, a_idx)
+
+        if pos_after_a >= pivot_len:
+            break
+
+        c_idx = pivots.loc[pivots.index[pos_after_a] :, "P"].idxmax()
+
+        c = pivots.at[c_idx, "P"]
+
+        b_idx = pivots.loc[a_idx:c_idx, "P"].idxmin()
+        b = pivots.at[b_idx, "P"]
+
+        if b_idx == c_idx:
+            break
+
+        d_idx = df.index[-1]
+        d = df.at[d_idx, "Close"]
+
+        if pivots.index.has_duplicates:
+            if isinstance(a, pd.Series):
+                a = pivots.at[a_idx, "P"].iloc[0]
+
+            if isinstance(b, pd.Series):
+                b = pivots.at[b_idx, "P"].iloc[1]
+
+            if isinstance(c, pd.Series):
+                c = pivots.at[c_idx, "P"].iloc[0]
+
+        if b == c:
+            break
+
+        bc_diff = c - b
+        c_retracement = bc_diff / (a - b)
+
+        # Get the FIB ratio nearest to point C
+        c_nearest_fib = fib_ser.loc[(fib_ser - c_retracement).abs().idxmin()]
+
+        if c_retracement < 0.382 or c_retracement > 0.886:
+            a, a_idx = c, c_idx
+            continue
+
+        c_fib_inverse = 1 / c_nearest_fib
+
+        bc_extension = c - (a - b)
+        bc_fib_extension = c - (bc_diff * c_fib_inverse)
+
+        completion_point = min(bc_extension, bc_fib_extension)
+
+        # Add a 1.5 % (98.5 %) threshold below the completion_point
+        if d < b and d > completion_point * 0.985:
+
+            lowest_close_after_b = df.loc[b_idx:, "Close"].min()
+
+            if (
+                lowest_close_after_b < completion_point
+                or d != lowest_close_after_b
+            ):
+                a, a_idx = c, c_idx
+                continue
+
+            completion_diff = abs(bc_extension - bc_fib_extension) / max(
+                bc_extension, bc_fib_extension
+            )
+
+            if completion_diff > 0.1:
+                a, a_idx = c, c_idx
+                continue
+
+            c_fib_inverse = 1 / c_nearest_fib
+
+            bc_extension = c - (a - b)
+            bc_fib_extension = c - (bc_diff * c_fib_inverse)
+
+            entryLine = ((c_idx, c), (d_idx, c))
+            ab = ((a_idx, a), (b_idx, b))
+            bc = ((b_idx, b), (c_idx, c))
+            cd = ((c_idx, c), (d_idx, d))
+
+            completion_line = ((b_idx, bc_extension), (d_idx, bc_extension))
+            fib_ext_line = (
+                (b_idx, bc_fib_extension),
+                (d_idx, bc_fib_extension),
+            )
+
+            selected = dict(
+                start=a_idx,
+                end=d_idx,
+                lines=(entryLine, ab, bc, cd, completion_line, fib_ext_line),
+            )
+
+        a, a_idx = c, c_idx
+
+    if selected:
+        selected.update(
+            dict(
+                sym=sym,
+                pattern="BULL AB=CD",
+                df_start=df.index[0],
+                df_end=df.index[-1],
+            )
+        )
+
+    return selected
