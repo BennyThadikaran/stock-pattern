@@ -45,7 +45,7 @@ def get_user_input() -> str:
     9.  TRNG  - Triangles (Symmetrical, Ascending, Descending)
     10. UPTL  - Uptrend line
     11. DNTL  - Downtrend line
-    12. ABCDU - AB=CD Bullish Harmonic pattern
+    12. ABCDU - AB=CD Bullish Harmonic pattern (EXPERIMENTAL - WIP)
     > """
     )
 
