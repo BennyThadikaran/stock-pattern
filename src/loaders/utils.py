@@ -13,6 +13,7 @@ def csv_loader(
     file_path: Path,
     period: int = 160,
     end_date: Optional[datetime] = None,
+    date_format: Optional[str] = None,
     date_column: str = "Date",
     chunk_size: int = 1024 * 6,
 ) -> pd.DataFrame:
@@ -58,6 +59,7 @@ def csv_loader(
             file_path,
             index_col=date_column,
             parse_dates=[date_column],
+            date_format=date_format,
         )
 
         if end_date:
@@ -174,6 +176,7 @@ def csv_loader(
     df = pd.read_csv(
         buffer,
         parse_dates=[date_column],
+        date_format=date_format,
         index_col=date_column,
     )
 
