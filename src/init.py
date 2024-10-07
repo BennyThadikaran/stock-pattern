@@ -72,6 +72,7 @@ def scan_pattern(
     pattern: str,
     fns: Tuple[Callable, ...],
     loader: AbstractLoader,
+    logger: logging.Logger,
     bars_left=6,
     bars_right=6,
 ):
@@ -165,6 +166,7 @@ def process(
                 pattern,
                 fns,
                 loader,
+                logger,
                 bars_left=args.left,
                 bars_right=args.right,
             )
@@ -286,7 +288,7 @@ def process(
 # Differentiate between the main thread and child threads on Windows
 # see https://stackoverflow.com/a/57811249
 if __name__ == "__main__":
-    version = "3.2.3"
+    version = "3.2.4"
 
     futures: List[concurrent.futures.Future] = []
 
