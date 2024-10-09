@@ -10,9 +10,10 @@ assignees: BennyThadikaran
 **Describe the Issue**
 A clear and concise description of what the bug is.
 
-**App version and Python version and OS (Windows/Linux/Mac)**
-For the app version run: `py init.py -v`
+**App version / Python version / OS (Windows/Linux/Mac)**
 
-For Python version, run: `py -V` or `python3 -V`
+App version? ( `py init.py -v` ): 
 
-Also mention your Operating system - Windows or Linux or Mac
+Python version? ( `py -V` or `python3 -V` ): 
+
+Operating system? (Windows or Linux or Mac): 
