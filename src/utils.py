@@ -507,7 +507,8 @@ def find_bullish_vcp(
                 end=e_idx,
                 df_start=df.index[0],
                 df_end=df.index[-1],
-                lines=(entryLine, ab, bc, cd, de),
+                lines=(ab, bc, cd, de),
+                extra_lines=(entryLine,)
             )
 
         a_idx, a = c_idx, c
@@ -600,7 +601,8 @@ def find_bearish_vcp(
                 end=e_idx,
                 df_start=df.index[0],
                 df_end=df.index[-1],
-                lines=(entryLine, ab, bc, cd, de),
+                lines=(ab, bc, cd, de),
+                extra_lines=(entryLine,)
             )
 
         # We assign pivot level C to be the new A
@@ -701,7 +703,8 @@ def find_double_bottom(
                 end=d_idx,
                 df_start=df.index[0],
                 df_end=df.index[-1],
-                lines=(entryLine, ab, bc, cd),
+                lines=(ab, bc, cd),
+                extra_lines=(entryLine,)
             )
 
         a_idx, a, aVol = c_idx, c, cVol
@@ -796,7 +799,8 @@ def find_double_top(
                 end=d_idx,
                 df_start=df.index[0],
                 df_end=df.index[-1],
-                lines=(entryLine, ab, bc, cd),
+                lines=(ab, bc, cd),
+                extra_lines=(entryLine,)
             )
 
         a_idx, a, aVol = c_idx, c, cVol
@@ -921,6 +925,12 @@ def find_triangles(
 
             logger.debug(f"{sym} - {triangle}")
 
+            ab = ((a_idx, a), (b_idx, b))
+            bc = ((b_idx, b), (c_idx, c))
+            cd = ((c_idx, c), (d_idx, d))
+            de = ((d_idx, d), (e_idx, e))
+            ef = ((e_idx, e), (f_idx, f))
+
             return dict(
                 sym=sym,
                 pattern=triangle,
@@ -930,7 +940,8 @@ def find_triangles(
                 df_end=df.index[-1],
                 slope_upper=upper.slope,
                 slope_lower=lower.slope,
-                lines=(upper.line, lower.line),
+                lines=(ab, bc, cd, de, ef),
+                extra_lines=(upper.line, lower.line),
             )
 
         a_idx, c = c_idx, c
@@ -1054,12 +1065,9 @@ def find_hns(
             de = ((d_idx, d), (e_idx, e))
             ef = ((e_idx, e), (f_idx, f))
 
-            if tline.slope < 0:
-                entry_line = ((b_idx, b), (f_idx, b))
+            entry_line = ((b_idx, b), (f_idx, b))
 
-                lines = (entry_line, tline.line, ab, bc, cd, de, ef)
-            else:
-                lines = (tline.line, ab, bc, cd, de, ef)
+            lines = (ab, bc, cd, de, ef)
 
             logger.debug(f"{sym} - HNSD")
 
@@ -1073,6 +1081,7 @@ def find_hns(
                 slope=tline.slope,
                 y_intercept=tline.y_int,
                 lines=lines,
+                extra_lines=(entry_line,)
             )
 
         c_idx, c = e_idx, e
@@ -1196,12 +1205,9 @@ def find_reverse_hns(
             de = ((d_idx, d), (e_idx, e))
             ef = ((e_idx, e), (f_idx, f))
 
-            if tline.slope > 0:
-                entry_line = ((b_idx, b), (f_idx, b))
+            entry_line = ((b_idx, b), (f_idx, b))
 
-                lines = (entry_line, tline.line, ab, bc, cd, de, ef)
-            else:
-                lines = (tline.line, ab, bc, cd, de, ef)
+            lines = (ab, bc, cd, de, ef)
 
             logger.debug(f"{sym} - HNSU")
 
@@ -1215,6 +1221,7 @@ def find_reverse_hns(
                 slope=tline.line,
                 y_intercept=tline.y_int,
                 lines=lines,
+                extra_lines=(entry_line,)
             )
 
         c_idx, c = e_idx, e
@@ -1594,6 +1601,7 @@ def find_bullish_abcd(
             cd = ((c_idx, c), (d_idx, d))
 
             completion_line = ((b_idx, bc_extension), (d_idx, bc_extension))
+
             fib_ext_line = (
                 (b_idx, bc_fib_extension),
                 (d_idx, bc_fib_extension),
@@ -1602,7 +1610,8 @@ def find_bullish_abcd(
             selected = dict(
                 start=a_idx,
                 end=d_idx,
-                lines=(entryLine, ab, bc, cd, completion_line, fib_ext_line),
+                lines=(ab, bc, cd),
+                extra_lines=(entryLine, completion_line, fib_ext_line)
             )
 
         a, a_idx = c, c_idx
