@@ -1290,16 +1290,18 @@ def find_downtrend_line(
             a_idx, a = b_idx, b
             continue
 
+        line_pivots = pivots.loc[a_idx:, "P"]
+
         # Calculate y values for trendline at each pivot.
-        y_values = pivots.index.map(
+        y_values = line_pivots.index.map(
             lambda x: getY(tline.slope, tline.y_int, df.index.get_loc(x))
         )
 
         # Get the absolute distance of each pivot from trendline.
-        diff = pivots.P - y_values
+        diff = (line_pivots - y_values).abs()
 
         # Count pivots with distance from line, within a fixed threshold.
-        touch_count = (diff.abs() <= threshold).sum()
+        touch_count = (diff <= threshold).sum()
 
         if touch_count > 2:
             closes = df.loc[a_idx:last_idx, "Close"]
@@ -1317,26 +1319,29 @@ def find_downtrend_line(
             # For two lines with equal touch points, the lower score indicates
             # a better fitting line.
             # The lowest possible score is 0. Sum of empty Series is 0
-            score = abs(diff[diff < threshold].sum())
+            score = diff[diff < threshold].sum()
 
             # Update if no trendline is detected yet or
             # if we have higher touch counts.
             # if touch count is same, check for lower scores
             if selected is None or (
                 touch_count > selected["touches"]
-                or (
-                    touch_count == selected["touches"]
-                    and score < selected["score"]
-                )
+                or (touch_count == selected["touches"] and score < selected["score"])
             ):
+
+                touch_points = line_pivots.loc[diff <= threshold].items()
+
                 selected = dict(
                     touches=touch_count,
                     start=a_idx,
                     end=b_idx,
                     slope=tline.slope,
                     y_intercept=tline.y_int,
+                    y_close=y_close,
                     lines=tline.line,
+                    touch_points=tuple(touch_points),
                     score=score,
+                    threshold=threshold,
                 )
 
             pos = get_next_index(pivots.index, b_idx)
@@ -1426,26 +1431,32 @@ def find_uptrend_line(
             a_idx, a = b_idx, b
             continue
 
+        line_pivots = pivots.loc[a_idx:, "P"]
+
         # Calculate y values for trendline at each pivot.
-        y_values = pivots.index.map(
+        y_values = line_pivots.index.map(
             lambda x: getY(tline.slope, tline.y_int, df.index.get_loc(x))
         )
 
         # Get the distance of each pivot from trendline.
-        diff = pivots.P - y_values
+        diff = (line_pivots - y_values).abs()
 
         # Count pivots, whose absolute distance from line is
         # within a fixed threshold.
-        touch_count = (diff.abs() <= threshold).sum()
+        touch_count = (diff <= threshold).sum()
 
         if touch_count > 2:
+            # Get all closes from line start to last close
             closes = df.loc[a_idx:last_idx, "Close"]
 
+            # Calculate the price on trendline from line start to last close
             y_values = closes.index.map(
                 lambda x: getY(tline.slope, tline.y_int, df.index.get_loc(x))
             )
 
+            # Sum up number of times, price closed below the trendline
             if (closes < y_values).sum() > 0:
+                # skip if trendline was breached
                 a_idx, a = b_idx, b
                 continue
 
@@ -1454,25 +1465,26 @@ def find_uptrend_line(
             # For two lines with equal touch points, the lower score indicates
             # a better fitting line.
             # The lowest possible score is 0. Sum of empty Series is 0
-            score = abs(diff[diff < -threshold].sum())
+            score = diff[diff < -threshold].sum()
 
             # Update if no trendline is detected yet or
             # if we have higher touch counts.
             # if touch count is same, check for lower scores
             if selected is None or (
                 touch_count > selected["touches"]
-                or (
-                    touch_count == selected["touches"]
-                    and score < selected["score"]
-                )
+                or (touch_count == selected["touches"] and score < selected["score"])
             ):
+                touch_points = line_pivots.loc[diff <= threshold].items()
+
                 selected = dict(
                     touches=touch_count,
                     start=a_idx,
                     end=b_idx,
                     slope=tline.slope,
                     y_intercept=tline.y_int,
+                    y_close=y_close,
                     lines=tline.line,
+                    touch_points=tuple(touch_points),
                     score=score,
                 )
 
@@ -1501,6 +1513,7 @@ def find_uptrend_line(
         )
 
     return selected
+
 
 def find_bullish_abcd(
     sym: str, df: pd.DataFrame, pivots: pd.DataFrame
