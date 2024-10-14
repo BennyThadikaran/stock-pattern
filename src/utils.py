@@ -508,7 +508,7 @@ def find_bullish_vcp(
                 df_start=df.index[0],
                 df_end=df.index[-1],
                 lines=(ab, bc, cd, de),
-                extra_lines=(entryLine,)
+                extra_lines=(entryLine,),
             )
 
         a_idx, a = c_idx, c
@@ -602,7 +602,7 @@ def find_bearish_vcp(
                 df_start=df.index[0],
                 df_end=df.index[-1],
                 lines=(ab, bc, cd, de),
-                extra_lines=(entryLine,)
+                extra_lines=(entryLine,),
             )
 
         # We assign pivot level C to be the new A
@@ -704,7 +704,7 @@ def find_double_bottom(
                 df_start=df.index[0],
                 df_end=df.index[-1],
                 lines=(ab, bc, cd),
-                extra_lines=(entryLine,)
+                extra_lines=(entryLine,),
             )
 
         a_idx, a, aVol = c_idx, c, cVol
@@ -800,16 +800,14 @@ def find_double_top(
                 df_start=df.index[0],
                 df_end=df.index[-1],
                 lines=(ab, bc, cd),
-                extra_lines=(entryLine,)
+                extra_lines=(entryLine,),
             )
 
         a_idx, a, aVol = c_idx, c, cVol
 
 
 def find_triangles(
-    sym: str,
-    df: pd.DataFrame,
-    pivots: pd.DataFrame
+    sym: str, df: pd.DataFrame, pivots: pd.DataFrame
 ) -> Optional[dict]:
     """Find Triangles - Symmetric, Ascending, Descending.
 
@@ -1081,7 +1079,7 @@ def find_hns(
                 slope=tline.slope,
                 y_intercept=tline.y_int,
                 lines=lines,
-                extra_lines=(entry_line,)
+                extra_lines=(entry_line,),
             )
 
         c_idx, c = e_idx, e
@@ -1221,7 +1219,7 @@ def find_reverse_hns(
                 slope=tline.line,
                 y_intercept=tline.y_int,
                 lines=lines,
-                extra_lines=(entry_line,)
+                extra_lines=(entry_line,),
             )
 
         c_idx, c = e_idx, e
@@ -1326,7 +1324,10 @@ def find_downtrend_line(
             # if touch count is same, check for lower scores
             if selected is None or (
                 touch_count > selected["touches"]
-                or (touch_count == selected["touches"] and score < selected["score"])
+                or (
+                    touch_count == selected["touches"]
+                    and score < selected["score"]
+                )
             ):
 
                 touch_points = line_pivots.loc[diff <= threshold].items()
@@ -1472,7 +1473,10 @@ def find_uptrend_line(
             # if touch count is same, check for lower scores
             if selected is None or (
                 touch_count > selected["touches"]
-                or (touch_count == selected["touches"] and score < selected["score"])
+                or (
+                    touch_count == selected["touches"]
+                    and score < selected["score"]
+                )
             ):
                 touch_points = line_pivots.loc[diff <= threshold].items()
 
@@ -1624,7 +1628,7 @@ def find_bullish_abcd(
                 start=a_idx,
                 end=d_idx,
                 lines=(ab, bc, cd),
-                extra_lines=(entryLine, completion_line, fib_ext_line)
+                extra_lines=(entryLine, completion_line, fib_ext_line),
             )
 
         a, a_idx = c, c_idx
