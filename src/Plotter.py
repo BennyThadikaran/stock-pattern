@@ -1,3 +1,4 @@
+import functools
 import sys
 from pathlib import Path
 from typing import Literal, Optional
@@ -105,7 +106,6 @@ class Plotter:
         dct = self.data[self.idx]
         sym = dct["sym"].upper()
         pattern = dct["pattern"]
-        lines = dct["lines"]
 
         df = self.loader.get(sym)
 
@@ -131,8 +131,10 @@ class Plotter:
             df = df.iloc[start:end]
 
         if pattern in ("Symmetric", "Ascending", "Descending"):
+            lines = dct["extra_lines"]
             colors = "midnightblue"
         else:
+            lines = list(dct.get("extra_lines", [])) + list(dct["lines"])
             colors = ("green",) + ("midnightblue",) * (len(lines) - 1)
 
         self.plot_args["title"] = (
@@ -149,6 +151,21 @@ class Plotter:
             stmt, loc="left", color="black", fontdict={"fontweight": "bold"}
         )
 
+        self._annotate_fn = functools.partial(
+            axs[0].annotate,
+            textcoords="offset points",
+            horizontalalignment="center",
+            fontweight="bold",
+            color="midnightblue",
+        )
+
+        if pattern in ("UPTL", "DNTL"):
+            line_data = dct["touch_points"]
+        else:
+            line_data = dct["lines"]
+
+        self._annotations(df, line_data, dct.get("y_close", None))
+
         self.fig.canvas.mpl_connect("key_press_event", self._on_key_press)
 
         window_manager = plt.get_current_fig_manager()
@@ -164,6 +181,34 @@ class Plotter:
                 window_manager.full_screen_toggle()
 
         mpf.show(block=True)
+
+    def _annotations(self, df, lines, last_close=None):
+        annotate_txt = "ABCDEFGHIJKLM"
+
+        last_idx = df.index[-1]
+        last_pos = df.index.get_loc(last_idx)
+
+        if not last_close:
+            last_close = df.at[last_idx, "Close"]
+
+        # Annotate the close price
+        self._annotate_fn(
+            annotate_txt[len(lines)],
+            xy=(last_pos, last_close),
+            xytext=(10, -10),
+        )
+
+        for i, line in enumerate(lines):
+
+            x, y = line[0] if isinstance(line[0], (list, tuple)) else line
+
+            loc = 5 if y == df.at[x, "High"] else -10
+
+            self._annotate_fn(
+                text=annotate_txt[i],
+                xy=(df.index.get_loc(x), y),
+                xytext=(0, loc),
+            )
 
     def _on_key_press(self, event):
         key = event.key
