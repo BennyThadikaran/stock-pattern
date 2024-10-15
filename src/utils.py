@@ -1531,7 +1531,6 @@ def find_bullish_abcd(
 ) -> Optional[dict]:
     """
     Bullish AB = CD harmonic pattern
-
     """
 
     fib_ser = pd.Series((0.382, 0.5, 0.618, 0.707, 0.786, 0.886))
@@ -1539,6 +1538,9 @@ def find_bullish_abcd(
 
     a_idx = pivots["P"].idxmax()
     a = pivots.at[a_idx, "P"]
+
+    d_idx = df.index[-1]
+    d = df.at[d_idx, "Close"]
 
     assert isinstance(pivots.index, pd.DatetimeIndex)
     assert isinstance(a_idx, pd.Timestamp)
@@ -1552,7 +1554,6 @@ def find_bullish_abcd(
             break
 
         c_idx = pivots.loc[pivots.index[pos_after_a] :, "P"].idxmax()
-
         c = pivots.at[c_idx, "P"]
 
         b_idx = pivots.loc[a_idx:c_idx, "P"].idxmin()
@@ -1560,9 +1561,6 @@ def find_bullish_abcd(
 
         if b_idx == c_idx:
             break
-
-        d_idx = df.index[-1]
-        d = df.at[d_idx, "Close"]
 
         if pivots.index.has_duplicates:
             if isinstance(a, pd.Series):
@@ -1653,7 +1651,6 @@ def find_bearish_abcd(
 ) -> Optional[dict]:
     """
     Bearish AB = CD harmonic pattern
-
     """
 
     fib_ser = pd.Series((0.382, 0.5, 0.618, 0.707, 0.786, 0.886))
@@ -1661,6 +1658,9 @@ def find_bearish_abcd(
 
     a_idx = pivots["P"].idxmin()
     a = pivots.at[a_idx, "P"]
+
+    d_idx = df.index[-1]
+    d = df.at[d_idx, "Close"]
 
     assert isinstance(pivots.index, pd.DatetimeIndex)
     assert isinstance(a_idx, pd.Timestamp)
@@ -1682,9 +1682,6 @@ def find_bearish_abcd(
 
         if b_idx == c_idx:
             break
-
-        d_idx = df.index[-1]
-        d = df.at[d_idx, "Close"]
 
         if pivots.index.has_duplicates:
             if isinstance(a, pd.Series):
