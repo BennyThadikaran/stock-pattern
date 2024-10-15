@@ -641,7 +641,8 @@ def find_double_bottom(
             break
 
         c_idx = pivots.loc[pivots.index[pos_after_a] :, "P"].idxmin()
-        c, cVol = pivots.loc[c_idx, ["P", "V"]]
+        c = pivots.at[c_idx, "P"]
+        cVol = pivots.at[c_idx, "V"]
 
         b_idx = pivots.loc[a_idx:c_idx, "P"].idxmax()
         b = pivots.at[b_idx, "P"]
@@ -725,8 +726,11 @@ def find_double_top(
     assert isinstance(pivots.index, pd.DatetimeIndex)
 
     pivot_len = pivots.shape[0]
+
     a_idx = pivots["P"].idxmax()
-    a, aVol = pivots.loc[a_idx, ["P", "V"]]
+    a = pivots.loc[a_idx, "P"]
+    aVol = pivots.loc[a_idx, "V"]
+
     d_idx = df.index[-1]
     d = df.at[d_idx, "Close"]
 
@@ -741,7 +745,8 @@ def find_double_top(
             break
 
         c_idx = pivots.loc[pivots.index[idx] :, "P"].idxmax()
-        c, cVol = pivots.loc[c_idx, ["P", "V"]]
+        c = pivots.loc[c_idx, "P"]
+        cVol = pivots.loc[c_idx, "V"]
 
         b_idx = pivots.loc[a_idx:c_idx, "P"].idxmin()
         b = pivots.at[b_idx, "P"]
