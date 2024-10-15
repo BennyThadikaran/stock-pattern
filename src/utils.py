@@ -1765,3 +1765,122 @@ def find_bearish_abcd(
         )
 
     return selected
+
+
+def find_bullish_bat(
+    sym: str, df: pd.DataFrame, pivots: pd.DataFrame
+) -> Optional[dict]:
+    """
+    Bullish Bat harmonic pattern
+    """
+    pivot_len = pivots.shape[0]
+
+    x_idx = pivots["P"].idxmin()
+    x = pivots.at[x_idx, "P"]
+
+    d_idx = df.index[-1]
+    d = df.at[d_idx, "Close"]
+
+    selected: Optional[dict] = None
+
+    assert isinstance(pivots.index, pd.DatetimeIndex)
+    assert isinstance(x_idx, pd.Timestamp)
+
+    while True:
+        pos_after_x = get_next_index(pivots.index, x_idx)
+
+        if pos_after_x >= pivot_len:
+            break
+
+        a_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmax()
+        a = pivots.at[a_idx, "P"]
+
+        pos_after_a = get_next_index(pivots.index, a_idx)
+
+        if pos_after_a >= pivot_len:
+            break
+
+        c_idx = pivots.loc[pivots.index[pos_after_a] :, "P"].idxmax()
+        c = pivots.at[c_idx, "P"]
+
+        b_idx = pivots.loc[a_idx:c_idx, "P"].idxmin()
+        b = pivots.at[b_idx, "P"]
+
+        if pivots.index.has_duplicates:
+            if isinstance(x, pd.Series):
+                x = pivots.at[x_idx, "P"].min()
+
+            if isinstance(a, pd.Series):
+                a = pivots.at[a_idx, "P"].max()
+
+            if isinstance(b, pd.Series):
+                b = pivots.at[b_idx, "P"].min()
+
+            if isinstance(c, pd.Series):
+                c = pivots.at[c_idx, "P"].max()
+
+        xa_diff = a - x
+        ab_diff = a - b
+        bc_diff = c - b
+
+        b_retracement = ab_diff / xa_diff
+        c_retracement = bc_diff / ab_diff
+
+        if (
+            b_retracement < 0.382
+            or b_retracement > 0.5
+            or c_retracement < 0.382
+            or c_retracement > 0.886
+        ):
+            x, x_idx = b, b_idx
+            continue
+
+        xa_886_retrace = a - xa_diff * 0.886
+
+        bc_extension = c - (bc_diff * 1.618)
+
+        terminal_point = min(xa_886_retrace, bc_extension)
+
+        # Add a 1.5 % (98.5 %) threshold below the terminal_point
+        validation_threshold = terminal_point * 0.985
+
+        if d < b and d > validation_threshold:
+
+            lowest_close_after_b = df.loc[b_idx:, "Close"].min()
+
+            if (
+                lowest_close_after_b < validation_threshold
+                or d != lowest_close_after_b
+            ):
+                x, x_idx = b, b_idx
+                continue
+
+            entryLine = ((c_idx, c), (d_idx, c))
+            xa = ((x_idx, x), (a_idx, a))
+            ab = ((a_idx, a), (b_idx, b))
+            bc = ((b_idx, b), (c_idx, c))
+            cd = ((c_idx, c), (d_idx, d))
+
+            xa_886_line = ((b_idx, xa_886_retrace), (d_idx, xa_886_retrace))
+            bc_extension_line = ((b_idx, bc_extension), (d_idx, bc_extension))
+
+            selected = dict(
+                start=a_idx,
+                end=d_idx,
+                lines=(xa, ab, bc, cd),
+                extra_lines=(entryLine, xa_886_line, bc_extension_line),
+            )
+
+        x, x_idx = b, b_idx
+
+    if selected:
+        selected.update(
+            dict(
+                sym=sym,
+                pattern="BATU",
+                df_start=df.index[0],
+                df_end=df.index[-1],
+            )
+        )
+
+    return selected
