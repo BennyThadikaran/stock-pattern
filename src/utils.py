@@ -1588,25 +1588,27 @@ def find_bullish_abcd(
         bc_extension = c - ab_diff
         bc_fib_extension = c - (bc_diff * c_fib_inverse)
 
-        completion_point = min(bc_extension, bc_fib_extension)
+        terminal_point = min(bc_extension, bc_fib_extension)
 
-        # Add a 1.5 % (98.5 %) threshold below the completion_point
-        if d < b and d > completion_point * 0.985:
+        validation_threshold = terminal_point * 0.985
+
+        # Add a 1.5 % (98.5 %) threshold below the terminal_point
+        if d < b and d > validation_threshold:
 
             lowest_close_after_b = df.loc[b_idx:, "Close"].min()
 
             if (
-                lowest_close_after_b < completion_point
+                lowest_close_after_b < validation_threshold
                 or d != lowest_close_after_b
             ):
                 a, a_idx = c, c_idx
                 continue
 
-            completion_diff = abs(bc_extension - bc_fib_extension) / max(
+            termination_zone = abs(bc_extension - bc_fib_extension) / max(
                 bc_extension, bc_fib_extension
             )
 
-            if completion_diff > 0.1:
+            if termination_zone > 0.1:
                 a, a_idx = c, c_idx
                 continue
 
@@ -1615,7 +1617,7 @@ def find_bullish_abcd(
             bc = ((b_idx, b), (c_idx, c))
             cd = ((c_idx, c), (d_idx, d))
 
-            completion_line = ((b_idx, bc_extension), (d_idx, bc_extension))
+            bc_extension_line = ((b_idx, bc_extension), (d_idx, bc_extension))
 
             fib_ext_line = (
                 (b_idx, bc_fib_extension),
@@ -1626,7 +1628,7 @@ def find_bullish_abcd(
                 start=a_idx,
                 end=d_idx,
                 lines=(ab, bc, cd),
-                extra_lines=(entryLine, completion_line, fib_ext_line),
+                extra_lines=(entryLine, bc_extension_line, fib_ext_line),
             )
 
         a, a_idx = c, c_idx
@@ -1707,25 +1709,27 @@ def find_bearish_abcd(
         bc_extension = c + ab_diff
         bc_fib_extension = c + (bc_diff * c_fib_inverse)
 
-        completion_point = max(bc_extension, bc_fib_extension)
+        terminal_point = max(bc_extension, bc_fib_extension)
 
-        # Add a 1.5 % (101.5 %) threshold below the completion_point
-        if d > b and d < completion_point * 1.015:
+        validation_threshold = terminal_point * 1.015
+
+        # Add a 1.5 % (101.5 %) threshold below the terminal_point
+        if d > b and d < validation_threshold:
 
             highest_close_after_b = df.loc[b_idx:, "Close"].max()
 
             if (
-                highest_close_after_b > completion_point
+                highest_close_after_b > validation_threshold
                 or d != highest_close_after_b
             ):
                 a, a_idx = c, c_idx
                 continue
 
-            completion_diff = abs(bc_extension - bc_fib_extension) / min(
+            termination_zone = abs(bc_extension - bc_fib_extension) / min(
                 bc_extension, bc_fib_extension
             )
 
-            if completion_diff > 0.1:
+            if termination_zone > 0.1:
                 a, a_idx = c, c_idx
                 continue
 
@@ -1734,7 +1738,7 @@ def find_bearish_abcd(
             bc = ((b_idx, b), (c_idx, c))
             cd = ((c_idx, c), (d_idx, d))
 
-            completion_line = ((b_idx, bc_extension), (d_idx, bc_extension))
+            bc_extension_line = ((b_idx, bc_extension), (d_idx, bc_extension))
 
             fib_ext_line = (
                 (b_idx, bc_fib_extension),
@@ -1745,7 +1749,7 @@ def find_bearish_abcd(
                 start=a_idx,
                 end=d_idx,
                 lines=(ab, bc, cd),
-                extra_lines=(entryLine, completion_line, fib_ext_line),
+                extra_lines=(entryLine, bc_extension_line, fib_ext_line),
             )
 
         a, a_idx = c, c_idx
