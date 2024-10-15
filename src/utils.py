@@ -466,16 +466,16 @@ def find_bullish_vcp(
 
         if pivots.index.has_duplicates:
             if isinstance(a, (pd.Series, str)):
-                a = pivots.at[a_idx, "P"].iloc[0]
+                a = pivots.at[a_idx, "P"].max()
 
             if isinstance(b, (pd.Series, str)):
-                b = pivots.at[b_idx, "P"].iloc[1]
+                b = pivots.at[b_idx, "P"].min()
 
             if isinstance(c, (pd.Series, str)):
-                c = pivots.at[c_idx, "P"].iloc[0]
+                c = pivots.at[c_idx, "P"].max()
 
             if isinstance(d, (pd.Series, str)):
-                d = pivots.at[d_idx, "P"].iloc[1]
+                d = pivots.at[d_idx, "P"].min()
 
         if is_bullish_vcp(a, b, c, d, e, avgBarLength):
             # check if Level C has been breached after it was formed
@@ -563,16 +563,16 @@ def find_bearish_vcp(
 
         if pivots.index.has_duplicates:
             if isinstance(a, (pd.Series, str)):
-                a = pivots.at[a_idx, "P"].iloc[1]
+                a = pivots.at[a_idx, "P"].min()
 
             if isinstance(b, (pd.Series, str)):
-                b = pivots.at[b_idx, "P"].iloc[0]
+                b = pivots.at[b_idx, "P"].max()
 
             if isinstance(c, (pd.Series, str)):
-                c = pivots.at[c_idx, "P"].iloc[1]
+                c = pivots.at[c_idx, "P"].min()
 
             if isinstance(d, (pd.Series, str)):
-                d = pivots.at[d_idx, "P"].iloc[0]
+                d = pivots.at[d_idx, "P"].max()
 
         if is_bearish_vcp(a, b, c, d, e, avgBarLength):
             if (
@@ -625,8 +625,10 @@ def find_double_bottom(
     assert isinstance(pivots.index, pd.DatetimeIndex)
 
     pivot_len = pivots.shape[0]
+
     a_idx = pivots["P"].idxmin()
     a, aVol = pivots.loc[a_idx, ["P", "V"]]
+
     d_idx = df.index[-1]
     d = df.at[d_idx, "Close"]
 
