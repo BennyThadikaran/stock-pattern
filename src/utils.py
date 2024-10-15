@@ -1573,7 +1573,8 @@ def find_bullish_abcd(
                 c = pivots.at[c_idx, "P"].max()
 
         bc_diff = c - b
-        c_retracement = bc_diff / (a - b)
+        ab_diff = a - b
+        c_retracement = bc_diff / ab_diff
 
         # Get the FIB ratio nearest to point C
         c_nearest_fib = fib_ser.loc[(fib_ser - c_retracement).abs().idxmin()]
@@ -1584,7 +1585,7 @@ def find_bullish_abcd(
 
         c_fib_inverse = 1 / c_nearest_fib
 
-        bc_extension = c - (a - b)
+        bc_extension = c - ab_diff
         bc_fib_extension = c - (bc_diff * c_fib_inverse)
 
         completion_point = min(bc_extension, bc_fib_extension)
@@ -1691,7 +1692,8 @@ def find_bearish_abcd(
                 c = pivots.at[c_idx, "P"].min()
 
         bc_diff = b - c
-        c_retracement = bc_diff / (b - a)
+        ab_diff = b - a
+        c_retracement = bc_diff / ab_diff
 
         # Get the FIB ratio nearest to point C
         c_nearest_fib = fib_ser.loc[(fib_ser - c_retracement).abs().idxmin()]
@@ -1702,7 +1704,7 @@ def find_bearish_abcd(
 
         c_fib_inverse = 1 / c_nearest_fib
 
-        bc_extension = c + (b - a)
+        bc_extension = c + ab_diff
         bc_fib_extension = c + (bc_diff * c_fib_inverse)
 
         completion_point = max(bc_extension, bc_fib_extension)
