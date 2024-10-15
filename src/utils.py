@@ -650,20 +650,20 @@ def find_double_bottom(
         atr = atr_ser.at[c_idx]
 
         if pivots.index.has_duplicates:
-            if isinstance(a, (pd.Series, str)):
-                a = pivots.at[a_idx, "P"].iloc[1]
+            if isinstance(a, pd.Series):
+                a = pivots.at[a_idx, "P"].min()
 
-            if isinstance(aVol, (pd.Series, str)):
-                aVol = pivots.at[a_idx, "V"].iloc[1]
+            if isinstance(aVol, pd.Series):
+                aVol = pivots.at[a_idx, "V"].iloc[0]
 
-            if isinstance(b, (pd.Series, str)):
-                b = pivots.at[b_idx, "P"].iloc[0]
+            if isinstance(b, pd.Series):
+                b = pivots.at[b_idx, "P"].max()
 
-            if isinstance(c, (pd.Series, str)):
-                c = pivots.at[c_idx, "P"].iloc[1]
+            if isinstance(c, pd.Series):
+                c = pivots.at[c_idx, "P"].min()
 
-            if isinstance(cVol, (pd.Series, str)):
-                cVol = pivots.at[c_idx, "V"].iloc[1]
+            if isinstance(cVol, pd.Series):
+                cVol = pivots.at[c_idx, "V"].iloc[0]
 
         df_slice = df.loc[a_idx:c_idx]
         avgBarLength = (df_slice["High"] - df_slice["Low"]).median()
@@ -754,19 +754,19 @@ def find_double_top(
         atr = atr_ser.at[c_idx]
 
         if pivots.index.has_duplicates:
-            if isinstance(a, (pd.Series, str)):
-                a = pivots.at[a_idx, "P"].iloc[0]
+            if isinstance(a, pd.Series):
+                a = pivots.at[a_idx, "P"].max()
 
-            if isinstance(aVol, (pd.Series, str)):
+            if isinstance(aVol, pd.Series):
                 aVol = pivots.at[a_idx, "V"].iloc[0]
 
-            if isinstance(b, (pd.Series, str)):
-                b = pivots.at[b_idx, "P"].iloc[1]
+            if isinstance(b, pd.Series):
+                b = pivots.at[b_idx, "P"].min()
 
-            if isinstance(c, (pd.Series, str)):
-                c = pivots.at[c_idx, "P"].iloc[0]
+            if isinstance(c, pd.Series):
+                c = pivots.at[c_idx, "P"].max()
 
-            if isinstance(cVol, (pd.Series, str)):
+            if isinstance(cVol, pd.Series):
                 cVol = pivots.at[c_idx, "V"].iloc[0]
 
         df_slice = df.loc[a_idx:c_idx]
@@ -867,20 +867,20 @@ def find_triangles(
         e = pivots.at[e_idx, "P"]
 
         if pivots.index.has_duplicates:
-            if isinstance(a, (pd.Series, str)):
-                a = pivots.at[a_idx, "P"].iloc[0]
+            if isinstance(a, pd.Series):
+                a = pivots.at[a_idx, "P"].max()
 
             if isinstance(b, (pd.Series, str)):
-                b = pivots.at[b_idx, "P"].iloc[1]
+                b = pivots.at[b_idx, "P"].min()
 
             if isinstance(c, (pd.Series, str)):
-                c = pivots.at[c_idx, "P"].iloc[0]
+                c = pivots.at[c_idx, "P"].max()
 
             if isinstance(d, (pd.Series, str)):
-                d = pivots.at[d_idx, "P"].iloc[1]
+                d = pivots.at[d_idx, "P"].min()
 
             if isinstance(e, (pd.Series, str)):
-                e = pivots.at[e_idx, "P"].iloc[0]
+                e = pivots.at[e_idx, "P"].max()
 
         df_slice = df.loc[a_idx:d_idx]
         avgBarLength = (df_slice["High"] - df_slice["Low"]).median()
