@@ -1564,16 +1564,13 @@ def find_bullish_abcd(
 
         if pivots.index.has_duplicates:
             if isinstance(a, pd.Series):
-                a = pivots.at[a_idx, "P"].iloc[0]
+                a = pivots.at[a_idx, "P"].max()
 
             if isinstance(b, pd.Series):
-                b = pivots.at[b_idx, "P"].iloc[1]
+                b = pivots.at[b_idx, "P"].min()
 
             if isinstance(c, pd.Series):
-                c = pivots.at[c_idx, "P"].iloc[0]
-
-        if b == c:
-            break
+                c = pivots.at[c_idx, "P"].max()
 
         bc_diff = c - b
         c_retracement = bc_diff / (a - b)
@@ -1685,16 +1682,13 @@ def find_bearish_abcd(
 
         if pivots.index.has_duplicates:
             if isinstance(a, pd.Series):
-                a = pivots.at[a_idx, "P"].iloc[0]
+                a = pivots.at[a_idx, "P"].min()
 
             if isinstance(b, pd.Series):
-                b = pivots.at[b_idx, "P"].iloc[1]
+                b = pivots.at[b_idx, "P"].max()
 
             if isinstance(c, pd.Series):
-                c = pivots.at[c_idx, "P"].iloc[0]
-
-        if b == c:
-            break
+                c = pivots.at[c_idx, "P"].min()
 
         bc_diff = b - c
         c_retracement = bc_diff / (b - a)
