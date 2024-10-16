@@ -1248,10 +1248,8 @@ def find_downtrend_line(
     a_idx = pivots.P.idxmax()
     a = pivots.at[a_idx, "P"]
 
-    b = b_idx = None
-
     if isinstance(a, pd.Series):
-        a = a.iloc[-1]
+        a = a.max()
 
     threshold = a * 0.001
     last_idx = df.index[-1]
@@ -1261,23 +1259,20 @@ def find_downtrend_line(
         return None
 
     assert isinstance(pivots.index, pd.DatetimeIndex)
+    assert isinstance(a_idx, pd.Timestamp)
 
     while True:
-        if selected is None:
-            assert isinstance(a_idx, pd.Timestamp)
+        pos_after_a = get_next_index(pivots.index, a_idx)
 
-            pos = get_next_index(pivots.index, a_idx)
+        if pos_after_a >= pivots_len:
+            break
 
-            if pos >= pivots_len:
-                break
+        # Get the next highest point in pivots after A
+        b_idx = pivots.loc[pivots.index[pos_after_a]:, "P"].idxmax()
+        b = pivots.at[b_idx, "P"]
 
-            idx_after_a = pivots.index[pos]
-
-            # Get the next highest point in pivots after A
-            b_idx = pivots["P"].loc[idx_after_a:].idxmax()
-            b = pivots.at[b_idx, "P"]
-
-        assert isinstance(b_idx, pd.Timestamp)
+        if isinstance(b, pd.Series):
+            b = b.max()
 
         # Calculate the slope and y-intercept of the trendline AB.
         try:
@@ -1311,11 +1306,14 @@ def find_downtrend_line(
         if touch_count > 2:
             closes = df.loc[a_idx:last_idx, "Close"]
 
+            # Calculate price at each point on the trendline
             y_values = closes.index.map(
                 lambda x: getY(tline.slope, tline.y_int, df.index.get_loc(x))
             )
 
+            # Sum up number of times, price closed above the trendline
             if (closes > y_values).sum() > 0:
+                # skip if trendline was breached
                 a_idx, a = b_idx, b
                 continue
 
@@ -1351,18 +1349,6 @@ def find_downtrend_line(
                     score=score,
                     threshold=threshold,
                 )
-
-            pos = get_next_index(pivots.index, b_idx)
-
-            if pos >= pivots_len:
-                break
-
-            idx_after_b = pivots.index[pos]
-
-            # Get the next highest point in pivots after B
-            b_idx = pivots["P"].loc[idx_after_b:].idxmax()
-            b = pivots.at[b_idx, "P"]
-            continue
 
         a_idx, a = b_idx, b
 
