@@ -465,16 +465,16 @@ def find_bullish_vcp(
         avgBarLength = (df_slice["High"] - df_slice["Low"]).median()
 
         if pivots.index.has_duplicates:
-            if isinstance(a, (pd.Series, str)):
+            if isinstance(a, pd.Series):
                 a = pivots.at[a_idx, "P"].max()
 
-            if isinstance(b, (pd.Series, str)):
+            if isinstance(b, pd.Series):
                 b = pivots.at[b_idx, "P"].min()
 
-            if isinstance(c, (pd.Series, str)):
+            if isinstance(c, pd.Series):
                 c = pivots.at[c_idx, "P"].max()
 
-            if isinstance(d, (pd.Series, str)):
+            if isinstance(d, pd.Series):
                 d = pivots.at[d_idx, "P"].min()
 
         if is_bullish_vcp(a, b, c, d, e, avgBarLength):
@@ -562,16 +562,16 @@ def find_bearish_vcp(
         avgBarLength = (df_slice["High"] - df_slice["Low"]).median()
 
         if pivots.index.has_duplicates:
-            if isinstance(a, (pd.Series, str)):
+            if isinstance(a, pd.Series):
                 a = pivots.at[a_idx, "P"].min()
 
-            if isinstance(b, (pd.Series, str)):
+            if isinstance(b, pd.Series):
                 b = pivots.at[b_idx, "P"].max()
 
-            if isinstance(c, (pd.Series, str)):
+            if isinstance(c, pd.Series):
                 c = pivots.at[c_idx, "P"].min()
 
-            if isinstance(d, (pd.Series, str)):
+            if isinstance(d, pd.Series):
                 d = pivots.at[d_idx, "P"].max()
 
         if is_bearish_vcp(a, b, c, d, e, avgBarLength):
@@ -872,16 +872,16 @@ def find_triangles(
             if isinstance(a, pd.Series):
                 a = pivots.at[a_idx, "P"].max()
 
-            if isinstance(b, (pd.Series, str)):
+            if isinstance(b, pd.Series):
                 b = pivots.at[b_idx, "P"].min()
 
-            if isinstance(c, (pd.Series, str)):
+            if isinstance(c, pd.Series):
                 c = pivots.at[c_idx, "P"].max()
 
-            if isinstance(d, (pd.Series, str)):
+            if isinstance(d, pd.Series):
                 d = pivots.at[d_idx, "P"].min()
 
-            if isinstance(e, (pd.Series, str)):
+            if isinstance(e, pd.Series):
                 e = pivots.at[e_idx, "P"].max()
 
         df_slice = df.loc[a_idx:d_idx]
@@ -1003,20 +1003,20 @@ def find_hns(
         d = pivots.at[d_idx, "P"]
 
         if pivots.index.has_duplicates:
-            if isinstance(a, (pd.Series, str)):
-                a = pivots.at[a_idx, "P"].iloc[0]
+            if isinstance(a, pd.Series):
+                a = pivots.at[a_idx, "P"].max()
 
-            if isinstance(b, (pd.Series, str)):
-                b = pivots.at[b_idx, "P"].iloc[1]
+            if isinstance(b, pd.Series):
+                b = pivots.at[b_idx, "P"].min()
 
-            if isinstance(c, (pd.Series, str)):
-                c = pivots.at[c_idx, "P"].iloc[0]
+            if isinstance(c, pd.Series):
+                c = pivots.at[c_idx, "P"].max()
 
-            if isinstance(d, (pd.Series, str)):
-                d = pivots.at[d_idx, "P"].iloc[1]
+            if isinstance(d, pd.Series):
+                d = pivots.at[d_idx, "P"].min()
 
-            if isinstance(e, (pd.Series, str)):
-                e = pivots.at[e_idx, "P"].iloc[0]
+            if isinstance(e, pd.Series):
+                e = pivots.at[e_idx, "P"].max()
 
         df_slice = df.loc[b_idx:d_idx]
         avgBarLength = (df_slice["High"] - df_slice["Low"]).median()
@@ -1143,20 +1143,20 @@ def find_reverse_hns(
         d = pivots.at[d_idx, "P"]
 
         if pivots.index.has_duplicates:
-            if isinstance(a, (pd.Series, str)):
-                a = pivots.loc[a_idx, "P"].iloc[1]
+            if isinstance(a, pd.Series):
+                a = pivots.loc[a_idx, "P"].min()
 
-            if isinstance(b, (pd.Series, str)):
-                b = pivots.loc[b_idx, "P"].iloc[0]
+            if isinstance(b, pd.Series):
+                b = pivots.loc[b_idx, "P"].max()
 
-            if isinstance(c, (pd.Series, str)):
-                c = pivots.loc[c_idx, "P"].iloc[1]
+            if isinstance(c, pd.Series):
+                c = pivots.loc[c_idx, "P"].min()
 
-            if isinstance(d, (pd.Series, str)):
-                d = pivots.loc[d_idx, "P"].iloc[0]
+            if isinstance(d, pd.Series):
+                d = pivots.loc[d_idx, "P"].max()
 
-            if isinstance(e, (pd.Series, str)):
-                e = pivots.loc[e_idx, "P"].iloc[1]
+            if isinstance(e, pd.Series):
+                e = pivots.loc[e_idx, "P"].min()
 
         df_slice = df.loc[b_idx:d_idx]
         avgBarLength = (df_slice["High"] - df_slice["Low"]).median()
