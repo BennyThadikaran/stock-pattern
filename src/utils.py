@@ -1380,7 +1380,8 @@ def find_uptrend_line(
     a_idx = pivots.P.idxmin()
     a = pivots.at[a_idx, "P"]
 
-    b = b_idx = None
+    if isinstance(a, pd.Series):
+        a = a.min()
 
     threshold = a * 0.001
     last_idx = df.index[-1]
@@ -1390,24 +1391,21 @@ def find_uptrend_line(
         return
 
     assert isinstance(pivots.index, pd.DatetimeIndex)
+    assert isinstance(a_idx, pd.Timestamp)
 
     while True:
 
-        if selected is None:
-            assert isinstance(a_idx, pd.Timestamp)
+        pos_after_a = get_next_index(pivots.index, a_idx)
 
-            pos = get_next_index(pivots.index, a_idx)
+        if pos_after_a >= pivots_len:
+            break
 
-            if pos >= pivots_len:
-                break
+        # Get the next lowest point in pivots.
+        b_idx = pivots.loc[pivots.index[pos_after_a]:, "P"].idxmin()
+        b = pivots.at[b_idx, "P"]
 
-            idx_after_a = pivots.index[pos]
-
-            # Get the next lowest point in pivots.
-            b_idx = pivots.loc[idx_after_a:, "P"].idxmin()
-            b = pivots.at[b_idx, "P"]
-
-        assert isinstance(b_idx, pd.Timestamp)
+        if isinstance(b, pd.Series):
+            b = b.max()
 
         # Calculate the slope and y-intercept of the trendline AB.
         try:
@@ -1484,18 +1482,6 @@ def find_uptrend_line(
                     touch_points=tuple(touch_points),
                     score=score,
                 )
-
-            pos = get_next_index(pivots.index, b_idx)
-
-            if pos >= pivots_len:
-                break
-
-            idx_after_b = pivots.index[pos]
-
-            # Get the next lowest point in pivots.
-            b_idx = pivots.loc[idx_after_b:, "P"].idxmin()
-            b = pivots.at[b_idx, "P"]
-            continue
 
         a_idx, a = b_idx, b
 
