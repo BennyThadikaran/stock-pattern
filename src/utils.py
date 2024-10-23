@@ -1959,7 +1959,7 @@ def find_bearish_bat(
         selected.update(
             dict(
                 sym=sym,
-                pattern="BATU",
+                pattern="BATD",
             )
         )
 
