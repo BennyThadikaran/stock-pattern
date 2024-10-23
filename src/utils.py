@@ -1545,12 +1545,12 @@ def find_bullish_abcd(
 
         bc_diff = c - b
         ab_diff = a - b
-        c_retracement = bc_diff / ab_diff
+        c_retrace = bc_diff / ab_diff
 
         # Get the FIB ratio nearest to point C
-        c_nearest_fib = fib_ser.loc[(fib_ser - c_retracement).abs().idxmin()]
+        c_nearest_fib = fib_ser.loc[(fib_ser - c_retrace).abs().idxmin()]
 
-        if c_retracement < 0.382 or c_retracement > 0.886:
+        if c_retrace < 0.382 or c_retrace > 0.886:
             a, a_idx = c, c_idx
             continue
 
@@ -1598,8 +1598,17 @@ def find_bullish_abcd(
             selected = dict(
                 start=a_idx,
                 end=d_idx,
-                lines=(ab, bc, cd),
-                extra_lines=(entryLine, bc_extension_line, fib_ext_line),
+                points={
+                    "A": (a_idx, a),
+                    "B": (b_idx, b),
+                    f"{c_retrace:.3f}C": (c_idx, c),
+                    "D": (d_idx, d),
+                },
+                extra_points={
+                    "direction": (c_idx, c),
+                    f"{c_fib_inverse:.3f}BC": (b_idx, bc_fib_extension),
+                    "AB=CD": (b_idx, bc_extension),
+                },
             )
 
         a, a_idx = c, c_idx
@@ -1666,12 +1675,12 @@ def find_bearish_abcd(
 
         bc_diff = b - c
         ab_diff = b - a
-        c_retracement = bc_diff / ab_diff
+        c_retrace = bc_diff / ab_diff
 
         # Get the FIB ratio nearest to point C
-        c_nearest_fib = fib_ser.loc[(fib_ser - c_retracement).abs().idxmin()]
+        c_nearest_fib = fib_ser.loc[(fib_ser - c_retrace).abs().idxmin()]
 
-        if c_retracement < 0.382 or c_retracement > 0.886:
+        if c_retrace < 0.382 or c_retrace > 0.886:
             a, a_idx = c, c_idx
             continue
 
@@ -1717,10 +1726,21 @@ def find_bearish_abcd(
             )
 
             selected = dict(
+                df_start=df.index[0],
+                df_end=df.index[-1],
                 start=a_idx,
                 end=d_idx,
-                lines=(ab, bc, cd),
-                extra_lines=(entryLine, bc_extension_line, fib_ext_line),
+                points={
+                    "A": (a_idx, a),
+                    "B": (b_idx, b),
+                    f"{c_retrace:.3f}C": (c_idx, c),
+                    "D": (d_idx, d),
+                },
+                extra_points={
+                    "direction": (c_idx, c),
+                    f"{c_fib_inverse:.3f}BC": (b_idx, bc_fib_extension),
+                    "AB=CD": (b_idx, bc_extension),
+                },
             )
 
         a, a_idx = c, c_idx
@@ -1730,8 +1750,6 @@ def find_bearish_abcd(
             dict(
                 sym=sym,
                 pattern="BULL AB=CD",
-                df_start=df.index[0],
-                df_end=df.index[-1],
             )
         )
 
