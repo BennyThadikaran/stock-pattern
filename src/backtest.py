@@ -174,7 +174,13 @@ def scan(
 
     df = loader.get(sym)
 
-    if df is None or df.empty or end < df.index[0]:
+    if df is None or df.empty:
+        return results
+
+    if df.index[0].tzinfo:
+        end_dt = end_dt.replace(tzinfo=df.index[0].tzinfo)
+
+    if end_dt < df.index[0]:
         return results
 
     if df.index.has_duplicates:
