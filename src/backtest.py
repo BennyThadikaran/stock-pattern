@@ -26,18 +26,18 @@ backtesting.
 Ensure you have user.json with `DATA_PATH` and `SYM_LIST` set.
 
 ```python
-py backtest.py -p vcpu
+py backtest.py -p vcpu -d 2024-10-20
 ```
 
 # Custom Watchlist
 Provide a custom watchlist of symbols as a CSV or TXT file
 
 ```python 
-py backtest.py -p hnsd --file symlist.csv
+py backtest.py -p hnsd -d 2024-10-20 --file symlist.csv
 ```
 
 # Set Scan parameters
-Default scan end date is 120 days prior to current date. 
+By default, scan end date is 120 days prior to current date. 
 Scan period is 30 days prior to end date.
 
 ```python 
@@ -103,7 +103,11 @@ def parse_cli_args():
         "-d",
         "--date",
         type=lambda x: datetime.fromisoformat(x) if x else x,
-        help="Ending date of scan. ISO FORMAT date YYYY-MM-DDTHH:MM",
+        help=(
+            "Last available date on file. The scan end date is 120 periods prior to this date. "
+            "Scan start date is 30 days from the scan end date. "
+            "Use ISO FORMAT date YYYY-MM-DD."
+        ),
     )
 
     parser.add_argument(
