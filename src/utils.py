@@ -629,7 +629,8 @@ def find_double_bottom(
     pivot_len = pivots.shape[0]
 
     a_idx = pivots["P"].idxmin()
-    a, aVol = pivots.loc[a_idx, ["P", "V"]]
+    a = pivots.loc[a_idx, "P"]
+    aVol = pivots.loc[a_idx, "V"]
 
     d_idx = df.index[-1]
     d = df.at[d_idx, "Close"]
