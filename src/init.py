@@ -47,10 +47,12 @@ def get_user_input() -> str:
     11. DNTL  - Downtrend line
     12. ABCDU - AB=CD Bullish Harmonic pattern (EXPERIMENTAL - WIP)
     13. ABCDD - AB=CD Bearish Harmonic pattern (EXPERIMENTAL - WIP)
+    14. BATU  - Bullish BAT Harmonic pattern (EXPERIMENTAL - WIP)
+    15. BATD  - Bearish BAT Harmonic pattern (EXPERIMENTAL - WIP)
     > """
     )
 
-    if not (user_input.isdigit() and int(user_input) in range(14)):
+    if not (user_input.isdigit() and int(user_input) in range(16)):
         print("Enter a key from the list")
         return get_user_input()
 
@@ -320,6 +322,8 @@ if __name__ == "__main__":
         "dntl",
         "abcdu",
         "abcdd",
+        "batu",
+        "batd",
     )
 
     # Parse CLI arguments
@@ -531,6 +535,8 @@ if __name__ == "__main__":
         "dntl": utils.find_downtrend_line,
         "abcdu": utils.find_bullish_abcd,
         "abcdd": utils.find_bearish_abcd,
+        "batu": utils.find_bullish_bat,
+        "batd": utils.find_bearish_bat,
     }
 
     if args.pattern:
