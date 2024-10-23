@@ -1845,3 +1845,122 @@ def find_bullish_bat(
         )
 
     return selected
+
+
+def find_bearish_bat(
+    sym: str, df: pd.DataFrame, pivots: pd.DataFrame
+) -> Optional[dict]:
+    """
+    Bearish Bat harmonic pattern
+    """
+    pivot_len = pivots.shape[0]
+
+    x_idx = pivots["P"].idxmax()
+    x = pivots.at[x_idx, "P"]
+
+    d_idx = df.index[-1]
+    d = df.at[d_idx, "Close"]
+
+    selected: Optional[dict] = None
+
+    assert isinstance(pivots.index, pd.DatetimeIndex)
+    assert isinstance(x_idx, pd.Timestamp)
+
+    while True:
+        pos_after_x = get_next_index(pivots.index, x_idx)
+
+        if pos_after_x >= pivot_len:
+            break
+
+        a_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmin()
+        a = pivots.at[a_idx, "P"]
+
+        pos_after_a = get_next_index(pivots.index, a_idx)
+
+        if pos_after_a >= pivot_len:
+            break
+
+        c_idx = pivots.loc[pivots.index[pos_after_a] :, "P"].idxmin()
+        c = pivots.at[c_idx, "P"]
+
+        b_idx = pivots.loc[a_idx:c_idx, "P"].idxmax()
+        b = pivots.at[b_idx, "P"]
+
+        if pivots.index.has_duplicates:
+            if isinstance(x, pd.Series):
+                x = pivots.at[x_idx, "P"].max()
+
+            if isinstance(a, pd.Series):
+                a = pivots.at[a_idx, "P"].min()
+
+            if isinstance(b, pd.Series):
+                b = pivots.at[b_idx, "P"].max()
+
+            if isinstance(c, pd.Series):
+                c = pivots.at[c_idx, "P"].min()
+
+        xa_diff = x - a
+        ab_diff = b - a
+        bc_diff = b - c
+
+        b_retrace = ab_diff / xa_diff
+        c_retrace = bc_diff / ab_diff
+
+        if (
+            b_retrace < 0.382
+            or b_retrace > 0.5
+            or c_retrace < 0.382
+            or c_retrace > 0.886
+        ):
+            x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmax()
+            x = pivots.loc[x_idx, "P"]
+            continue
+
+        xa_886_retrace = a + xa_diff * 0.886
+
+        bc_618_ext = a + ab_diff * 1.618
+        highest_close_after_b = df.loc[b_idx:, "Close"].max()
+
+        if d > b and highest_close_after_b < x and d == highest_close_after_b:
+
+            if (
+                x == df.at[x_idx, "Low"]
+                or a == df.at[a_idx, "High"]
+                or b == df.at[b_idx, "Low"]
+                or c == df.at[c_idx, "High"]
+            ):
+                x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmax()
+                x = pivots.loc[x_idx, "P"]
+                continue
+
+            selected = dict(
+                df_start=df.index[0],
+                df_end=df.index[-1],
+                start=a_idx,
+                end=d_idx,
+                points={
+                    "X": (x_idx, x),
+                    "A": (a_idx, a),
+                    f"{b_retrace:.3f}B": (b_idx, b),
+                    f"{c_retrace:.3f}C": (c_idx, c),
+                    "D": (d_idx, d),
+                },
+                extra_points={
+                    "direction": (c_idx, c),
+                    "0.886XA": (b_idx, xa_886_retrace),
+                    "AB=CD": (b_idx, bc_618_ext),
+                },
+            )
+
+        x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmax()
+        x = pivots.loc[x_idx, "P"]
+
+    if selected:
+        selected.update(
+            dict(
+                sym=sym,
+                pattern="BATU",
+            )
+        )
+
+    return selected
