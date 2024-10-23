@@ -90,13 +90,6 @@ def parse_cli_args():
     )
 
     parser.add_argument(
-        "--plot",
-        type=lambda x: json.loads(Path(x).read_bytes()),
-        default=None,
-        help="Plot results from json file",
-    )
-
-    parser.add_argument(
         "--idx",
         type=int,
         default=0,
@@ -119,6 +112,30 @@ def parse_cli_args():
         type=int,
         default=30,
         help="Scan Period, prior to ending date. Default 30",
+    )
+
+    group = parser.add_mutually_exclusive_group(required=True)
+
+    group.add_argument(
+        "--plot",
+        type=lambda x: json.loads(Path(x).read_bytes()),
+        default=None,
+        help="Plot results from json file",
+    )
+
+    group.add_argument(
+        "-f",
+        "--file",
+        type=lambda x: Path(x).expanduser().resolve(),
+        default=None,
+        help="Filepath with symbol list. One on each line",
+    )
+
+    group.add_argument(
+        "--sym",
+        nargs="+",
+        metavar="SYM",
+        help="Space separated list of stock symbols.",
     )
 
     args = parser.parse_args()
@@ -315,6 +332,16 @@ if __name__ == "__main__":
 
     config = json.loads(config_file.read_bytes())
 
+    sym_list = config["SYM_LIST"] if "SYM_LIST" in config else None
+
+    if sym_list is not None and not (
+        "-f" in sys.argv
+        or "--file" in sys.argv
+        or "--sym" in sys.argv
+        or "--plot" in sys.argv
+    ):
+        sys.argv.extend(("-f", sym_list))
+
     args = parse_cli_args()
 
     # Import Loader module
@@ -350,15 +377,14 @@ if __name__ == "__main__":
     )
 
     if args.file:
-        file = args.file
-    elif "SYM_LIST" in config:
-        file = Path(config["SYM_LIST"]).expanduser().resolve()
+        sym_list = args.file.read_text().strip().split("\n")
+    elif args.sym:
+        sym_list = args.sym
     else:
         raise RuntimeError(
             "Error: -f or --file is required. Else define SYM_LIST in user.json"
         )
 
-    sym_list = file.read_text().strip().split("\n")
     output_file = DIR / f"bt_{args.pattern}_{loader.tf}.json"
 
     main(sym_list, output_file, loader, args.date, period)
