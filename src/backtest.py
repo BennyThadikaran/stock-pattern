@@ -3,7 +3,8 @@ import concurrent.futures
 import importlib
 import json
 import logging
-from datetime import datetime, timedelta
+import sys
+from datetime import datetime
 from pathlib import Path
 from typing import List, Union
 
@@ -271,8 +272,8 @@ def main(
         results.append(
             {
                 "timeframe": loader.tf,
-                "end_date": (end_date + timedelta(120)).isoformat(),
-                "period": period,
+                "end_date": end_date.isoformat(),
+                "period": loader.period,
             }
         )
 
@@ -323,13 +324,14 @@ if __name__ == "__main__":
     if args.date is None:
         exit("-d/--date argument is required")
 
-    period = 120 + args.period + 120
+    look_ahead_period = 120
+    look_back_period = 160
 
     loader = getattr(loader_module, loader_name)(
         config,
         args.tf,
         end_date=args.date,
-        period=period,
+        period=look_back_period + args.period + look_ahead_period,
     )
 
     if args.file:

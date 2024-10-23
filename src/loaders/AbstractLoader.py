@@ -27,6 +27,8 @@ class AbstractLoader(ABC):
     # Current status of Loader. Close method will not be called, if value is True
     closed: bool
 
+    period: int
+
     @abstractmethod
     def __init__(
         self,
