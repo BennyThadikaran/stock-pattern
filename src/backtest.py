@@ -312,13 +312,13 @@ def main(
         )
         out_file.write_text(json.dumps(results, indent=2))
     else:
-        logger.warning("No patterns found.")
+        logger.info("No patterns found.")
 
 
 if __name__ == "__main__":
     logging.basicConfig(
         level=logging.INFO,
-        format="%(message)s",
+        format="%(levelname)s: %(message)s",
     )
 
     logger = logging.getLogger(__name__)
@@ -333,7 +333,9 @@ if __name__ == "__main__":
         config_file = DIR / "user.json"
 
     if not config_file.exists():
-        logger.fatal("Missing user.json. Run init.py to generate user.json")
+        logger.fatal(
+            "Missing user.json. Run setup-config.py to generate user.json"
+        )
         exit()
 
     config = json.loads(config_file.read_bytes())
