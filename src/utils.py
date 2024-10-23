@@ -1262,7 +1262,7 @@ def find_downtrend_line(
             break
 
         # Get the next highest point in pivots after A
-        b_idx = pivots.loc[pivots.index[pos_after_a]:, "P"].idxmax()
+        b_idx = pivots.loc[pivots.index[pos_after_a] :, "P"].idxmax()
         b = pivots.at[b_idx, "P"]
 
         if isinstance(b, pd.Series):
@@ -1397,7 +1397,7 @@ def find_uptrend_line(
             break
 
         # Get the next lowest point in pivots.
-        b_idx = pivots.loc[pivots.index[pos_after_a]:, "P"].idxmin()
+        b_idx = pivots.loc[pivots.index[pos_after_a] :, "P"].idxmin()
         b = pivots.at[b_idx, "P"]
 
         if isinstance(b, pd.Series):
