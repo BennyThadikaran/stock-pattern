@@ -27,6 +27,8 @@ T = TypeVar("T")
 
 is_silent = None
 
+ascii_upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
 
 def getY(slope, yintercept, x_value) -> float:
     """
@@ -492,12 +494,6 @@ def find_bullish_vcp(
                 a_idx, a = c_idx, c
                 continue
 
-            entryLine = ((c_idx, c), (e_idx, c))
-            ab = ((a_idx, a), (b_idx, b))
-            bc = ((b_idx, b), (c_idx, c))
-            cd = ((c_idx, c), (d_idx, d))
-            de = ((d_idx, d), (e_idx, e))
-
             logger.debug(f"{sym} - VCPU")
 
             return dict(
@@ -507,8 +503,14 @@ def find_bullish_vcp(
                 end=e_idx,
                 df_start=df.index[0],
                 df_end=df.index[-1],
-                lines=(ab, bc, cd, de),
-                extra_lines=(entryLine,),
+                points=dict(
+                    A=(a_idx, a),
+                    B=(b_idx, b),
+                    C=(c_idx, c),
+                    D=(d_idx, d),
+                    E=(e_idx, e),
+                ),
+                extra_points=dict(direction=(c_idx, c)),
             )
 
         a_idx, a = c_idx, c
@@ -586,12 +588,6 @@ def find_bearish_vcp(
                 a_idx, a = c_idx, c
                 continue
 
-            entryLine = ((c_idx, c), (e_idx, c))
-            ab = ((a_idx, a), (b_idx, b))
-            bc = ((b_idx, b), (c_idx, c))
-            cd = ((c_idx, c), (d_idx, d))
-            de = ((d_idx, d), (e_idx, e))
-
             logger.debug(f"{sym} - VCPD")
 
             return dict(
@@ -601,8 +597,14 @@ def find_bearish_vcp(
                 end=e_idx,
                 df_start=df.index[0],
                 df_end=df.index[-1],
-                lines=(ab, bc, cd, de),
-                extra_lines=(entryLine,),
+                points=dict(
+                    A=(a_idx, a),
+                    B=(b_idx, b),
+                    C=(c_idx, c),
+                    D=(d_idx, d),
+                    E=(e_idx, e),
+                ),
+                extra_points=dict(direction=(c_idx, c)),
             )
 
         # We assign pivot level C to be the new A
@@ -692,11 +694,6 @@ def find_double_bottom(
                 a_idx, a, aVol = c_idx, c, cVol
                 continue
 
-            entryLine = ((b_idx, b), (d_idx, b))
-            ab = ((a_idx, a), (b_idx, b))
-            bc = ((b_idx, b), (c_idx, c))
-            cd = ((c_idx, c), (d_idx, d))
-
             logger.debug(f"{sym} - DBOT")
 
             return dict(
@@ -706,8 +703,10 @@ def find_double_bottom(
                 end=d_idx,
                 df_start=df.index[0],
                 df_end=df.index[-1],
-                lines=(ab, bc, cd),
-                extra_lines=(entryLine,),
+                points=dict(
+                    A=(a_idx, a), B=(b_idx, b), C=(c_idx, c), D=(d_idx, d)
+                ),
+                extra_points=dict(direction=(b_idx, b)),
             )
 
         a_idx, a, aVol = c_idx, c, cVol
@@ -792,11 +791,6 @@ def find_double_top(
                 a_idx, a, aVol = c_idx, c, cVol
                 continue
 
-            entryLine = ((b_idx, b), (d_idx, b))
-            ab = ((a_idx, a), (b_idx, b))
-            bc = ((b_idx, b), (c_idx, c))
-            cd = ((c_idx, c), (d_idx, d))
-
             logger.debug(f"{sym} - DTOP")
 
             return dict(
@@ -806,8 +800,10 @@ def find_double_top(
                 end=d_idx,
                 df_start=df.index[0],
                 df_end=df.index[-1],
-                lines=(ab, bc, cd),
-                extra_lines=(entryLine,),
+                points=dict(
+                    A=(a_idx, a), B=(b_idx, b), C=(c_idx, c), D=(d_idx, d)
+                ),
+                extra_points=dict(direction=(b_idx, b)),
             )
 
         a_idx, a, aVol = c_idx, c, cVol
@@ -930,12 +926,6 @@ def find_triangles(
 
             logger.debug(f"{sym} - {triangle}")
 
-            ab = ((a_idx, a), (b_idx, b))
-            bc = ((b_idx, b), (c_idx, c))
-            cd = ((c_idx, c), (d_idx, d))
-            de = ((d_idx, d), (e_idx, e))
-            ef = ((e_idx, e), (f_idx, f))
-
             return dict(
                 sym=sym,
                 pattern=triangle,
@@ -945,8 +935,20 @@ def find_triangles(
                 df_end=df.index[-1],
                 slope_upper=upper.slope,
                 slope_lower=lower.slope,
-                lines=(ab, bc, cd, de, ef),
-                extra_lines=(upper.line, lower.line),
+                points=dict(
+                    A=(a_idx, a),
+                    B=(b_idx, b),
+                    C=(c_idx, c),
+                    D=(d_idx, d),
+                    E=(e_idx, e),
+                    F=(f_idx, f),
+                ),
+                extra_points=dict(
+                    upper_start=upper.line.start,
+                    upper_end=upper.line.end,
+                    lower_start=lower.line.start,
+                    lower_end=lower.line.end,
+                ),
             )
 
         a_idx, c = c_idx, c
@@ -1063,17 +1065,6 @@ def find_hns(
                 c_idx, c = e_idx, e
                 continue
 
-            # lines
-            ab = ((a_idx, a), (b_idx, b))
-            bc = ((b_idx, b), (c_idx, c))
-            cd = ((c_idx, c), (d_idx, d))
-            de = ((d_idx, d), (e_idx, e))
-            ef = ((e_idx, e), (f_idx, f))
-
-            entry_line = ((b_idx, b), (f_idx, b))
-
-            lines = (ab, bc, cd, de, ef)
-
             logger.debug(f"{sym} - HNSD")
 
             return dict(
@@ -1085,8 +1076,15 @@ def find_hns(
                 df_end=df.index[-1],
                 slope=tline.slope,
                 y_intercept=tline.y_int,
-                lines=lines,
-                extra_lines=(entry_line,),
+                points=dict(
+                    A=(a_idx, a),
+                    B=(b_idx, b),
+                    C=(c_idx, c),
+                    D=(d_idx, d),
+                    E=(e_idx, e),
+                    F=(f_idx, f),
+                ),
+                extra_points=dict(direction=(b_idx, b)),
             )
 
         c_idx, c = e_idx, e
@@ -1203,17 +1201,6 @@ def find_reverse_hns(
                 c_idx, c = e_idx, e
                 continue
 
-            # lines
-            ab = ((a_idx, a), (b_idx, b))
-            bc = ((b_idx, b), (c_idx, c))
-            cd = ((c_idx, c), (d_idx, d))
-            de = ((d_idx, d), (e_idx, e))
-            ef = ((e_idx, e), (f_idx, f))
-
-            entry_line = ((b_idx, b), (f_idx, b))
-
-            lines = (ab, bc, cd, de, ef)
-
             logger.debug(f"{sym} - HNSU")
 
             return dict(
@@ -1225,8 +1212,15 @@ def find_reverse_hns(
                 df_end=df.index[-1],
                 slope=tline.line,
                 y_intercept=tline.y_int,
-                lines=lines,
-                extra_lines=(entry_line,),
+                points=dict(
+                    A=(a_idx, a),
+                    B=(b_idx, b),
+                    C=(c_idx, c),
+                    D=(d_idx, d),
+                    E=(e_idx, e),
+                    F=(f_idx, f),
+                ),
+                extra_points=dict(direction=(b_idx, b)),
             )
 
         c_idx, c = e_idx, e
@@ -1335,19 +1329,21 @@ def find_downtrend_line(
                 )
             ):
 
-                touch_points = line_pivots.loc[diff <= threshold].items()
+                touch_points = line_pivots.loc[diff <= threshold]
+                str_keys = ascii_upper[: len(touch_points)]
 
                 selected = dict(
                     touches=touch_count,
                     start=a_idx,
-                    end=b_idx,
+                    end=last_idx,
                     slope=tline.slope,
                     y_intercept=tline.y_int,
                     y_close=y_close,
-                    lines=tline.line,
-                    touch_points=tuple(touch_points),
+                    points=dict(zip(str_keys, tuple(touch_points.items()))),
+                    extra_points=dict(
+                        start=tline.line.start, end=tline.line.end
+                    ),
                     score=score,
-                    threshold=threshold,
                 )
 
         a_idx, a = b_idx, b
@@ -1469,17 +1465,20 @@ def find_uptrend_line(
                     and score < selected["score"]
                 )
             ):
-                touch_points = line_pivots.loc[diff <= threshold].items()
+                touch_points = line_pivots.loc[diff <= threshold]
+                str_keys = ascii_upper[: len(touch_points)]
 
                 selected = dict(
                     touches=touch_count,
                     start=a_idx,
-                    end=b_idx,
+                    end=last_idx,
                     slope=tline.slope,
                     y_intercept=tline.y_int,
                     y_close=y_close,
-                    lines=tline.line,
-                    touch_points=tuple(touch_points),
+                    points=dict(zip(str_keys, tuple(touch_points.items()))),
+                    extra_points=dict(
+                        start=tline.line.start, end=tline.line.end
+                    ),
                     score=score,
                 )
 
