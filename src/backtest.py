@@ -207,6 +207,10 @@ def scan(
         scan_start_pos = 0
 
     scan_start_dt = df.index[scan_start_pos]
+
+    if look_ahead_period > end_pos:
+        return results
+
     scan_end_dt = df.index[end_pos - look_ahead_period]
 
     assert isinstance(scan_start_dt, pd.Timestamp)
@@ -233,7 +237,10 @@ def scan(
         if isinstance(pos, slice):
             pos = pos.start
 
-        start_idx = df.index[-min(int(pos) - look_back_period, 0)]
+        if look_back_period > pos:
+            start_idx = df.index[0]
+        else:
+            start_idx = df.index[-(pos - look_back_period)]
 
         dfi = df.loc[start_idx : df.index[pos]]
 
@@ -408,6 +415,7 @@ if __name__ == "__main__":
     )
 
     if result and config.get("POST_SCAN_PLOT", True):
+        result.pop()
         plotter = Plotter(
             result,
             loader,
