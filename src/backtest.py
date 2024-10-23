@@ -148,10 +148,12 @@ def parse_cli_args():
 
 def scan(
     loader: AbstractLoader,
-    end: Union[datetime, pd.Timestamp],
-    period: int,
+    end_dt: Union[datetime, pd.Timestamp],
+    scan_period: int,
     fn: str,
     sym: str,
+    look_ahead_period: int,
+    look_back_period: int,
 ) -> List[dict]:
     seen = {}
     results = []
@@ -191,38 +193,30 @@ def scan(
 
     assert isinstance(df.index, pd.DatetimeIndex)
 
-    pos = df.index.get_loc(df.index.asof(end))
-
-    if isinstance(pos, slice):
-        pos = pos.start
-
-    # If start date is out of bounds, start at first available date in DataFrame
-    start = df.index[pos - period if pos > period else 0]
-
-    if start < df.index[0]:
-        return results
-
-    assert isinstance(start, pd.Timestamp)
-
-    dt_index = df.index.date
-
-    has_time_component = utils.has_time_component(df.index)
-
-    if has_time_component:
-        start_dt = df.loc[start.date() == dt_index].index.max()
-        end_dt = df.loc[end.date() == dt_index].index.max()
-    else:
-        start_dt = start
-        end_dt = end
-
-    start_pos = df.index.get_loc(df.index.asof(start_dt))
     end_pos = df.index.get_loc(df.index.asof(end_dt))
-
-    if isinstance(start_pos, slice):
-        start_pos = start_pos.start
 
     if isinstance(end_pos, slice):
         end_pos = end_pos.start
+
+    scan_period_with_look_ahead = scan_period + look_ahead_period
+
+    # If start date is out of bounds, start at first available date in DataFrame
+    if end_pos > scan_period_with_look_ahead:
+        scan_start_pos = end_pos - scan_period_with_look_ahead
+    else:
+        scan_start_pos = 0
+
+    scan_start_dt = df.index[scan_start_pos]
+    scan_end_dt = df.index[end_pos - look_ahead_period]
+
+    assert isinstance(scan_start_dt, pd.Timestamp)
+
+    dt_index = df.index.date
+
+    if utils.has_time_component(df.index):
+        # For intraday data get the last datetime for the day
+        scan_start_dt = df.loc[scan_start_dt.date() == dt_index].index.max()
+        scan_end_dt = df.loc[scan_end_dt.date() == dt_index].index.max()
 
     if fn == "uptl":
         pivot_type = "low"
@@ -231,17 +225,17 @@ def scan(
     else:
         pivot_type = "both"
 
-    pivots_all = utils.get_max_min(
-        df.iloc[start_pos - 160 : end_pos], pivot_type=pivot_type
-    )
+    pivots_all = utils.get_max_min(df, pivot_type=pivot_type)
 
-    for i in df.loc[start_dt:end_dt].index:
+    for i in df.loc[scan_start_dt:scan_end_dt].index:
         pos = df.index.get_loc(i)
 
         if isinstance(pos, slice):
             pos = pos.start
 
-        dfi = df.iloc[pos - 160 : pos]
+        start_idx = df.index[-min(int(pos) - look_back_period, 0)]
+
+        dfi = df.loc[start_idx : df.index[pos]]
 
         if not len(dfi):
             break
@@ -274,7 +268,9 @@ def main(
     out_file: Path,
     loader: AbstractLoader,
     end_date: datetime,
-    period: int,
+    scan_period: int,
+    look_ahead_period: int,
+    look_back_period: int,
 ):
     results: List[dict] = []
     futures = []
@@ -286,9 +282,11 @@ def main(
                 scan,
                 loader,
                 args.date,
-                args.period,
+                scan_period,
                 args.pattern,
                 sym,
+                look_ahead_period,
+                look_back_period,
             )
             futures.append(future)
 
@@ -367,7 +365,9 @@ if __name__ == "__main__":
             period=meta["period"],
         )
 
-        plotter = Plotter(args.plot, loader, mode="expand")
+        plotter = Plotter(
+            args.plot, loader, mode="expand", config=config.get("CHART", {})
+        )
         plotter.plot(args.idx)
         exit()
 
@@ -395,4 +395,12 @@ if __name__ == "__main__":
 
     output_file = DIR / f"bt_{args.pattern}_{loader.tf}.json"
 
-    main(sym_list, output_file, loader, args.date, period)
+    result = main(
+        sym_list,
+        output_file,
+        loader,
+        args.date,
+        args.period,
+        look_ahead_period,
+        look_back_period,
+    )
