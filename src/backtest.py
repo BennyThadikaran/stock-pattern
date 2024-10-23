@@ -66,11 +66,12 @@ def parse_cli_args():
     parser = argparse.ArgumentParser(description="Run backdated pattern scan")
 
     parser.add_argument(
-        "-f",
-        "--file",
+        "-c",
+        "--config",
         type=lambda x: Path(x).expanduser().resolve(),
         default=None,
-        help="Filepath with symbol list. One on each line",
+        metavar="filepath",
+        help="Custom config file",
     )
 
     parser.add_argument(
@@ -286,7 +287,6 @@ def main(
                 "period": loader.period,
             }
         )
-
         out_file.write_text(json.dumps(results, indent=2))
     else:
         logger.warning("No patterns found.")
@@ -302,7 +302,12 @@ if __name__ == "__main__":
 
     DIR = Path(__file__).parent
 
-    config_file = DIR / "user.json"
+    if "-c" in sys.argv or "--config" in sys.argv:
+        idx = sys.argv.index("-c" if "-c" in sys.argv else "--config")
+
+        config_file = Path(sys.argv[idx + 1]).expanduser().resolve()
+    else:
+        config_file = DIR / "user.json"
 
     if not config_file.exists():
         logger.fatal("Missing user.json. Run init.py to generate user.json")
