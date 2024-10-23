@@ -58,6 +58,9 @@ def parse_cli_args():
         "uptl",
         "dntl",
         "abcdu",
+        "abcdd",
+        "batu",
+        "batd",
     )
 
     parser = argparse.ArgumentParser(description="Run backdated pattern scan")
@@ -146,6 +149,9 @@ def scan(
         "uptl": utils.find_uptrend_line,
         "dntl": utils.find_downtrend_line,
         "abcdu": utils.find_bullish_abcd,
+        "abcdd": utils.find_bearish_abcd,
+        "batu": utils.find_bullish_bat,
+        "batd": utils.find_bearish_bat,
     }
 
     df = loader.get(sym)
