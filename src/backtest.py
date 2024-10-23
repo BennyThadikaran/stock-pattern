@@ -309,6 +309,8 @@ def main(
             }
         )
         out_file.write_text(json.dumps(results, indent=2))
+
+        return results
     else:
         logger.info("No patterns found.")
 
@@ -404,3 +406,13 @@ if __name__ == "__main__":
         look_ahead_period,
         look_back_period,
     )
+
+    if result and config.get("POST_SCAN_PLOT", True):
+        plotter = Plotter(
+            result,
+            loader,
+            mode="expand",
+            config=config.get("CHART", {}),
+        )
+
+        plotter.plot(args.idx)
