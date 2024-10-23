@@ -256,10 +256,15 @@ def process(
         # Save the images if required
         if save_folder:
 
-            plotter = Plotter(None, loader, save_folder=save_folder)
+            plotter = Plotter(
+                patterns_to_output,
+                loader,
+                save_folder=save_folder,
+                config=config.get("CHART", {}),
+            )
 
-            for i in patterns_to_output:
-                future = executor.submit(plotter.save, i.copy())
+            for i in range(len(patterns_to_output)):
+                future = executor.submit(plotter.plot, i)
                 futures.append(future)
 
             logger.info("Saving images")
@@ -505,7 +510,7 @@ if __name__ == "__main__":
             logger.exception("", exc_info=e)
             exit()
 
-        plotter = Plotter(data, loader)
+        plotter = Plotter(data, loader, config=config.get("CHART", {}))
         plotter.plot(args.idx)
         cleanup(loader, futures)
         exit()
@@ -607,7 +612,7 @@ if __name__ == "__main__":
         # Pop it out as we don't require it here
         patterns.pop()
 
-        plotter = Plotter(patterns, loader)
+        plotter = Plotter(patterns, loader, config=config.get("CHART", {}))
         plotter.plot()
 
     cleanup(loader, futures)
