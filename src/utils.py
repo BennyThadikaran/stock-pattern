@@ -1784,63 +1784,63 @@ def find_bullish_bat(
         ab_diff = a - b
         bc_diff = c - b
 
-        b_retracement = ab_diff / xa_diff
-        c_retracement = bc_diff / ab_diff
+        b_retrace = ab_diff / xa_diff
+        c_retrace = bc_diff / ab_diff
 
         if (
-            b_retracement < 0.382
-            or b_retracement > 0.5
-            or c_retracement < 0.382
-            or c_retracement > 0.886
+            b_retrace < 0.382
+            or b_retrace > 0.5
+            or c_retrace < 0.382
+            or c_retrace > 0.886
         ):
-            x, x_idx = b, b_idx
+            x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmin()
+            x = pivots.loc[x_idx, "P"]
             continue
 
         xa_886_retrace = a - xa_diff * 0.886
 
-        bc_extension = c - (bc_diff * 1.618)
+        bc_618_ext = a - ab_diff * 1.618
+        lowest_close_after_b = df.loc[b_idx:, "Close"].min()
 
-        terminal_point = min(xa_886_retrace, bc_extension)
-
-        # Add a 1.5 % (98.5 %) threshold below the terminal_point
-        validation_threshold = terminal_point * 0.985
-
-        if d < b and d > validation_threshold:
-
-            lowest_close_after_b = df.loc[b_idx:, "Close"].min()
+        if d < b and lowest_close_after_b > x and d == lowest_close_after_b:
 
             if (
-                lowest_close_after_b < validation_threshold
-                or d != lowest_close_after_b
+                x == df.at[x_idx, "High"]
+                or a == df.at[a_idx, "Low"]
+                or b == df.at[b_idx, "High"]
+                or c == df.at[c_idx, "Low"]
             ):
-                x, x_idx = b, b_idx
+                x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmin()
+                x = pivots.loc[x_idx, "P"]
                 continue
 
-            entryLine = ((c_idx, c), (d_idx, c))
-            xa = ((x_idx, x), (a_idx, a))
-            ab = ((a_idx, a), (b_idx, b))
-            bc = ((b_idx, b), (c_idx, c))
-            cd = ((c_idx, c), (d_idx, d))
-
-            xa_886_line = ((b_idx, xa_886_retrace), (d_idx, xa_886_retrace))
-            bc_extension_line = ((b_idx, bc_extension), (d_idx, bc_extension))
-
             selected = dict(
+                df_start=df.index[0],
+                df_end=df.index[-1],
                 start=a_idx,
                 end=d_idx,
-                lines=(xa, ab, bc, cd),
-                extra_lines=(entryLine, xa_886_line, bc_extension_line),
+                points={
+                    "X": (x_idx, x),
+                    "A": (a_idx, a),
+                    f"{b_retrace:.3f}B": (b_idx, b),
+                    f"{c_retrace:.3f}C": (c_idx, c),
+                    "D": (d_idx, d),
+                },
+                extra_points={
+                    "direction": (c_idx, c),
+                    "0.886XA": (b_idx, xa_886_retrace),
+                    "1.618AB=CD": (b_idx, bc_618_ext),
+                },
             )
 
-        x, x_idx = b, b_idx
+        x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmin()
+        x = pivots.loc[x_idx, "P"]
 
     if selected:
         selected.update(
             dict(
                 sym=sym,
                 pattern="BATU",
-                df_start=df.index[0],
-                df_end=df.index[-1],
             )
         )
 
