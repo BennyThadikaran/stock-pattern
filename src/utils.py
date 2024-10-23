@@ -1562,38 +1562,24 @@ def find_bullish_abcd(
         terminal_point = min(bc_extension, bc_fib_extension)
 
         validation_threshold = terminal_point * 0.985
+        lowest_close_after_b = df.loc[b_idx:, "Close"].min()
+        highest_high_after_c = df.loc[c_idx:, "High"].max()
 
         # Add a 1.5 % (98.5 %) threshold below the terminal_point
-        if d < b and d > validation_threshold:
+        if (
+            d < b
+            and lowest_close_after_b > validation_threshold
+            and d == lowest_close_after_b
+            and c == highest_high_after_c
+        ):
 
-            lowest_close_after_b = df.loc[b_idx:, "Close"].min()
-
-            if (
-                lowest_close_after_b < validation_threshold
-                or d != lowest_close_after_b
-            ):
-                a, a_idx = c, c_idx
-                continue
-
-            termination_zone = abs(bc_extension - bc_fib_extension) / max(
-                bc_extension, bc_fib_extension
-            )
-
-            if termination_zone > 0.1:
-                a, a_idx = c, c_idx
-                continue
-
-            entryLine = ((c_idx, c), (d_idx, c))
-            ab = ((a_idx, a), (b_idx, b))
-            bc = ((b_idx, b), (c_idx, c))
-            cd = ((c_idx, c), (d_idx, d))
-
-            bc_extension_line = ((b_idx, bc_extension), (d_idx, bc_extension))
-
-            fib_ext_line = (
-                (b_idx, bc_fib_extension),
-                (d_idx, bc_fib_extension),
-            )
+            # termination_zone = abs(bc_extension - bc_fib_extension) / max(
+            #     bc_extension, bc_fib_extension
+            # )
+            #
+            # if termination_zone > 0.1:
+            #     a, a_idx = c, c_idx
+            #     continue
 
             selected = dict(
                 start=a_idx,
@@ -1692,38 +1678,24 @@ def find_bearish_abcd(
         terminal_point = max(bc_extension, bc_fib_extension)
 
         validation_threshold = terminal_point * 1.015
+        highest_close_after_b = df.loc[b_idx:, "Close"].max()
+        lowest_low_after_c = df.loc[c_idx:, "Low"].min()
 
         # Add a 1.5 % (101.5 %) threshold below the terminal_point
-        if d > b and d < validation_threshold:
+        if (
+            d > b
+            and highest_close_after_b < validation_threshold
+            and d == highest_close_after_b
+            and c == lowest_low_after_c
+        ):
 
-            highest_close_after_b = df.loc[b_idx:, "Close"].max()
-
-            if (
-                highest_close_after_b > validation_threshold
-                or d != highest_close_after_b
-            ):
-                a, a_idx = c, c_idx
-                continue
-
-            termination_zone = abs(bc_extension - bc_fib_extension) / min(
-                bc_extension, bc_fib_extension
-            )
-
-            if termination_zone > 0.1:
-                a, a_idx = c, c_idx
-                continue
-
-            entryLine = ((c_idx, c), (d_idx, c))
-            ab = ((a_idx, a), (b_idx, b))
-            bc = ((b_idx, b), (c_idx, c))
-            cd = ((c_idx, c), (d_idx, d))
-
-            bc_extension_line = ((b_idx, bc_extension), (d_idx, bc_extension))
-
-            fib_ext_line = (
-                (b_idx, bc_fib_extension),
-                (d_idx, bc_fib_extension),
-            )
+            # termination_zone = abs(bc_extension - bc_fib_extension) / min(
+            #     bc_extension, bc_fib_extension
+            # )
+            #
+            # if termination_zone > 0.1:
+            #     a, a_idx = c, c_idx
+            #     continue
 
             selected = dict(
                 df_start=df.index[0],
