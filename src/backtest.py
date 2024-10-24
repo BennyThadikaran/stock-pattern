@@ -215,13 +215,6 @@ def scan(
 
     assert isinstance(scan_start_dt, pd.Timestamp)
 
-    dt_index = df.index.date
-
-    if utils.has_time_component(df.index):
-        # For intraday data get the last datetime for the day
-        scan_start_dt = df.loc[scan_start_dt.date() == dt_index].index.max()
-        scan_end_dt = df.loc[scan_end_dt.date() == dt_index].index.max()
-
     if fn == "uptl":
         pivot_type = "low"
     elif fn == "dntl":
