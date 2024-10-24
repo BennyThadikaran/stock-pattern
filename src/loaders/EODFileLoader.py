@@ -1,14 +1,21 @@
 import logging
 from datetime import datetime, timedelta
+from functools import lru_cache
 from pathlib import Path
 from typing import Optional
 
 import pandas as pd
 
+try:
+    from fast_csv_loader import csv_loader
+except ModuleNotFoundError:
+    exit("fast-csv-loader not found. Run `pip install fast-csv-loader`")
+
 from .AbstractLoader import AbstractLoader
-from .utils import csv_loader
 
 logger = logging.getLogger(__name__)
+
+csv_loader = lru_cache(maxsize=6)(csv_loader)
 
 
 class EODFileLoader(AbstractLoader):

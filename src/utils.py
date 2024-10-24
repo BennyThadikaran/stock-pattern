@@ -27,6 +27,8 @@ T = TypeVar("T")
 
 is_silent = None
 
+ascii_upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
 
 def getY(slope, yintercept, x_value) -> float:
     """
@@ -465,17 +467,17 @@ def find_bullish_vcp(
         avgBarLength = (df_slice["High"] - df_slice["Low"]).median()
 
         if pivots.index.has_duplicates:
-            if isinstance(a, (pd.Series, str)):
-                a = pivots.at[a_idx, "P"].iloc[0]
+            if isinstance(a, pd.Series):
+                a = pivots.at[a_idx, "P"].max()
 
-            if isinstance(b, (pd.Series, str)):
-                b = pivots.at[b_idx, "P"].iloc[1]
+            if isinstance(b, pd.Series):
+                b = pivots.at[b_idx, "P"].min()
 
-            if isinstance(c, (pd.Series, str)):
-                c = pivots.at[c_idx, "P"].iloc[0]
+            if isinstance(c, pd.Series):
+                c = pivots.at[c_idx, "P"].max()
 
-            if isinstance(d, (pd.Series, str)):
-                d = pivots.at[d_idx, "P"].iloc[1]
+            if isinstance(d, pd.Series):
+                d = pivots.at[d_idx, "P"].min()
 
         if is_bullish_vcp(a, b, c, d, e, avgBarLength):
             # check if Level C has been breached after it was formed
@@ -492,12 +494,6 @@ def find_bullish_vcp(
                 a_idx, a = c_idx, c
                 continue
 
-            entryLine = ((c_idx, c), (e_idx, c))
-            ab = ((a_idx, a), (b_idx, b))
-            bc = ((b_idx, b), (c_idx, c))
-            cd = ((c_idx, c), (d_idx, d))
-            de = ((d_idx, d), (e_idx, e))
-
             logger.debug(f"{sym} - VCPU")
 
             return dict(
@@ -507,7 +503,14 @@ def find_bullish_vcp(
                 end=e_idx,
                 df_start=df.index[0],
                 df_end=df.index[-1],
-                lines=(entryLine, ab, bc, cd, de),
+                points=dict(
+                    A=(a_idx, a),
+                    B=(b_idx, b),
+                    C=(c_idx, c),
+                    D=(d_idx, d),
+                    E=(e_idx, e),
+                ),
+                extra_points=dict(direction=(c_idx, c)),
             )
 
         a_idx, a = c_idx, c
@@ -561,17 +564,17 @@ def find_bearish_vcp(
         avgBarLength = (df_slice["High"] - df_slice["Low"]).median()
 
         if pivots.index.has_duplicates:
-            if isinstance(a, (pd.Series, str)):
-                a = pivots.at[a_idx, "P"].iloc[1]
+            if isinstance(a, pd.Series):
+                a = pivots.at[a_idx, "P"].min()
 
-            if isinstance(b, (pd.Series, str)):
-                b = pivots.at[b_idx, "P"].iloc[0]
+            if isinstance(b, pd.Series):
+                b = pivots.at[b_idx, "P"].max()
 
-            if isinstance(c, (pd.Series, str)):
-                c = pivots.at[c_idx, "P"].iloc[1]
+            if isinstance(c, pd.Series):
+                c = pivots.at[c_idx, "P"].min()
 
-            if isinstance(d, (pd.Series, str)):
-                d = pivots.at[d_idx, "P"].iloc[0]
+            if isinstance(d, pd.Series):
+                d = pivots.at[d_idx, "P"].max()
 
         if is_bearish_vcp(a, b, c, d, e, avgBarLength):
             if (
@@ -585,12 +588,6 @@ def find_bearish_vcp(
                 a_idx, a = c_idx, c
                 continue
 
-            entryLine = ((c_idx, c), (e_idx, c))
-            ab = ((a_idx, a), (b_idx, b))
-            bc = ((b_idx, b), (c_idx, c))
-            cd = ((c_idx, c), (d_idx, d))
-            de = ((d_idx, d), (e_idx, e))
-
             logger.debug(f"{sym} - VCPD")
 
             return dict(
@@ -600,7 +597,14 @@ def find_bearish_vcp(
                 end=e_idx,
                 df_start=df.index[0],
                 df_end=df.index[-1],
-                lines=(entryLine, ab, bc, cd, de),
+                points=dict(
+                    A=(a_idx, a),
+                    B=(b_idx, b),
+                    C=(c_idx, c),
+                    D=(d_idx, d),
+                    E=(e_idx, e),
+                ),
+                extra_points=dict(direction=(c_idx, c)),
             )
 
         # We assign pivot level C to be the new A
@@ -623,8 +627,11 @@ def find_double_bottom(
     assert isinstance(pivots.index, pd.DatetimeIndex)
 
     pivot_len = pivots.shape[0]
+
     a_idx = pivots["P"].idxmin()
-    a, aVol = pivots.loc[a_idx, ["P", "V"]]
+    a = pivots.loc[a_idx, "P"]
+    aVol = pivots.loc[a_idx, "V"]
+
     d_idx = df.index[-1]
     d = df.at[d_idx, "Close"]
 
@@ -639,7 +646,8 @@ def find_double_bottom(
             break
 
         c_idx = pivots.loc[pivots.index[pos_after_a] :, "P"].idxmin()
-        c, cVol = pivots.loc[c_idx, ["P", "V"]]
+        c = pivots.at[c_idx, "P"]
+        cVol = pivots.at[c_idx, "V"]
 
         b_idx = pivots.loc[a_idx:c_idx, "P"].idxmax()
         b = pivots.at[b_idx, "P"]
@@ -647,20 +655,20 @@ def find_double_bottom(
         atr = atr_ser.at[c_idx]
 
         if pivots.index.has_duplicates:
-            if isinstance(a, (pd.Series, str)):
-                a = pivots.at[a_idx, "P"].iloc[1]
+            if isinstance(a, pd.Series):
+                a = pivots.at[a_idx, "P"].min()
 
-            if isinstance(aVol, (pd.Series, str)):
-                aVol = pivots.at[a_idx, "V"].iloc[1]
+            if isinstance(aVol, pd.Series):
+                aVol = pivots.at[a_idx, "V"].iloc[0]
 
-            if isinstance(b, (pd.Series, str)):
-                b = pivots.at[b_idx, "P"].iloc[0]
+            if isinstance(b, pd.Series):
+                b = pivots.at[b_idx, "P"].max()
 
-            if isinstance(c, (pd.Series, str)):
-                c = pivots.at[c_idx, "P"].iloc[1]
+            if isinstance(c, pd.Series):
+                c = pivots.at[c_idx, "P"].min()
 
-            if isinstance(cVol, (pd.Series, str)):
-                cVol = pivots.at[c_idx, "V"].iloc[1]
+            if isinstance(cVol, pd.Series):
+                cVol = pivots.at[c_idx, "V"].iloc[0]
 
         df_slice = df.loc[a_idx:c_idx]
         avgBarLength = (df_slice["High"] - df_slice["Low"]).median()
@@ -687,11 +695,6 @@ def find_double_bottom(
                 a_idx, a, aVol = c_idx, c, cVol
                 continue
 
-            entryLine = ((b_idx, b), (d_idx, b))
-            ab = ((a_idx, a), (b_idx, b))
-            bc = ((b_idx, b), (c_idx, c))
-            cd = ((c_idx, c), (d_idx, d))
-
             logger.debug(f"{sym} - DBOT")
 
             return dict(
@@ -701,7 +704,10 @@ def find_double_bottom(
                 end=d_idx,
                 df_start=df.index[0],
                 df_end=df.index[-1],
-                lines=(entryLine, ab, bc, cd),
+                points=dict(
+                    A=(a_idx, a), B=(b_idx, b), C=(c_idx, c), D=(d_idx, d)
+                ),
+                extra_points=dict(direction=(b_idx, b)),
             )
 
         a_idx, a, aVol = c_idx, c, cVol
@@ -722,8 +728,11 @@ def find_double_top(
     assert isinstance(pivots.index, pd.DatetimeIndex)
 
     pivot_len = pivots.shape[0]
+
     a_idx = pivots["P"].idxmax()
-    a, aVol = pivots.loc[a_idx, ["P", "V"]]
+    a = pivots.loc[a_idx, "P"]
+    aVol = pivots.loc[a_idx, "V"]
+
     d_idx = df.index[-1]
     d = df.at[d_idx, "Close"]
 
@@ -738,7 +747,8 @@ def find_double_top(
             break
 
         c_idx = pivots.loc[pivots.index[idx] :, "P"].idxmax()
-        c, cVol = pivots.loc[c_idx, ["P", "V"]]
+        c = pivots.loc[c_idx, "P"]
+        cVol = pivots.loc[c_idx, "V"]
 
         b_idx = pivots.loc[a_idx:c_idx, "P"].idxmin()
         b = pivots.at[b_idx, "P"]
@@ -746,19 +756,19 @@ def find_double_top(
         atr = atr_ser.at[c_idx]
 
         if pivots.index.has_duplicates:
-            if isinstance(a, (pd.Series, str)):
-                a = pivots.at[a_idx, "P"].iloc[0]
+            if isinstance(a, pd.Series):
+                a = pivots.at[a_idx, "P"].max()
 
-            if isinstance(aVol, (pd.Series, str)):
+            if isinstance(aVol, pd.Series):
                 aVol = pivots.at[a_idx, "V"].iloc[0]
 
-            if isinstance(b, (pd.Series, str)):
-                b = pivots.at[b_idx, "P"].iloc[1]
+            if isinstance(b, pd.Series):
+                b = pivots.at[b_idx, "P"].min()
 
-            if isinstance(c, (pd.Series, str)):
-                c = pivots.at[c_idx, "P"].iloc[0]
+            if isinstance(c, pd.Series):
+                c = pivots.at[c_idx, "P"].max()
 
-            if isinstance(cVol, (pd.Series, str)):
+            if isinstance(cVol, pd.Series):
                 cVol = pivots.at[c_idx, "V"].iloc[0]
 
         df_slice = df.loc[a_idx:c_idx]
@@ -782,11 +792,6 @@ def find_double_top(
                 a_idx, a, aVol = c_idx, c, cVol
                 continue
 
-            entryLine = ((b_idx, b), (d_idx, b))
-            ab = ((a_idx, a), (b_idx, b))
-            bc = ((b_idx, b), (c_idx, c))
-            cd = ((c_idx, c), (d_idx, d))
-
             logger.debug(f"{sym} - DTOP")
 
             return dict(
@@ -796,16 +801,17 @@ def find_double_top(
                 end=d_idx,
                 df_start=df.index[0],
                 df_end=df.index[-1],
-                lines=(entryLine, ab, bc, cd),
+                points=dict(
+                    A=(a_idx, a), B=(b_idx, b), C=(c_idx, c), D=(d_idx, d)
+                ),
+                extra_points=dict(direction=(b_idx, b)),
             )
 
         a_idx, a, aVol = c_idx, c, cVol
 
 
 def find_triangles(
-    sym: str,
-    df: pd.DataFrame,
-    pivots: pd.DataFrame
+    sym: str, df: pd.DataFrame, pivots: pd.DataFrame
 ) -> Optional[dict]:
     """Find Triangles - Symmetric, Ascending, Descending.
 
@@ -860,20 +866,20 @@ def find_triangles(
         e = pivots.at[e_idx, "P"]
 
         if pivots.index.has_duplicates:
-            if isinstance(a, (pd.Series, str)):
-                a = pivots.at[a_idx, "P"].iloc[0]
+            if isinstance(a, pd.Series):
+                a = pivots.at[a_idx, "P"].max()
 
-            if isinstance(b, (pd.Series, str)):
-                b = pivots.at[b_idx, "P"].iloc[1]
+            if isinstance(b, pd.Series):
+                b = pivots.at[b_idx, "P"].min()
 
-            if isinstance(c, (pd.Series, str)):
-                c = pivots.at[c_idx, "P"].iloc[0]
+            if isinstance(c, pd.Series):
+                c = pivots.at[c_idx, "P"].max()
 
-            if isinstance(d, (pd.Series, str)):
-                d = pivots.at[d_idx, "P"].iloc[1]
+            if isinstance(d, pd.Series):
+                d = pivots.at[d_idx, "P"].min()
 
-            if isinstance(e, (pd.Series, str)):
-                e = pivots.at[e_idx, "P"].iloc[0]
+            if isinstance(e, pd.Series):
+                e = pivots.at[e_idx, "P"].max()
 
         df_slice = df.loc[a_idx:d_idx]
         avgBarLength = (df_slice["High"] - df_slice["Low"]).median()
@@ -930,7 +936,20 @@ def find_triangles(
                 df_end=df.index[-1],
                 slope_upper=upper.slope,
                 slope_lower=lower.slope,
-                lines=(upper.line, lower.line),
+                points=dict(
+                    A=(a_idx, a),
+                    B=(b_idx, b),
+                    C=(c_idx, c),
+                    D=(d_idx, d),
+                    E=(e_idx, e),
+                    F=(f_idx, f),
+                ),
+                extra_points=dict(
+                    upper_start=upper.line.start,
+                    upper_end=upper.line.end,
+                    lower_start=lower.line.start,
+                    lower_end=lower.line.end,
+                ),
             )
 
         a_idx, c = c_idx, c
@@ -987,20 +1006,20 @@ def find_hns(
         d = pivots.at[d_idx, "P"]
 
         if pivots.index.has_duplicates:
-            if isinstance(a, (pd.Series, str)):
-                a = pivots.at[a_idx, "P"].iloc[0]
+            if isinstance(a, pd.Series):
+                a = pivots.at[a_idx, "P"].max()
 
-            if isinstance(b, (pd.Series, str)):
-                b = pivots.at[b_idx, "P"].iloc[1]
+            if isinstance(b, pd.Series):
+                b = pivots.at[b_idx, "P"].min()
 
-            if isinstance(c, (pd.Series, str)):
-                c = pivots.at[c_idx, "P"].iloc[0]
+            if isinstance(c, pd.Series):
+                c = pivots.at[c_idx, "P"].max()
 
-            if isinstance(d, (pd.Series, str)):
-                d = pivots.at[d_idx, "P"].iloc[1]
+            if isinstance(d, pd.Series):
+                d = pivots.at[d_idx, "P"].min()
 
-            if isinstance(e, (pd.Series, str)):
-                e = pivots.at[e_idx, "P"].iloc[0]
+            if isinstance(e, pd.Series):
+                e = pivots.at[e_idx, "P"].max()
 
         df_slice = df.loc[b_idx:d_idx]
         avgBarLength = (df_slice["High"] - df_slice["Low"]).median()
@@ -1047,20 +1066,6 @@ def find_hns(
                 c_idx, c = e_idx, e
                 continue
 
-            # lines
-            ab = ((a_idx, a), (b_idx, b))
-            bc = ((b_idx, b), (c_idx, c))
-            cd = ((c_idx, c), (d_idx, d))
-            de = ((d_idx, d), (e_idx, e))
-            ef = ((e_idx, e), (f_idx, f))
-
-            if tline.slope < 0:
-                entry_line = ((b_idx, b), (f_idx, b))
-
-                lines = (entry_line, tline.line, ab, bc, cd, de, ef)
-            else:
-                lines = (tline.line, ab, bc, cd, de, ef)
-
             logger.debug(f"{sym} - HNSD")
 
             return dict(
@@ -1072,7 +1077,15 @@ def find_hns(
                 df_end=df.index[-1],
                 slope=tline.slope,
                 y_intercept=tline.y_int,
-                lines=lines,
+                points=dict(
+                    A=(a_idx, a),
+                    B=(b_idx, b),
+                    C=(c_idx, c),
+                    D=(d_idx, d),
+                    E=(e_idx, e),
+                    F=(f_idx, f),
+                ),
+                extra_points=dict(direction=(b_idx, b)),
             )
 
         c_idx, c = e_idx, e
@@ -1129,20 +1142,20 @@ def find_reverse_hns(
         d = pivots.at[d_idx, "P"]
 
         if pivots.index.has_duplicates:
-            if isinstance(a, (pd.Series, str)):
-                a = pivots.loc[a_idx, "P"].iloc[1]
+            if isinstance(a, pd.Series):
+                a = pivots.loc[a_idx, "P"].min()
 
-            if isinstance(b, (pd.Series, str)):
-                b = pivots.loc[b_idx, "P"].iloc[0]
+            if isinstance(b, pd.Series):
+                b = pivots.loc[b_idx, "P"].max()
 
-            if isinstance(c, (pd.Series, str)):
-                c = pivots.loc[c_idx, "P"].iloc[1]
+            if isinstance(c, pd.Series):
+                c = pivots.loc[c_idx, "P"].min()
 
-            if isinstance(d, (pd.Series, str)):
-                d = pivots.loc[d_idx, "P"].iloc[0]
+            if isinstance(d, pd.Series):
+                d = pivots.loc[d_idx, "P"].max()
 
-            if isinstance(e, (pd.Series, str)):
-                e = pivots.loc[e_idx, "P"].iloc[1]
+            if isinstance(e, pd.Series):
+                e = pivots.loc[e_idx, "P"].min()
 
         df_slice = df.loc[b_idx:d_idx]
         avgBarLength = (df_slice["High"] - df_slice["Low"]).median()
@@ -1189,20 +1202,6 @@ def find_reverse_hns(
                 c_idx, c = e_idx, e
                 continue
 
-            # lines
-            ab = ((a_idx, a), (b_idx, b))
-            bc = ((b_idx, b), (c_idx, c))
-            cd = ((c_idx, c), (d_idx, d))
-            de = ((d_idx, d), (e_idx, e))
-            ef = ((e_idx, e), (f_idx, f))
-
-            if tline.slope > 0:
-                entry_line = ((b_idx, b), (f_idx, b))
-
-                lines = (entry_line, tline.line, ab, bc, cd, de, ef)
-            else:
-                lines = (tline.line, ab, bc, cd, de, ef)
-
             logger.debug(f"{sym} - HNSU")
 
             return dict(
@@ -1214,7 +1213,15 @@ def find_reverse_hns(
                 df_end=df.index[-1],
                 slope=tline.line,
                 y_intercept=tline.y_int,
-                lines=lines,
+                points=dict(
+                    A=(a_idx, a),
+                    B=(b_idx, b),
+                    C=(c_idx, c),
+                    D=(d_idx, d),
+                    E=(e_idx, e),
+                    F=(f_idx, f),
+                ),
+                extra_points=dict(direction=(b_idx, b)),
             )
 
         c_idx, c = e_idx, e
@@ -1236,10 +1243,8 @@ def find_downtrend_line(
     a_idx = pivots.P.idxmax()
     a = pivots.at[a_idx, "P"]
 
-    b = b_idx = None
-
     if isinstance(a, pd.Series):
-        a = a.iloc[-1]
+        a = a.max()
 
     threshold = a * 0.001
     last_idx = df.index[-1]
@@ -1249,23 +1254,20 @@ def find_downtrend_line(
         return None
 
     assert isinstance(pivots.index, pd.DatetimeIndex)
+    assert isinstance(a_idx, pd.Timestamp)
 
     while True:
-        if selected is None:
-            assert isinstance(a_idx, pd.Timestamp)
+        pos_after_a = get_next_index(pivots.index, a_idx)
 
-            pos = get_next_index(pivots.index, a_idx)
+        if pos_after_a >= pivots_len:
+            break
 
-            if pos >= pivots_len:
-                break
+        # Get the next highest point in pivots after A
+        b_idx = pivots.loc[pivots.index[pos_after_a] :, "P"].idxmax()
+        b = pivots.at[b_idx, "P"]
 
-            idx_after_a = pivots.index[pos]
-
-            # Get the next highest point in pivots after A
-            b_idx = pivots["P"].loc[idx_after_a:].idxmax()
-            b = pivots.at[b_idx, "P"]
-
-        assert isinstance(b_idx, pd.Timestamp)
+        if isinstance(b, pd.Series):
+            b = b.max()
 
         # Calculate the slope and y-intercept of the trendline AB.
         try:
@@ -1283,25 +1285,30 @@ def find_downtrend_line(
             a_idx, a = b_idx, b
             continue
 
+        line_pivots = pivots.loc[a_idx:, "P"]
+
         # Calculate y values for trendline at each pivot.
-        y_values = pivots.index.map(
+        y_values = line_pivots.index.map(
             lambda x: getY(tline.slope, tline.y_int, df.index.get_loc(x))
         )
 
         # Get the absolute distance of each pivot from trendline.
-        diff = pivots.P - y_values
+        diff = (line_pivots - y_values).abs()
 
         # Count pivots with distance from line, within a fixed threshold.
-        touch_count = (diff.abs() <= threshold).sum()
+        touch_count = (diff <= threshold).sum()
 
         if touch_count > 2:
             closes = df.loc[a_idx:last_idx, "Close"]
 
+            # Calculate price at each point on the trendline
             y_values = closes.index.map(
                 lambda x: getY(tline.slope, tline.y_int, df.index.get_loc(x))
             )
 
+            # Sum up number of times, price closed above the trendline
             if (closes > y_values).sum() > 0:
+                # skip if trendline was breached
                 a_idx, a = b_idx, b
                 continue
 
@@ -1310,7 +1317,7 @@ def find_downtrend_line(
             # For two lines with equal touch points, the lower score indicates
             # a better fitting line.
             # The lowest possible score is 0. Sum of empty Series is 0
-            score = abs(diff[diff < threshold].sum())
+            score = diff[diff < threshold].sum()
 
             # Update if no trendline is detected yet or
             # if we have higher touch counts.
@@ -1322,27 +1329,23 @@ def find_downtrend_line(
                     and score < selected["score"]
                 )
             ):
+
+                touch_points = line_pivots.loc[diff <= threshold]
+                str_keys = ascii_upper[: len(touch_points)]
+
                 selected = dict(
                     touches=touch_count,
                     start=a_idx,
-                    end=b_idx,
+                    end=last_idx,
                     slope=tline.slope,
                     y_intercept=tline.y_int,
-                    lines=tline.line,
+                    y_close=y_close,
+                    points=dict(zip(str_keys, tuple(touch_points.items()))),
+                    extra_points=dict(
+                        start=tline.line.start, end=tline.line.end
+                    ),
                     score=score,
                 )
-
-            pos = get_next_index(pivots.index, b_idx)
-
-            if pos >= pivots_len:
-                break
-
-            idx_after_b = pivots.index[pos]
-
-            # Get the next highest point in pivots after B
-            b_idx = pivots["P"].loc[idx_after_b:].idxmax()
-            b = pivots.at[b_idx, "P"]
-            continue
 
         a_idx, a = b_idx, b
 
@@ -1374,7 +1377,8 @@ def find_uptrend_line(
     a_idx = pivots.P.idxmin()
     a = pivots.at[a_idx, "P"]
 
-    b = b_idx = None
+    if isinstance(a, pd.Series):
+        a = a.min()
 
     threshold = a * 0.001
     last_idx = df.index[-1]
@@ -1384,24 +1388,21 @@ def find_uptrend_line(
         return
 
     assert isinstance(pivots.index, pd.DatetimeIndex)
+    assert isinstance(a_idx, pd.Timestamp)
 
     while True:
 
-        if selected is None:
-            assert isinstance(a_idx, pd.Timestamp)
+        pos_after_a = get_next_index(pivots.index, a_idx)
 
-            pos = get_next_index(pivots.index, a_idx)
+        if pos_after_a >= pivots_len:
+            break
 
-            if pos >= pivots_len:
-                break
+        # Get the next lowest point in pivots.
+        b_idx = pivots.loc[pivots.index[pos_after_a] :, "P"].idxmin()
+        b = pivots.at[b_idx, "P"]
 
-            idx_after_a = pivots.index[pos]
-
-            # Get the next lowest point in pivots.
-            b_idx = pivots.loc[idx_after_a:, "P"].idxmin()
-            b = pivots.at[b_idx, "P"]
-
-        assert isinstance(b_idx, pd.Timestamp)
+        if isinstance(b, pd.Series):
+            b = b.max()
 
         # Calculate the slope and y-intercept of the trendline AB.
         try:
@@ -1419,26 +1420,32 @@ def find_uptrend_line(
             a_idx, a = b_idx, b
             continue
 
+        line_pivots = pivots.loc[a_idx:, "P"]
+
         # Calculate y values for trendline at each pivot.
-        y_values = pivots.index.map(
+        y_values = line_pivots.index.map(
             lambda x: getY(tline.slope, tline.y_int, df.index.get_loc(x))
         )
 
         # Get the distance of each pivot from trendline.
-        diff = pivots.P - y_values
+        diff = (line_pivots - y_values).abs()
 
         # Count pivots, whose absolute distance from line is
         # within a fixed threshold.
-        touch_count = (diff.abs() <= threshold).sum()
+        touch_count = (diff <= threshold).sum()
 
         if touch_count > 2:
+            # Get all closes from line start to last close
             closes = df.loc[a_idx:last_idx, "Close"]
 
+            # Calculate the price on trendline from line start to last close
             y_values = closes.index.map(
                 lambda x: getY(tline.slope, tline.y_int, df.index.get_loc(x))
             )
 
+            # Sum up number of times, price closed below the trendline
             if (closes < y_values).sum() > 0:
+                # skip if trendline was breached
                 a_idx, a = b_idx, b
                 continue
 
@@ -1447,7 +1454,7 @@ def find_uptrend_line(
             # For two lines with equal touch points, the lower score indicates
             # a better fitting line.
             # The lowest possible score is 0. Sum of empty Series is 0
-            score = abs(diff[diff < -threshold].sum())
+            score = diff[diff < -threshold].sum()
 
             # Update if no trendline is detected yet or
             # if we have higher touch counts.
@@ -1459,27 +1466,22 @@ def find_uptrend_line(
                     and score < selected["score"]
                 )
             ):
+                touch_points = line_pivots.loc[diff <= threshold]
+                str_keys = ascii_upper[: len(touch_points)]
+
                 selected = dict(
                     touches=touch_count,
                     start=a_idx,
-                    end=b_idx,
+                    end=last_idx,
                     slope=tline.slope,
                     y_intercept=tline.y_int,
-                    lines=tline.line,
+                    y_close=y_close,
+                    points=dict(zip(str_keys, tuple(touch_points.items()))),
+                    extra_points=dict(
+                        start=tline.line.start, end=tline.line.end
+                    ),
                     score=score,
                 )
-
-            pos = get_next_index(pivots.index, b_idx)
-
-            if pos >= pivots_len:
-                break
-
-            idx_after_b = pivots.index[pos]
-
-            # Get the next lowest point in pivots.
-            b_idx = pivots.loc[idx_after_b:, "P"].idxmin()
-            b = pivots.at[b_idx, "P"]
-            continue
 
         a_idx, a = b_idx, b
 
@@ -1495,12 +1497,12 @@ def find_uptrend_line(
 
     return selected
 
+
 def find_bullish_abcd(
     sym: str, df: pd.DataFrame, pivots: pd.DataFrame
 ) -> Optional[dict]:
     """
     Bullish AB = CD harmonic pattern
-
     """
 
     fib_ser = pd.Series((0.382, 0.5, 0.618, 0.707, 0.786, 0.886))
@@ -1508,6 +1510,9 @@ def find_bullish_abcd(
 
     a_idx = pivots["P"].idxmax()
     a = pivots.at[a_idx, "P"]
+
+    d_idx = df.index[-1]
+    d = df.at[d_idx, "Close"]
 
     assert isinstance(pivots.index, pd.DatetimeIndex)
     assert isinstance(a_idx, pd.Timestamp)
@@ -1521,7 +1526,6 @@ def find_bullish_abcd(
             break
 
         c_idx = pivots.loc[pivots.index[pos_after_a] :, "P"].idxmax()
-
         c = pivots.at[c_idx, "P"]
 
         b_idx = pivots.loc[a_idx:c_idx, "P"].idxmin()
@@ -1530,79 +1534,68 @@ def find_bullish_abcd(
         if b_idx == c_idx:
             break
 
-        d_idx = df.index[-1]
-        d = df.at[d_idx, "Close"]
-
         if pivots.index.has_duplicates:
             if isinstance(a, pd.Series):
-                a = pivots.at[a_idx, "P"].iloc[0]
+                a = pivots.at[a_idx, "P"].max()
 
             if isinstance(b, pd.Series):
-                b = pivots.at[b_idx, "P"].iloc[1]
+                b = pivots.at[b_idx, "P"].min()
 
             if isinstance(c, pd.Series):
-                c = pivots.at[c_idx, "P"].iloc[0]
-
-        if b == c:
-            break
+                c = pivots.at[c_idx, "P"].max()
 
         bc_diff = c - b
-        c_retracement = bc_diff / (a - b)
+        ab_diff = a - b
+        c_retrace = bc_diff / ab_diff
 
         # Get the FIB ratio nearest to point C
-        c_nearest_fib = fib_ser.loc[(fib_ser - c_retracement).abs().idxmin()]
+        c_nearest_fib = fib_ser.loc[(fib_ser - c_retrace).abs().idxmin()]
 
-        if c_retracement < 0.382 or c_retracement > 0.886:
+        if c_retrace < 0.382 or c_retrace > 0.886:
             a, a_idx = c, c_idx
             continue
 
         c_fib_inverse = 1 / c_nearest_fib
 
-        bc_extension = c - (a - b)
-        bc_fib_extension = c - (bc_diff * c_fib_inverse)
+        bc_extension = c - ab_diff
+        bc_fib_extension = c - (ab_diff * c_fib_inverse)
 
-        completion_point = min(bc_extension, bc_fib_extension)
+        terminal_point = min(bc_extension, bc_fib_extension)
 
-        # Add a 1.5 % (98.5 %) threshold below the completion_point
-        if d < b and d > completion_point * 0.985:
+        validation_threshold = terminal_point * 0.985
+        lowest_close_after_b = df.loc[b_idx:, "Close"].min()
+        highest_high_after_c = df.loc[c_idx:, "High"].max()
 
-            lowest_close_after_b = df.loc[b_idx:, "Close"].min()
+        # Add a 1.5 % (98.5 %) threshold below the terminal_point
+        if (
+            d < b
+            and lowest_close_after_b > validation_threshold
+            and d == lowest_close_after_b
+            and c == highest_high_after_c
+        ):
 
-            if (
-                lowest_close_after_b < completion_point
-                or d != lowest_close_after_b
-            ):
-                a, a_idx = c, c_idx
-                continue
-
-            completion_diff = abs(bc_extension - bc_fib_extension) / max(
-                bc_extension, bc_fib_extension
-            )
-
-            if completion_diff > 0.1:
-                a, a_idx = c, c_idx
-                continue
-
-            c_fib_inverse = 1 / c_nearest_fib
-
-            bc_extension = c - (a - b)
-            bc_fib_extension = c - (bc_diff * c_fib_inverse)
-
-            entryLine = ((c_idx, c), (d_idx, c))
-            ab = ((a_idx, a), (b_idx, b))
-            bc = ((b_idx, b), (c_idx, c))
-            cd = ((c_idx, c), (d_idx, d))
-
-            completion_line = ((b_idx, bc_extension), (d_idx, bc_extension))
-            fib_ext_line = (
-                (b_idx, bc_fib_extension),
-                (d_idx, bc_fib_extension),
-            )
+            # termination_zone = abs(bc_extension - bc_fib_extension) / max(
+            #     bc_extension, bc_fib_extension
+            # )
+            #
+            # if termination_zone > 0.1:
+            #     a, a_idx = c, c_idx
+            #     continue
 
             selected = dict(
                 start=a_idx,
                 end=d_idx,
-                lines=(entryLine, ab, bc, cd, completion_line, fib_ext_line),
+                points={
+                    "A": (a_idx, a),
+                    "B": (b_idx, b),
+                    f"{c_retrace:.3f}C": (c_idx, c),
+                    "D": (d_idx, d),
+                },
+                extra_points={
+                    "direction": (c_idx, c),
+                    f"{c_fib_inverse:.3f}BC": (b_idx, bc_fib_extension),
+                    "AB=CD": (b_idx, bc_extension),
+                },
             )
 
         a, a_idx = c, c_idx
@@ -1614,6 +1607,360 @@ def find_bullish_abcd(
                 pattern="BULL AB=CD",
                 df_start=df.index[0],
                 df_end=df.index[-1],
+            )
+        )
+
+    return selected
+
+
+def find_bearish_abcd(
+    sym: str, df: pd.DataFrame, pivots: pd.DataFrame
+) -> Optional[dict]:
+    """
+    Bearish AB = CD harmonic pattern
+    """
+
+    fib_ser = pd.Series((0.382, 0.5, 0.618, 0.707, 0.786, 0.886))
+    pivot_len = pivots.shape[0]
+
+    a_idx = pivots["P"].idxmin()
+    a = pivots.at[a_idx, "P"]
+
+    d_idx = df.index[-1]
+    d = df.at[d_idx, "Close"]
+
+    assert isinstance(pivots.index, pd.DatetimeIndex)
+    assert isinstance(a_idx, pd.Timestamp)
+
+    selected: Optional[dict] = None
+
+    while True:
+        pos_after_a = get_next_index(pivots.index, a_idx)
+
+        if pos_after_a >= pivot_len:
+            break
+
+        c_idx = pivots.loc[pivots.index[pos_after_a] :, "P"].idxmin()
+
+        c = pivots.at[c_idx, "P"]
+
+        b_idx = pivots.loc[a_idx:c_idx, "P"].idxmax()
+        b = pivots.at[b_idx, "P"]
+
+        if b_idx == c_idx:
+            break
+
+        if pivots.index.has_duplicates:
+            if isinstance(a, pd.Series):
+                a = pivots.at[a_idx, "P"].min()
+
+            if isinstance(b, pd.Series):
+                b = pivots.at[b_idx, "P"].max()
+
+            if isinstance(c, pd.Series):
+                c = pivots.at[c_idx, "P"].min()
+
+        bc_diff = b - c
+        ab_diff = b - a
+        c_retrace = bc_diff / ab_diff
+
+        # Get the FIB ratio nearest to point C
+        c_nearest_fib = fib_ser.loc[(fib_ser - c_retrace).abs().idxmin()]
+
+        if c_retrace < 0.382 or c_retrace > 0.886:
+            a, a_idx = c, c_idx
+            continue
+
+        c_fib_inverse = 1 / c_nearest_fib
+
+        bc_extension = c + ab_diff
+        bc_fib_extension = c + (ab_diff * c_fib_inverse)
+
+        terminal_point = max(bc_extension, bc_fib_extension)
+
+        validation_threshold = terminal_point * 1.015
+        highest_close_after_b = df.loc[b_idx:, "Close"].max()
+        lowest_low_after_c = df.loc[c_idx:, "Low"].min()
+
+        # Add a 1.5 % (101.5 %) threshold below the terminal_point
+        if (
+            d > b
+            and highest_close_after_b < validation_threshold
+            and d == highest_close_after_b
+            and c == lowest_low_after_c
+        ):
+
+            # termination_zone = abs(bc_extension - bc_fib_extension) / min(
+            #     bc_extension, bc_fib_extension
+            # )
+            #
+            # if termination_zone > 0.1:
+            #     a, a_idx = c, c_idx
+            #     continue
+
+            selected = dict(
+                df_start=df.index[0],
+                df_end=df.index[-1],
+                start=a_idx,
+                end=d_idx,
+                points={
+                    "A": (a_idx, a),
+                    "B": (b_idx, b),
+                    f"{c_retrace:.3f}C": (c_idx, c),
+                    "D": (d_idx, d),
+                },
+                extra_points={
+                    "direction": (c_idx, c),
+                    f"{c_fib_inverse:.3f}BC": (b_idx, bc_fib_extension),
+                    "AB=CD": (b_idx, bc_extension),
+                },
+            )
+
+        a, a_idx = c, c_idx
+
+    if selected:
+        selected.update(
+            dict(
+                sym=sym,
+                pattern="BULL AB=CD",
+            )
+        )
+
+    return selected
+
+
+def find_bullish_bat(
+    sym: str, df: pd.DataFrame, pivots: pd.DataFrame
+) -> Optional[dict]:
+    """
+    Bullish Bat harmonic pattern
+    """
+    pivot_len = pivots.shape[0]
+
+    x_idx = pivots["P"].idxmin()
+    x = pivots.at[x_idx, "P"]
+
+    d_idx = df.index[-1]
+    d = df.at[d_idx, "Close"]
+
+    selected: Optional[dict] = None
+
+    assert isinstance(pivots.index, pd.DatetimeIndex)
+    assert isinstance(x_idx, pd.Timestamp)
+
+    while True:
+        pos_after_x = get_next_index(pivots.index, x_idx)
+
+        if pos_after_x >= pivot_len:
+            break
+
+        a_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmax()
+        a = pivots.at[a_idx, "P"]
+
+        pos_after_a = get_next_index(pivots.index, a_idx)
+
+        if pos_after_a >= pivot_len:
+            break
+
+        c_idx = pivots.loc[pivots.index[pos_after_a] :, "P"].idxmax()
+        c = pivots.at[c_idx, "P"]
+
+        b_idx = pivots.loc[a_idx:c_idx, "P"].idxmin()
+        b = pivots.at[b_idx, "P"]
+
+        if pivots.index.has_duplicates:
+            if isinstance(x, pd.Series):
+                x = pivots.at[x_idx, "P"].min()
+
+            if isinstance(a, pd.Series):
+                a = pivots.at[a_idx, "P"].max()
+
+            if isinstance(b, pd.Series):
+                b = pivots.at[b_idx, "P"].min()
+
+            if isinstance(c, pd.Series):
+                c = pivots.at[c_idx, "P"].max()
+
+        xa_diff = a - x
+        ab_diff = a - b
+        bc_diff = c - b
+
+        b_retrace = ab_diff / xa_diff
+        c_retrace = bc_diff / ab_diff
+
+        if (
+            b_retrace < 0.382
+            or b_retrace > 0.5
+            or c_retrace < 0.382
+            or c_retrace > 0.886
+        ):
+            x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmin()
+            x = pivots.loc[x_idx, "P"]
+            continue
+
+        xa_886_retrace = a - xa_diff * 0.886
+
+        bc_618_ext = a - ab_diff * 1.618
+        lowest_close_after_b = df.loc[b_idx:, "Close"].min()
+
+        if d < b and lowest_close_after_b > x and d == lowest_close_after_b:
+
+            if (
+                x == df.at[x_idx, "High"]
+                or a == df.at[a_idx, "Low"]
+                or b == df.at[b_idx, "High"]
+                or c == df.at[c_idx, "Low"]
+            ):
+                x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmin()
+                x = pivots.loc[x_idx, "P"]
+                continue
+
+            selected = dict(
+                df_start=df.index[0],
+                df_end=df.index[-1],
+                start=a_idx,
+                end=d_idx,
+                points={
+                    "X": (x_idx, x),
+                    "A": (a_idx, a),
+                    f"{b_retrace:.3f}B": (b_idx, b),
+                    f"{c_retrace:.3f}C": (c_idx, c),
+                    "D": (d_idx, d),
+                },
+                extra_points={
+                    "direction": (c_idx, c),
+                    "0.886XA": (b_idx, xa_886_retrace),
+                    "1.618AB=CD": (b_idx, bc_618_ext),
+                },
+            )
+
+        x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmin()
+        x = pivots.loc[x_idx, "P"]
+
+    if selected:
+        selected.update(
+            dict(
+                sym=sym,
+                pattern="BATU",
+            )
+        )
+
+    return selected
+
+
+def find_bearish_bat(
+    sym: str, df: pd.DataFrame, pivots: pd.DataFrame
+) -> Optional[dict]:
+    """
+    Bearish Bat harmonic pattern
+    """
+    pivot_len = pivots.shape[0]
+
+    x_idx = pivots["P"].idxmax()
+    x = pivots.at[x_idx, "P"]
+
+    d_idx = df.index[-1]
+    d = df.at[d_idx, "Close"]
+
+    selected: Optional[dict] = None
+
+    assert isinstance(pivots.index, pd.DatetimeIndex)
+    assert isinstance(x_idx, pd.Timestamp)
+
+    while True:
+        pos_after_x = get_next_index(pivots.index, x_idx)
+
+        if pos_after_x >= pivot_len:
+            break
+
+        a_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmin()
+        a = pivots.at[a_idx, "P"]
+
+        pos_after_a = get_next_index(pivots.index, a_idx)
+
+        if pos_after_a >= pivot_len:
+            break
+
+        c_idx = pivots.loc[pivots.index[pos_after_a] :, "P"].idxmin()
+        c = pivots.at[c_idx, "P"]
+
+        b_idx = pivots.loc[a_idx:c_idx, "P"].idxmax()
+        b = pivots.at[b_idx, "P"]
+
+        if pivots.index.has_duplicates:
+            if isinstance(x, pd.Series):
+                x = pivots.at[x_idx, "P"].max()
+
+            if isinstance(a, pd.Series):
+                a = pivots.at[a_idx, "P"].min()
+
+            if isinstance(b, pd.Series):
+                b = pivots.at[b_idx, "P"].max()
+
+            if isinstance(c, pd.Series):
+                c = pivots.at[c_idx, "P"].min()
+
+        xa_diff = x - a
+        ab_diff = b - a
+        bc_diff = b - c
+
+        b_retrace = ab_diff / xa_diff
+        c_retrace = bc_diff / ab_diff
+
+        if (
+            b_retrace < 0.382
+            or b_retrace > 0.5
+            or c_retrace < 0.382
+            or c_retrace > 0.886
+        ):
+            x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmax()
+            x = pivots.loc[x_idx, "P"]
+            continue
+
+        xa_886_retrace = a + xa_diff * 0.886
+
+        bc_618_ext = a + ab_diff * 1.618
+        highest_close_after_b = df.loc[b_idx:, "Close"].max()
+
+        if d > b and highest_close_after_b < x and d == highest_close_after_b:
+
+            if (
+                x == df.at[x_idx, "Low"]
+                or a == df.at[a_idx, "High"]
+                or b == df.at[b_idx, "Low"]
+                or c == df.at[c_idx, "High"]
+            ):
+                x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmax()
+                x = pivots.loc[x_idx, "P"]
+                continue
+
+            selected = dict(
+                df_start=df.index[0],
+                df_end=df.index[-1],
+                start=a_idx,
+                end=d_idx,
+                points={
+                    "X": (x_idx, x),
+                    "A": (a_idx, a),
+                    f"{b_retrace:.3f}B": (b_idx, b),
+                    f"{c_retrace:.3f}C": (c_idx, c),
+                    "D": (d_idx, d),
+                },
+                extra_points={
+                    "direction": (c_idx, c),
+                    "0.886XA": (b_idx, xa_886_retrace),
+                    "AB=CD": (b_idx, bc_618_ext),
+                },
+            )
+
+        x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmax()
+        x = pivots.loc[x_idx, "P"]
+
+    if selected:
+        selected.update(
+            dict(
+                sym=sym,
+                pattern="BATD",
             )
         )
 

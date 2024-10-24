@@ -3,7 +3,8 @@ import concurrent.futures
 import importlib
 import json
 import logging
-from datetime import datetime, timedelta
+import sys
+from datetime import datetime
 from pathlib import Path
 from typing import List, Union
 
@@ -25,18 +26,18 @@ backtesting.
 Ensure you have user.json with `DATA_PATH` and `SYM_LIST` set.
 
 ```python
-py backtest.py -p vcpu
+py backtest.py -p vcpu -d 2024-10-20
 ```
 
 # Custom Watchlist
 Provide a custom watchlist of symbols as a CSV or TXT file
 
 ```python 
-py backtest.py -p hnsd --file symlist.csv
+py backtest.py -p hnsd -d 2024-10-20 --file symlist.csv
 ```
 
 # Set Scan parameters
-Default scan end date is 120 days prior to current date. 
+By default, scan end date is 120 days prior to current date. 
 Scan period is 30 days prior to end date.
 
 ```python 
@@ -57,16 +58,20 @@ def parse_cli_args():
         "uptl",
         "dntl",
         "abcdu",
+        "abcdd",
+        "batu",
+        "batd",
     )
 
     parser = argparse.ArgumentParser(description="Run backdated pattern scan")
 
     parser.add_argument(
-        "-f",
-        "--file",
+        "-c",
+        "--config",
         type=lambda x: Path(x).expanduser().resolve(),
         default=None,
-        help="Filepath with symbol list. One on each line",
+        metavar="filepath",
+        help="Custom config file",
     )
 
     parser.add_argument(
@@ -85,13 +90,6 @@ def parse_cli_args():
     )
 
     parser.add_argument(
-        "--plot",
-        type=lambda x: json.loads(Path(x).read_bytes()),
-        default=None,
-        help="Plot results from json file",
-    )
-
-    parser.add_argument(
         "--idx",
         type=int,
         default=0,
@@ -102,7 +100,11 @@ def parse_cli_args():
         "-d",
         "--date",
         type=lambda x: datetime.fromisoformat(x) if x else x,
-        help="Ending date of scan. ISO FORMAT date YYYY-MM-DDTHH:MM",
+        help=(
+            "Last available date on file. The scan end date is 120 periods prior to this date. "
+            "Scan start date is 30 days from the scan end date. "
+            "Use ISO FORMAT date YYYY-MM-DD."
+        ),
     )
 
     parser.add_argument(
@@ -110,6 +112,30 @@ def parse_cli_args():
         type=int,
         default=30,
         help="Scan Period, prior to ending date. Default 30",
+    )
+
+    group = parser.add_mutually_exclusive_group(required=True)
+
+    group.add_argument(
+        "--plot",
+        type=lambda x: json.loads(Path(x).read_bytes()),
+        default=None,
+        help="Plot results from json file",
+    )
+
+    group.add_argument(
+        "-f",
+        "--file",
+        type=lambda x: Path(x).expanduser().resolve(),
+        default=None,
+        help="Filepath with symbol list. One on each line",
+    )
+
+    group.add_argument(
+        "--sym",
+        nargs="+",
+        metavar="SYM",
+        help="Space separated list of stock symbols.",
     )
 
     args = parser.parse_args()
@@ -120,12 +146,23 @@ def parse_cli_args():
     return args
 
 
+def get_loader_class(config):
+    # Load data loader from config. Default loader is EODFileLoader
+    loader_name = config.get("LOADER", "EODFileLoader")
+
+    loader_module = importlib.import_module(f"loaders.{loader_name}")
+
+    return getattr(loader_module, loader_name)
+
+
 def scan(
     loader: AbstractLoader,
-    end: Union[datetime, pd.Timestamp],
-    period: int,
+    end_dt: Union[datetime, pd.Timestamp],
+    scan_period: int,
     fn: str,
     sym: str,
+    look_ahead_period: int,
+    look_back_period: int,
 ) -> List[dict]:
     seen = {}
     results = []
@@ -141,11 +178,20 @@ def scan(
         "uptl": utils.find_uptrend_line,
         "dntl": utils.find_downtrend_line,
         "abcdu": utils.find_bullish_abcd,
+        "abcdd": utils.find_bearish_abcd,
+        "batu": utils.find_bullish_bat,
+        "batd": utils.find_bearish_bat,
     }
 
     df = loader.get(sym)
 
-    if df is None or df.empty or end < df.index[0]:
+    if df is None or df.empty:
+        return results
+
+    if df.index[0].tzinfo:
+        end_dt = end_dt.replace(tzinfo=df.index[0].tzinfo)
+
+    if end_dt < df.index[0]:
         return results
 
     if df.index.has_duplicates:
@@ -154,40 +200,30 @@ def scan(
     if not df.index.is_monotonic_increasing:
         df = df.sort_index(ascending=True)
 
+    assert isinstance(df, pd.DataFrame)
     assert isinstance(df.index, pd.DatetimeIndex)
 
-    pos = df.index.get_loc(df.index.asof(end))
-
-    if isinstance(pos, slice):
-        pos = pos.start
-
-    # If start date is out of bounds, start at first available date in DataFrame
-    start = df.index[pos - period if pos > period else 0]
-
-    if start < df.index[0]:
-        return results
-
-    assert isinstance(start, pd.Timestamp)
-
-    dt_index = df.index.date
-
-    has_time_component = utils.has_time_component(df.index)
-
-    if has_time_component:
-        start_dt = df.loc[start.date() == dt_index].index.max()
-        end_dt = df.loc[end.date() == dt_index].index.max()
-    else:
-        start_dt = start
-        end_dt = end
-
-    start_pos = df.index.get_loc(df.index.asof(start_dt))
     end_pos = df.index.get_loc(df.index.asof(end_dt))
-
-    if isinstance(start_pos, slice):
-        start_pos = start_pos.start
 
     if isinstance(end_pos, slice):
         end_pos = end_pos.start
+
+    scan_period_with_look_ahead = scan_period + look_ahead_period
+
+    # If start date is out of bounds, start at first available date in DataFrame
+    if end_pos > scan_period_with_look_ahead:
+        scan_start_pos = end_pos - scan_period_with_look_ahead
+    else:
+        scan_start_pos = 0
+
+    scan_start_dt = df.index[scan_start_pos]
+
+    if look_ahead_period > end_pos:
+        return results
+
+    scan_end_dt = df.index[end_pos - look_ahead_period]
+
+    assert isinstance(scan_start_dt, pd.Timestamp)
 
     if fn == "uptl":
         pivot_type = "low"
@@ -196,17 +232,20 @@ def scan(
     else:
         pivot_type = "both"
 
-    pivots_all = utils.get_max_min(
-        df.iloc[start_pos - 160 : end_pos], pivot_type=pivot_type
-    )
+    pivots_all = utils.get_max_min(df, pivot_type=pivot_type)
 
-    for i in df.loc[start_dt:end_dt].index:
+    for i in df.loc[scan_start_dt:scan_end_dt].index:
         pos = df.index.get_loc(i)
 
         if isinstance(pos, slice):
             pos = pos.start
 
-        dfi = df.iloc[pos - 160 : pos]
+        if look_back_period > pos:
+            start_idx = df.index[0]
+        else:
+            start_idx = df.index[-(pos - look_back_period)]
+
+        dfi = df.loc[start_idx : df.index[pos]]
 
         if not len(dfi):
             break
@@ -239,7 +278,9 @@ def main(
     out_file: Path,
     loader: AbstractLoader,
     end_date: datetime,
-    period: int,
+    scan_period: int,
+    look_ahead_period: int,
+    look_back_period: int,
 ):
     results: List[dict] = []
     futures = []
@@ -251,9 +292,11 @@ def main(
                 scan,
                 loader,
                 args.date,
-                args.period,
+                scan_period,
                 args.pattern,
                 sym,
+                look_ahead_period,
+                look_back_period,
             )
             futures.append(future)
 
@@ -264,84 +307,128 @@ def main(
             results.extend(result)
 
     if len(results):
-        logger.warning(
+        logger.info(
             f"Got {len(results)} patterns for {args.pattern.upper()}.\nRun `py backtest.py --plot {out_file.name}` to view results."
         )
 
         results.append(
             {
                 "timeframe": loader.tf,
-                "end_date": (end_date + timedelta(120)).isoformat(),
-                "period": period,
+                "end_date": end_date.isoformat(),
+                "period": loader.period,
+                "config": str(config_file),
             }
         )
-
         out_file.write_text(json.dumps(results, indent=2))
+
+        return results
     else:
-        logger.warning("No patterns found.")
+        logger.info("No patterns found.")
 
 
 if __name__ == "__main__":
     logging.basicConfig(
         level=logging.INFO,
-        format="%(message)s",
+        format="%(levelname)s: %(message)s",
     )
 
     logger = logging.getLogger(__name__)
 
     DIR = Path(__file__).parent
 
-    config_file = DIR / "user.json"
+    if "-c" in sys.argv or "--config" in sys.argv:
+        idx = sys.argv.index("-c" if "-c" in sys.argv else "--config")
+
+        config_file = Path(sys.argv[idx + 1]).expanduser().resolve()
+    else:
+        config_file = DIR / "user.json"
 
     if not config_file.exists():
-        logger.fatal("Missing user.json. Run init.py to generate user.json")
+        logger.fatal(
+            "Missing user.json. Run setup-config.py to generate user.json"
+        )
         exit()
 
     config = json.loads(config_file.read_bytes())
 
+    sym_list = config["SYM_LIST"] if "SYM_LIST" in config else None
+
+    if sym_list is not None and not (
+        "-f" in sys.argv
+        or "--file" in sys.argv
+        or "--sym" in sys.argv
+        or "--plot" in sys.argv
+    ):
+        sys.argv.extend(("-f", sym_list))
+
     args = parse_cli_args()
-
-    # Import Loader module
-    loader_name = config.get("LOADER", "EODFileLoader")
-
-    loader_module = importlib.import_module(f"loaders.{loader_name}")
 
     if args.plot:
         meta = args.plot.pop()
 
-        loader = getattr(loader_module, loader_name)(
+        config = json.loads(
+            Path(meta["config"]).expanduser().resolve().read_bytes()
+        )
+
+        loader_class = get_loader_class(config)
+
+        loader = loader_class(
             config,
             meta["timeframe"],
             end_date=datetime.fromisoformat(meta["end_date"]),
             period=meta["period"],
         )
 
-        plotter = Plotter(args.plot, loader, mode="expand")
+        plotter = Plotter(
+            args.plot, loader, mode="expand", config=config.get("CHART", {})
+        )
+
         plotter.plot(args.idx)
         exit()
 
     if args.date is None:
         exit("-d/--date argument is required")
 
-    period = 120 + args.period + 120
+    look_ahead_period = 120
+    look_back_period = 160
 
-    loader = getattr(loader_module, loader_name)(
+    loader_class = get_loader_class(config)
+
+    loader = loader_class(
         config,
         args.tf,
         end_date=args.date,
-        period=period,
+        period=look_back_period + args.period + look_ahead_period,
     )
 
     if args.file:
-        file = args.file
-    elif "SYM_LIST" in config:
-        file = Path(config["SYM_LIST"]).expanduser().resolve()
+        sym_list = args.file.read_text().strip().split("\n")
+    elif args.sym:
+        sym_list = args.sym
     else:
         raise RuntimeError(
             "Error: -f or --file is required. Else define SYM_LIST in user.json"
         )
 
-    sym_list = file.read_text().strip().split("\n")
     output_file = DIR / f"bt_{args.pattern}_{loader.tf}.json"
 
-    main(sym_list, output_file, loader, args.date, period)
+    result = main(
+        sym_list,
+        output_file,
+        loader,
+        args.date,
+        args.period,
+        look_ahead_period,
+        look_back_period,
+    )
+
+    if result and config.get("POST_SCAN_PLOT", True):
+        result.pop()
+        plotter = Plotter(
+            result,
+            loader,
+            mode="expand",
+            config=config.get("CHART", {}),
+        )
+
+        plotter.plot(args.idx)

@@ -46,14 +46,26 @@ def get_user_input() -> str:
     10. UPTL  - Uptrend line
     11. DNTL  - Downtrend line
     12. ABCDU - AB=CD Bullish Harmonic pattern (EXPERIMENTAL - WIP)
+    13. ABCDD - AB=CD Bearish Harmonic pattern (EXPERIMENTAL - WIP)
+    14. BATU  - Bullish BAT Harmonic pattern (EXPERIMENTAL - WIP)
+    15. BATD  - Bearish BAT Harmonic pattern (EXPERIMENTAL - WIP)
     > """
     )
 
-    if not user_input.isdigit() and int(user_input) not in range(10):
+    if not (user_input.isdigit() and int(user_input) in range(16)):
         print("Enter a key from the list")
         return get_user_input()
 
     return user_input
+
+
+def get_loader_class(config):
+    # Load data loader from config. Default loader is EODFileLoader
+    loader_name = config.get("LOADER", "EODFileLoader")
+
+    loader_module = importlib.import_module(f"loaders.{loader_name}")
+
+    return getattr(loader_module, loader_name)
 
 
 def cleanup(loader: AbstractLoader, futures: List[concurrent.futures.Future]):
@@ -253,10 +265,15 @@ def process(
         # Save the images if required
         if save_folder:
 
-            plotter = Plotter(None, loader, save_folder=save_folder)
+            plotter = Plotter(
+                patterns_to_output,
+                loader,
+                save_folder=save_folder,
+                config=config.get("CHART", {}),
+            )
 
-            for i in patterns_to_output:
-                future = executor.submit(plotter.save, i.copy())
+            for i in range(len(patterns_to_output)):
+                future = executor.submit(plotter.plot, i)
                 futures.append(future)
 
             logger.info("Saving images")
@@ -277,6 +294,7 @@ def process(
         {
             "timeframe": loader.tf,
             "end_date": args.date.isoformat() if args.date else None,
+            "config": str(CONFIG_PATH),
         }
     )
 
@@ -288,7 +306,7 @@ def process(
 # Differentiate between the main thread and child threads on Windows
 # see https://stackoverflow.com/a/57811249
 if __name__ == "__main__":
-    version = "3.2.4"
+    version = "4.0.0"
 
     futures: List[concurrent.futures.Future] = []
 
@@ -318,6 +336,9 @@ if __name__ == "__main__":
         "uptl",
         "dntl",
         "abcdu",
+        "abcdd",
+        "batu",
+        "batd",
     )
 
     # Parse CLI arguments
@@ -473,16 +494,17 @@ if __name__ == "__main__":
         """
         )
 
-    # Load data loader from config. Default loader is EODFileLoader
-    loader_name = config.get("LOADER", "EODFileLoader")
-
-    loader_module = importlib.import_module(f"loaders.{loader_name}")
-
     if args.plot:
         data = json.loads(args.plot.read_bytes())
 
         # Last item contains meta data about the timeframe used, end_date etc
         meta = data.pop()
+
+        config = json.loads(
+            Path(meta["config"]).expanduser().resolve().read_bytes()
+        )
+
+        loader_class = get_loader_class(config)
 
         end_date = None
 
@@ -490,7 +512,7 @@ if __name__ == "__main__":
             end_date = datetime.fromisoformat(meta["end_date"])
 
         try:
-            loader = getattr(loader_module, loader_name)(
+            loader = loader_class(
                 config,
                 meta["timeframe"],
                 end_date=end_date,
@@ -499,13 +521,15 @@ if __name__ == "__main__":
             logger.exception("", exc_info=e)
             exit()
 
-        plotter = Plotter(data, loader)
+        plotter = Plotter(data, loader, config=config.get("CHART", {}))
         plotter.plot(args.idx)
         cleanup(loader, futures)
         exit()
 
+    loader_class = get_loader_class(config)
+
     try:
-        loader = getattr(loader_module, loader_name)(
+        loader = loader_class(
             config,
             args.tf,
             end_date=args.date,
@@ -528,6 +552,9 @@ if __name__ == "__main__":
         "uptl": utils.find_uptrend_line,
         "dntl": utils.find_downtrend_line,
         "abcdu": utils.find_bullish_abcd,
+        "abcdd": utils.find_bearish_abcd,
+        "batu": utils.find_bullish_bat,
+        "batd": utils.find_bearish_bat,
     }
 
     if args.pattern:
@@ -598,7 +625,7 @@ if __name__ == "__main__":
         # Pop it out as we don't require it here
         patterns.pop()
 
-        plotter = Plotter(patterns, loader)
+        plotter = Plotter(patterns, loader, config=config.get("CHART", {}))
         plotter.plot()
 
     cleanup(loader, futures)

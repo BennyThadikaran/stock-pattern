@@ -1,9 +1,14 @@
+import functools
+import itertools
 import sys
 from pathlib import Path
-from typing import Literal, Optional
+from typing import Any, Dict, Literal, Optional
 
+import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
 import mplfinance as mpf
+import pandas as pd
 
 from loaders.AbstractLoader import AbstractLoader
 
@@ -19,102 +24,67 @@ class Plotter:
         loader: AbstractLoader,
         save_folder: Optional[Path] = None,
         mode: Literal["default", "expand"] = "default",
+        config: dict = {},
     ):
         self.save_folder = save_folder
         self.mode = mode
         self.loader = loader
         self.timeframe = loader.tf
+        self.config = config
 
-        self.plot_args = {
-            "type": "candle",
-            "style": "tradingview",
-            "scale_padding": {
-                "left": 0.05,
-                "right": 0.6,
-                "top": 0.35,
-                "bottom": 0.7,
-            },
-            "alines": {"linewidths": 0.8, "alpha": 0.7},
-        }
+        self.line_color = self.config.get("LINE_COLOR", "midnightblue")
+
+        self.plot_args: Dict[str, Any] = dict(
+            type=self.config.get("TYPE", "candle"),
+            style=self.config.get("STYLE", "tradingview"),
+            xrotation=0,
+            scale_padding=dict(left=0.05, right=0.6, top=0.35, bottom=0.5),
+            alines=dict(
+                linewidths=self.config.get("LINE_WIDTH", 0.8),
+                alpha=self.config.get("ALPHA", 0.7),
+            ),
+            returnfig=True,
+            figscale=1,
+        )
+
+        self.data = data
 
         if save_folder:
+            self.plot_args["figscale"] = 1.5
+
             # Save images with non interactive backend and
             # switch off interactive mode
-            self.data = None
-
             # Switch to a Non GUI backend to work with threads
             plt.switch_backend("AGG")
             plt.ioff()
         else:
             plt.ion()
             plt.switch_backend(self.default_backend)
-            self.data = list(data.values()) if isinstance(data, dict) else data
             self.len = len(data) - 1
-
-            self.plot_args.update(dict(figscale=1, returnfig=True))
 
             print("\nChart Controls\n\tq: quit\n\tn: Next\n\tp: Previous")
 
-    def save(self, dct):
-
-        assert isinstance(self.save_folder, Path)
-
-        sym = dct["sym"].upper()
-        pattern = dct["pattern"]
-        lines = dct["lines"]
-
-        df = self.loader.get(sym)
-
-        if df is None:
-            raise ValueError(f"Unable to load data for {sym}")
-
-        if pattern in ("Symmetric", "Ascending", "Descending"):
-            colors = "midnightblue"
-        else:
-            colors = ("green",) + ("midnightblue",) * (len(lines) - 1)
-
-        save_path = self.save_folder / f"{sym}_{pattern}_{self.timeframe}.png"
-
-        self.plot_args.update(
-            dict(
-                title=f"{sym} - {pattern} - {self.timeframe.capitalize()}",
-                figscale=1.2,
-                savefig=dict(
-                    fname=save_path,
-                    dpi=100,
-                ),
-            )
-        )
-
-        self.plot_args["scale_padding"]["right"] = 0.8
-
-        self.plot_args["alines"].update({"alines": lines, "colors": colors})
-
-        mpf.plot(df, **self.plot_args)
-
-    def plot(self, idx=None):
+    def plot(self, idx=None) -> None:
         if self.data is None:
             raise TypeError("Missing dict data")
 
         if idx:
             self.idx = idx
 
-        stmt = f"{self.idx} of {self.len}"
-        print(stmt, flush=True, end="\r" * len(stmt))
-
         dct = self.data[self.idx]
         sym = dct["sym"].upper()
         pattern = dct["pattern"]
-        lines = dct["lines"]
 
         df = self.loader.get(sym)
 
         if df is None:
             raise ValueError(f"Unable to load data for {sym}")
 
+        self.df = df
+
         if self.mode == "expand":
-            start = df.index.get_loc(dct["start"])
-            end = df.index.get_loc(dct["end"])
+            start = df.index.get_loc(dct["df_start"])
+            end = df.index.get_loc(dct["df_end"])
 
             if isinstance(start, slice):
                 start = start.start
@@ -130,23 +100,56 @@ class Plotter:
 
             df = df.iloc[start:end]
 
-        if pattern in ("Symmetric", "Ascending", "Descending"):
-            colors = "midnightblue"
-        else:
-            colors = ("green",) + ("midnightblue",) * (len(lines) - 1)
+        lines = self._build_lines(dct, pattern)
 
         self.plot_args["title"] = (
             f"{sym} - {pattern} - {self.timeframe.capitalize()}"
         )
 
-        self.plot_args["alines"].update({"alines": lines, "colors": colors})
+        self.plot_args["alines"].update(
+            dict(alines=lines, colors=(self.line_color,) * len(lines))
+        )
 
         self.fig, axs = mpf.plot(df, **self.plot_args)
 
         self.main_ax = axs[0]
 
+        self._annotate_fn = functools.partial(
+            axs[0].annotate,
+            textcoords="offset points",
+            horizontalalignment="center",
+            fontweight="bold",
+            color=self.config.get("LABEL_COLOR", "midnightblue"),
+        )
+
+        self._set_date_formatter(axs)
+
+        self._annotate_points(dct["points"], dct["end"])
+
+        if pattern not in (
+            "Symmetric",
+            "Ascending",
+            "Descending",
+            "DNTL",
+            "UPTL",
+        ):
+            self._annotate_extra_points(dct["extra_points"], dct["end"])
+
+        if self.save_folder:
+
+            return plt.savefig(
+                self.save_folder / f"{sym}_{pattern}_{self.timeframe}.png"
+            )
+
+        stmt = f"{self.idx} of {self.len}"
+
+        print(stmt, flush=True, end="\r" * len(stmt))
+
         axs[0].set_title(
-            stmt, loc="left", color="black", fontdict={"fontweight": "bold"}
+            stmt,
+            loc="left",
+            color=self.config.get("NAV_TITLE_COLOR", "black"),
+            fontdict={"fontweight": "bold"},
         )
 
         self.fig.canvas.mpl_connect("key_press_event", self._on_key_press)
@@ -213,6 +216,127 @@ class Plotter:
         return self.main_ax.set_title(
             string,
             loc="right",
-            color="crimson",
+            color=self.config.get("NAV_STATUS_COLOR", "crimson"),
             fontdict={"fontweight": "bold"},
         )
+
+    def _build_lines(self, dct: dict, pattern: str):
+        if pattern in ("Symmetric", "Ascending", "Descending", "DNTL", "UPTL"):
+            points = dct["extra_points"]
+
+            return tuple(line for line in itertools.batched(points.values(), 2))
+
+        points = dct["points"]
+        return tuple(line for line in itertools.pairwise(points.values()))
+
+    def format_coords(self, x, y):
+        s = " " * 5
+
+        if self.df is None:
+            return
+
+        if not x or round(x) >= len(self.df):
+            return ""
+
+        dt = self.df.index[round(x)]
+
+        dt_str = f"{dt:%d %b %Y}".upper()
+
+        open, high, low, close, vol = self.df.loc[
+            dt, ["Open", "High", "Low", "Close", "Volume"]
+        ]
+
+        _str = f"Price: {y:.2f} | {dt_str}{s}O: {open}{s}H: {high}{s}L: {low}{s}C: {close}{s}V: {vol:,.0f}"
+
+        return _str
+
+    def _get_tick_locs(self, tick_mdates, dtix: pd.DatetimeIndex):
+        """Return the tick locs to be passed to Locator instance."""
+
+        ticks = []
+
+        # Convert the matplotlib dates to python datetime and iterate
+        for dt in mdates.num2date(tick_mdates):
+            # remove the timezone info to match the DataFrame index
+            dt = dt.replace(tzinfo=dtix.tzinfo)
+
+            # Get the index position if available
+            # else get the next available index position
+            idx = (
+                dtix.get_loc(dt)
+                if dt in dtix
+                else dtix.searchsorted(dt, side="right")
+            )
+            # store the tick positions to be displayed on chart
+            ticks.append(idx)
+
+        return ticks
+
+    def _set_date_formatter(self, axs):
+        assert isinstance(self.df.index, pd.DatetimeIndex)
+
+        # Locator sets the major tick locations on xaxis
+        locator = mdates.AutoDateLocator(minticks=3, maxticks=7)
+
+        # Formatter set the tick labels for the xaxis
+        concise_formatter = mdates.ConciseDateFormatter(locator=locator)
+
+        # Extract the tick values from locator.
+        # These are matplotlib dates not python datetime
+        tick_mdates = locator.tick_values(self.df.index[0], self.df.index[-1])
+
+        # Extract the ticks labels from ConciseDateFormatter
+        labels = concise_formatter.format_ticks(tick_mdates)
+
+        ticks = self._get_tick_locs(tick_mdates, self.df.index)
+
+        # Initialise FixedFormatter and FixedLocator
+        # passing the tick labels and tick positions
+        fixed_formatter = ticker.FixedFormatter(labels)
+        fixed_locator = ticker.FixedLocator(ticks)
+
+        fixed_formatter.set_offset_string(concise_formatter.get_offset())
+
+        for ax in axs:
+            ax.xaxis.set_major_locator(fixed_locator)
+            ax.xaxis.set_major_formatter(fixed_formatter)
+            ax.format_coord = self.format_coords
+
+    def _annotate_extra_points(self, points, last):
+        hline_levels = []
+        colors = []
+        xmax = self.df.index.get_loc(last)
+        xmin = None
+
+        for label, point in points.items():
+            x, y = point
+
+            if not xmin:
+                xmin = self.df.index.get_loc(x)
+
+            hline_levels.append(y)
+
+            if label == "direction":
+                colors.append(self.config.get("BIAS_LINE_COLOR", "green"))
+                continue
+
+            colors.append(self.line_color)
+
+            self._annotate_fn(text=label, xy=(xmin, y), xytext=(10, -10))
+
+        self.main_ax.hlines(hline_levels, xmin, xmax, colors=colors)
+
+    def _annotate_points(self, points, last):
+        for label, point in points.items():
+            x, y = point
+
+            if x == last:
+                text_loc = (10, -10)
+            else:
+                text_loc = (0, 10 if y == self.df.at[x, "High"] else -10)
+
+            self._annotate_fn(
+                text=label,
+                xy=(self.df.index.get_loc(x), y),
+                xytext=text_loc,
+            )
