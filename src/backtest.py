@@ -191,6 +191,7 @@ def scan(
     if not df.index.is_monotonic_increasing:
         df = df.sort_index(ascending=True)
 
+    assert isinstance(df, pd.DataFrame)
     assert isinstance(df.index, pd.DatetimeIndex)
 
     end_pos = df.index.get_loc(df.index.asof(end_dt))
@@ -297,7 +298,7 @@ def main(
             results.extend(result)
 
     if len(results):
-        logger.warning(
+        logger.info(
             f"Got {len(results)} patterns for {args.pattern.upper()}.\nRun `py backtest.py --plot {out_file.name}` to view results."
         )
 
