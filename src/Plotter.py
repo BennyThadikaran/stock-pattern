@@ -258,7 +258,7 @@ class Plotter:
         # Convert the matplotlib dates to python datetime and iterate
         for dt in mdates.num2date(tick_mdates):
             # remove the timezone info to match the DataFrame index
-            dt = dt.replace(tzinfo=None)
+            dt = dt.replace(tzinfo=dtix.tzinfo)
 
             # Get the index position if available
             # else get the next available index position
