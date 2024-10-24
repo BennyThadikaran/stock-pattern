@@ -59,6 +59,15 @@ def get_user_input() -> str:
     return user_input
 
 
+def get_loader_class(config):
+    # Load data loader from config. Default loader is EODFileLoader
+    loader_name = config.get("LOADER", "EODFileLoader")
+
+    loader_module = importlib.import_module(f"loaders.{loader_name}")
+
+    return getattr(loader_module, loader_name)
+
+
 def cleanup(loader: AbstractLoader, futures: List[concurrent.futures.Future]):
     if futures:
         for future in futures:
@@ -285,6 +294,7 @@ def process(
         {
             "timeframe": loader.tf,
             "end_date": args.date.isoformat() if args.date else None,
+            "config": str(CONFIG_PATH),
         }
     )
 
@@ -484,16 +494,17 @@ if __name__ == "__main__":
         """
         )
 
-    # Load data loader from config. Default loader is EODFileLoader
-    loader_name = config.get("LOADER", "EODFileLoader")
-
-    loader_module = importlib.import_module(f"loaders.{loader_name}")
-
     if args.plot:
         data = json.loads(args.plot.read_bytes())
 
         # Last item contains meta data about the timeframe used, end_date etc
         meta = data.pop()
+
+        config = json.loads(
+            Path(meta["config"]).expanduser().resolve().read_bytes()
+        )
+
+        loader_class = get_loader_class(config)
 
         end_date = None
 
@@ -501,7 +512,7 @@ if __name__ == "__main__":
             end_date = datetime.fromisoformat(meta["end_date"])
 
         try:
-            loader = getattr(loader_module, loader_name)(
+            loader = loader_class(
                 config,
                 meta["timeframe"],
                 end_date=end_date,
@@ -515,8 +526,10 @@ if __name__ == "__main__":
         cleanup(loader, futures)
         exit()
 
+    loader_class = get_loader_class(config)
+
     try:
-        loader = getattr(loader_module, loader_name)(
+        loader = loader_class(
             config,
             args.tf,
             end_date=args.date,

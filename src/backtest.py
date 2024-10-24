@@ -146,6 +146,15 @@ def parse_cli_args():
     return args
 
 
+def get_loader_class(config):
+    # Load data loader from config. Default loader is EODFileLoader
+    loader_name = config.get("LOADER", "EODFileLoader")
+
+    loader_module = importlib.import_module(f"loaders.{loader_name}")
+
+    return getattr(loader_module, loader_name)
+
+
 def scan(
     loader: AbstractLoader,
     end_dt: Union[datetime, pd.Timestamp],
@@ -307,6 +316,7 @@ def main(
                 "timeframe": loader.tf,
                 "end_date": end_date.isoformat(),
                 "period": loader.period,
+                "config": str(config_file),
             }
         )
         out_file.write_text(json.dumps(results, indent=2))
@@ -353,15 +363,16 @@ if __name__ == "__main__":
 
     args = parse_cli_args()
 
-    # Import Loader module
-    loader_name = config.get("LOADER", "EODFileLoader")
-
-    loader_module = importlib.import_module(f"loaders.{loader_name}")
-
     if args.plot:
         meta = args.plot.pop()
 
-        loader = getattr(loader_module, loader_name)(
+        config = json.loads(
+            Path(meta["config"]).expanduser().resolve().read_bytes()
+        )
+
+        loader_class = get_loader_class(config)
+
+        loader = loader_class(
             config,
             meta["timeframe"],
             end_date=datetime.fromisoformat(meta["end_date"]),
@@ -371,6 +382,7 @@ if __name__ == "__main__":
         plotter = Plotter(
             args.plot, loader, mode="expand", config=config.get("CHART", {})
         )
+
         plotter.plot(args.idx)
         exit()
 
@@ -380,7 +392,9 @@ if __name__ == "__main__":
     look_ahead_period = 120
     look_back_period = 160
 
-    loader = getattr(loader_module, loader_name)(
+    loader_class = get_loader_class(config)
+
+    loader = loader_class(
         config,
         args.tf,
         end_date=args.date,
