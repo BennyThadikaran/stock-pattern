@@ -51,7 +51,9 @@ This program does not provide any buy or sell signals. It only detects the patte
 
 See [Quick usage summary](https://github.com/BennyThadikaran/stock-pattern/wiki/Quick-usage-summary)
 
-See [wiki Usage instructions](https://github.com/BennyThadikaran/stock-pattern/wiki/Usage)
+See [Usage instructions](https://github.com/BennyThadikaran/stock-pattern/wiki/Usage)
+
+See [Configuration](https://github.com/BennyThadikaran/stock-pattern/wiki/Writing-JSON-configuration-manually)
 
 For backtest.py usage, see [wiki backtest](https://github.com/BennyThadikaran/stock-pattern/wiki/backtest-usage)
 
