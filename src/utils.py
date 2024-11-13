@@ -1558,7 +1558,7 @@ def find_bullish_abcd(
         c_fib_inverse = 1 / c_nearest_fib
 
         bc_extension = c - ab_diff
-        bc_fib_extension = c - (ab_diff * c_fib_inverse)
+        bc_fib_extension = a - (ab_diff * c_fib_inverse)
 
         terminal_point = min(bc_extension, bc_fib_extension)
 
@@ -1674,7 +1674,7 @@ def find_bearish_abcd(
         c_fib_inverse = 1 / c_nearest_fib
 
         bc_extension = c + ab_diff
-        bc_fib_extension = c + (ab_diff * c_fib_inverse)
+        bc_fib_extension = a + (ab_diff * c_fib_inverse)
 
         terminal_point = max(bc_extension, bc_fib_extension)
 
