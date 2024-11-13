@@ -29,6 +29,7 @@ is_silent = None
 
 ascii_upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
+fib_ser = pd.Series((0.382, 0.5, 0.618, 0.707, 0.786, 0.886))
 
 def getY(slope, yintercept, x_value) -> float:
     """
@@ -1505,7 +1506,6 @@ def find_bullish_abcd(
     Bullish AB = CD harmonic pattern
     """
 
-    fib_ser = pd.Series((0.382, 0.5, 0.618, 0.707, 0.786, 0.886))
     pivot_len = pivots.shape[0]
 
     a_idx = pivots["P"].idxmax()
@@ -1558,7 +1558,7 @@ def find_bullish_abcd(
         c_fib_inverse = 1 / c_nearest_fib
 
         bc_extension = c - ab_diff
-        bc_fib_extension = c - (ab_diff * c_fib_inverse)
+        bc_fib_extension = a - (ab_diff * c_fib_inverse)
 
         terminal_point = min(bc_extension, bc_fib_extension)
 
@@ -1620,7 +1620,6 @@ def find_bearish_abcd(
     Bearish AB = CD harmonic pattern
     """
 
-    fib_ser = pd.Series((0.382, 0.5, 0.618, 0.707, 0.786, 0.886))
     pivot_len = pivots.shape[0]
 
     a_idx = pivots["P"].idxmin()
@@ -1674,7 +1673,7 @@ def find_bearish_abcd(
         c_fib_inverse = 1 / c_nearest_fib
 
         bc_extension = c + ab_diff
-        bc_fib_extension = c + (ab_diff * c_fib_inverse)
+        bc_fib_extension = a + (ab_diff * c_fib_inverse)
 
         terminal_point = max(bc_extension, bc_fib_extension)
 
@@ -1785,8 +1784,8 @@ def find_bullish_bat(
         ab_diff = a - b
         bc_diff = c - b
 
-        b_retrace = ab_diff / xa_diff
-        c_retrace = bc_diff / ab_diff
+        b_retrace = fib_ser.loc[(fib_ser - (ab_diff / xa_diff)).abs().idxmin()]
+        c_retrace = fib_ser.loc[(fib_ser - (bc_diff / ab_diff)).abs().idxmin()]
 
         if (
             b_retrace < 0.382
@@ -1904,8 +1903,8 @@ def find_bearish_bat(
         ab_diff = b - a
         bc_diff = b - c
 
-        b_retrace = ab_diff / xa_diff
-        c_retrace = bc_diff / ab_diff
+        b_retrace = fib_ser.loc[(fib_ser - (ab_diff / xa_diff)).abs().idxmin()]
+        c_retrace = fib_ser.loc[(fib_ser - (bc_diff / ab_diff)).abs().idxmin()]
 
         if (
             b_retrace < 0.382
