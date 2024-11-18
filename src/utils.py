@@ -1786,7 +1786,7 @@ def find_bullish_bat(
         bc_618_ext = c - bc_diff * 1.618
         lowest_close_after_b = df.loc[b_idx:, "Close"].min()
 
-        if d < b and lowest_close_after_b > x and d == lowest_close_after_b:
+        if d <= bc_618_ext and lowest_close_after_b > x and d == lowest_close_after_b:
 
             if (
                 x == df.at[x_idx, "High"]
@@ -1905,7 +1905,7 @@ def find_bearish_bat(
         bc_618_ext = c + bc_diff * 1.618
         highest_close_after_b = df.loc[b_idx:, "Close"].max()
 
-        if d > b and highest_close_after_b < x and d == highest_close_after_b:
+        if d >= bc_618_ext and highest_close_after_b < x and d == highest_close_after_b:
 
             if (
                 x == df.at[x_idx, "Low"]
