@@ -1574,14 +1574,6 @@ def find_bullish_abcd(
             and c == highest_high_after_c
         ):
 
-            # termination_zone = abs(bc_extension - bc_fib_extension) / max(
-            #     bc_extension, bc_fib_extension
-            # )
-            #
-            # if termination_zone > 0.1:
-            #     a, a_idx = c, c_idx
-            #     continue
-
             selected = dict(
                 start=a_idx,
                 end=d_idx,
@@ -1688,14 +1680,6 @@ def find_bearish_abcd(
             and d == highest_close_after_b
             and c == lowest_low_after_c
         ):
-
-            # termination_zone = abs(bc_extension - bc_fib_extension) / min(
-            #     bc_extension, bc_fib_extension
-            # )
-            #
-            # if termination_zone > 0.1:
-            #     a, a_idx = c, c_idx
-            #     continue
 
             selected = dict(
                 df_start=df.index[0],
