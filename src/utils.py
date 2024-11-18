@@ -1799,7 +1799,7 @@ def find_bullish_bat(
 
         xa_886_retrace = a - xa_diff * 0.886
 
-        bc_618_ext = a - ab_diff * 1.618
+        bc_618_ext = c - bc_diff * 1.618
         lowest_close_after_b = df.loc[b_idx:, "Close"].min()
 
         if d < b and lowest_close_after_b > x and d == lowest_close_after_b:
@@ -1829,7 +1829,7 @@ def find_bullish_bat(
                 extra_points={
                     "direction": (c_idx, c),
                     "0.886XA": (b_idx, xa_886_retrace),
-                    "1.618AB=CD": (b_idx, bc_618_ext),
+                    "1.618BC": (b_idx, bc_618_ext),
                 },
             )
 
@@ -1918,7 +1918,7 @@ def find_bearish_bat(
 
         xa_886_retrace = a + xa_diff * 0.886
 
-        bc_618_ext = a + ab_diff * 1.618
+        bc_618_ext = c + bc_diff * 1.618
         highest_close_after_b = df.loc[b_idx:, "Close"].max()
 
         if d > b and highest_close_after_b < x and d == highest_close_after_b:
@@ -1948,7 +1948,7 @@ def find_bearish_bat(
                 extra_points={
                     "direction": (c_idx, c),
                     "0.886XA": (b_idx, xa_886_retrace),
-                    "AB=CD": (b_idx, bc_618_ext),
+                    "1.618BC": (b_idx, bc_618_ext),
                 },
             )
 
