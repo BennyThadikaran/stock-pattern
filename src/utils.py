@@ -1557,10 +1557,10 @@ def find_bullish_abcd(
 
         c_fib_inverse = 1 / c_nearest_fib
 
-        bc_extension = c - ab_diff
-        bc_fib_extension = a - (ab_diff * c_fib_inverse)
+        ab_cd_ext = c - ab_diff
+        bc_ext = c - bc_diff * c_fib_inverse
 
-        terminal_point = min(bc_extension, bc_fib_extension)
+        terminal_point = min(ab_cd_ext, bc_ext)
 
         validation_threshold = terminal_point * 0.985
         lowest_close_after_b = df.loc[b_idx:, "Close"].min()
@@ -1593,8 +1593,8 @@ def find_bullish_abcd(
                 },
                 extra_points={
                     "direction": (c_idx, c),
-                    f"{c_fib_inverse:.3f}BC": (b_idx, bc_fib_extension),
-                    "AB=CD": (b_idx, bc_extension),
+                    f"{c_fib_inverse:.3f}BC": (b_idx, bc_ext),
+                    "AB=CD": (b_idx, ab_cd_ext),
                 },
             )
 
@@ -1672,10 +1672,10 @@ def find_bearish_abcd(
 
         c_fib_inverse = 1 / c_nearest_fib
 
-        bc_extension = c + ab_diff
-        bc_fib_extension = a + (ab_diff * c_fib_inverse)
+        ab_cd_ext = c + ab_diff
+        bc_ext= c + bc_diff * c_fib_inverse
 
-        terminal_point = max(bc_extension, bc_fib_extension)
+        terminal_point = max(ab_cd_ext, bc_ext)
 
         validation_threshold = terminal_point * 1.015
         highest_close_after_b = df.loc[b_idx:, "Close"].max()
@@ -1710,8 +1710,8 @@ def find_bearish_abcd(
                 },
                 extra_points={
                     "direction": (c_idx, c),
-                    f"{c_fib_inverse:.3f}BC": (b_idx, bc_fib_extension),
-                    "AB=CD": (b_idx, bc_extension),
+                    f"{c_fib_inverse:.3f}BC": (b_idx, bc_ext),
+                    "AB=CD": (b_idx, ab_cd_ext),
                 },
             )
 
