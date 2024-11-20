@@ -1575,6 +1575,8 @@ def find_bullish_abcd(
         ):
 
             selected = dict(
+                df_start=df.index[0],
+                df_end=df.index[-1],
                 start=a_idx,
                 end=d_idx,
                 points={
@@ -1597,8 +1599,6 @@ def find_bullish_abcd(
             dict(
                 sym=sym,
                 pattern="BULL AB=CD",
-                df_start=df.index[0],
-                df_end=df.index[-1],
             )
         )
 
