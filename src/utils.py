@@ -1717,7 +1717,7 @@ def find_bearish_abcd(
         selected.update(
             dict(
                 sym=sym,
-                pattern="BULL AB=CD",
+                pattern="BEAR AB=CD",
             )
         )
 
