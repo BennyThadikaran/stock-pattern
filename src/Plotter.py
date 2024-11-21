@@ -73,7 +73,11 @@ class Plotter:
 
         dct = self.data[self.idx]
         sym = dct["sym"].upper()
-        pattern = dct["pattern"]
+
+        if "alt_name" in dct:
+            pattern = dct["alt_name"]
+        else:
+            pattern = dct["pattern"]
 
         df = self.loader.get(sym)
 

@@ -931,7 +931,8 @@ def find_triangles(
 
             return dict(
                 sym=sym,
-                pattern=triangle,
+                pattern="TRNG",
+                alt_name=triangle,
                 start=a_idx,
                 end=f_idx,
                 df_start=df.index[0],
@@ -1605,7 +1606,8 @@ def find_bullish_abcd(
         selected.update(
             dict(
                 sym=sym,
-                pattern="BULL AB=CD",
+                pattern="ABCDU",
+                alt_name="BULL AB=CD",
             )
         )
 
@@ -1718,7 +1720,8 @@ def find_bearish_abcd(
         selected.update(
             dict(
                 sym=sym,
-                pattern="BEAR AB=CD",
+                pattern="ABCDD",
+                alt_name="BEAR AB=CD",
             )
         )
 
@@ -1732,6 +1735,7 @@ def find_bullish_bat(
     Bullish Bat harmonic pattern
     """
     is_perfect_bat = is_alternate_bat = False
+    alt_name = "Bull BAT"
     pivot_len = pivots.shape[0]
 
     x_idx = pivots["P"].idxmin()
@@ -1861,6 +1865,8 @@ def find_bullish_bat(
 
             if is_perfect_bat:
                 # Perfect BAT pattern
+                alt_name = "Bull Perfect BAT"
+
                 selected["extra_points"].update(
                     {
                         "1.27AB=CD": (b_idx, ab_27_ext),
@@ -1869,6 +1875,8 @@ def find_bullish_bat(
                 )
             elif is_alternate_bat:
                 # Alternate BAT pattern
+                alt_name = "BULL Alternate BAT"
+
                 selected["extra_points"].update(
                     {
                         "2BC": (b_idx, bc_2_ext),
@@ -1892,6 +1900,7 @@ def find_bullish_bat(
             dict(
                 sym=sym,
                 pattern="BATU",
+                alt_name=alt_name
             )
         )
 
@@ -1905,6 +1914,7 @@ def find_bearish_bat(
     Bearish Bat harmonic pattern
     """
     is_perfect_bat = is_alternate_bat = False
+    alt_name = "Bear BAT"
     pivot_len = pivots.shape[0]
 
     x_idx = pivots["P"].idxmax()
@@ -2024,6 +2034,8 @@ def find_bearish_bat(
 
             if is_perfect_bat:
                 # Perfect BAT pattern
+                alt_name = "Bear Perfect BAT"
+
                 selected["extra_points"].update(
                     {
                         "1.27AB=CD": (b_idx, ab_27_ext),
@@ -2032,6 +2044,8 @@ def find_bearish_bat(
                 )
             elif is_alternate_bat:
                 # Alternate BAT pattern
+                alt_name = "Bear Alternate BAT"
+
                 selected["extra_points"].update(
                     {
                         "2BC": (b_idx, bc_2_ext),
@@ -2056,6 +2070,7 @@ def find_bearish_bat(
             dict(
                 sym=sym,
                 pattern="BATD",
+                alt_name=alt_name
             )
         )
 
