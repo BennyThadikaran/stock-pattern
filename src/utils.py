@@ -1813,15 +1813,12 @@ def find_bullish_bat(
         is_perfect_bat = b_retrace == 0.5 and (
             c_retrace == 0.5 or c_retrace == 0.618
         )
+
         is_alternate_bat = b_retrace == 0.382
 
         xa_886_retrace = a - xa_diff * 0.886
-
-        bc_618_ext = c - bc_diff * 1.618
         bc_2_ext = c - bc_diff * 2
         xa_13_ext = c - xa_diff * 1.13
-        ab_27_ext = c - ab_diff * 1.27
-        ab_618_ext = c - ab_diff * 1.618
 
         lowest_close_after_b = df.loc[b_idx:, "Close"].min()
 
@@ -1869,7 +1866,7 @@ def find_bullish_bat(
 
                 selected["extra_points"].update(
                     {
-                        "1.27AB=CD": (b_idx, ab_27_ext),
+                        "1.27AB=CD": (b_idx, c - ab_diff * 1.27),
                         "2BC": (b_idx, bc_2_ext),
                     }
                 )
@@ -1898,7 +1895,7 @@ def find_bullish_bat(
                 selected["extra_points"].update(
                     {
                         "0.886XA": (b_idx, xa_886_retrace),
-                        "1.618BC": (b_idx, bc_618_ext),
+                        "1.618BC": (b_idx, c - bc_diff * 1.618),
                     }
                 )
 
@@ -1906,13 +1903,7 @@ def find_bullish_bat(
         x = pivots.loc[x_idx, "P"]
 
     if selected:
-        selected.update(
-            dict(
-                sym=sym,
-                pattern="BATU",
-                alt_name=alt_name
-            )
-        )
+        selected.update(dict(sym=sym, pattern="BATU", alt_name=alt_name))
 
     return selected
 
@@ -2005,12 +1996,8 @@ def find_bearish_bat(
         is_alternate_bat = b_retrace == 0.382
 
         xa_886_retrace = a + xa_diff * 0.886
-
-        bc_618_ext = c + bc_diff * 1.618
         bc_2_ext = c + bc_diff * 2
         xa_13_ext = c + xa_diff * 1.13
-        ab_27_ext = c + ab_diff * 1.27
-        ab_618_ext = c + ab_diff * 1.618
 
         highest_close_after_b = df.loc[b_idx:, "Close"].max()
 
@@ -2048,7 +2035,7 @@ def find_bearish_bat(
 
                 selected["extra_points"].update(
                     {
-                        "1.27AB=CD": (b_idx, ab_27_ext),
+                        "1.27AB=CD": (b_idx, c + ab_diff * 1.27),
                         "2BC": (b_idx, bc_2_ext),
                     }
                 )
@@ -2079,7 +2066,7 @@ def find_bearish_bat(
                 selected["extra_points"].update(
                     {
                         "0.886XA": (b_idx, xa_886_retrace),
-                        "1.618BC": (b_idx, bc_618_ext),
+                        "1.618BC": (b_idx, c + bc_diff * 1.618),
                     }
                 )
 
@@ -2087,12 +2074,6 @@ def find_bearish_bat(
         x = pivots.loc[x_idx, "P"]
 
     if selected:
-        selected.update(
-            dict(
-                sym=sym,
-                pattern="BATD",
-                alt_name=alt_name
-            )
-        )
+        selected.update(dict(sym=sym, pattern="BATD", alt_name=alt_name))
 
     return selected
