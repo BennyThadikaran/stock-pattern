@@ -1851,16 +1851,6 @@ def find_bullish_bat(
             )
         ):
 
-            if (
-                x == df.at[x_idx, "High"]
-                or a == df.at[a_idx, "Low"]
-                or b == df.at[b_idx, "High"]
-                or c == df.at[c_idx, "Low"]
-            ):
-                x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmin()
-                x = pivots.loc[x_idx, "P"]
-                continue
-
             selected = dict(
                 df_start=df.index[0],
                 df_end=df.index[-1],
