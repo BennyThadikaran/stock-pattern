@@ -31,6 +31,7 @@ ascii_upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 fib_ser = pd.Series((0.382, 0.5, 0.618, 0.707, 0.786, 0.886))
 
+
 def getY(slope, yintercept, x_value) -> float:
     """
     Returns the value of the Y-axis (Price) at the given X-axis value
@@ -1730,6 +1731,7 @@ def find_bullish_bat(
     """
     Bullish Bat harmonic pattern
     """
+    is_perfect_bat = is_alternate_bat = False
     pivot_len = pivots.shape[0]
 
     x_idx = pivots["P"].idxmin()
@@ -1780,6 +1782,17 @@ def find_bullish_bat(
         ab_diff = a - b
         bc_diff = c - b
 
+        if (
+            x == df.at[x_idx, "High"]
+            or a == df.at[a_idx, "Low"]
+            or b == df.at[b_idx, "High"]
+            or c == df.at[c_idx, "Low"]
+        ):
+            # Check that the pattern is well formed
+            x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmin()
+            x = pivots.loc[x_idx, "P"]
+            continue
+
         b_retrace = fib_ser.loc[(fib_ser - (ab_diff / xa_diff)).abs().idxmin()]
         c_retrace = fib_ser.loc[(fib_ser - (bc_diff / ab_diff)).abs().idxmin()]
 
@@ -1793,12 +1806,31 @@ def find_bullish_bat(
             x = pivots.loc[x_idx, "P"]
             continue
 
+        is_perfect_bat = b_retrace == 0.5 and (
+            c_retrace == 0.5 or c_retrace == 0.618
+        )
+        is_alternate_bat = b_retrace == 0.382
+
         xa_886_retrace = a - xa_diff * 0.886
 
         bc_618_ext = c - bc_diff * 1.618
+        bc_2_ext = c - bc_diff * 2
+        xa_13_ext = c - xa_diff * 1.13
+        ab_27_ext = c - ab_diff * 1.27
+        ab_618_ext = c - ab_diff * 1.618
+
         lowest_close_after_b = df.loc[b_idx:, "Close"].min()
 
-        if d <= bc_618_ext and lowest_close_after_b > x and d == lowest_close_after_b:
+        if (
+            d <= xa_886_retrace
+            and d == lowest_close_after_b
+            and (
+                is_alternate_bat
+                and lowest_close_after_b > xa_13_ext * 0.985
+                or not is_alternate_bat
+                and lowest_close_after_b > x
+            )
+        ):
 
             if (
                 x == df.at[x_idx, "High"]
@@ -1824,10 +1856,33 @@ def find_bullish_bat(
                 },
                 extra_points={
                     "direction": (c_idx, c),
-                    "0.886XA": (b_idx, xa_886_retrace),
-                    "1.618BC": (b_idx, bc_618_ext),
                 },
             )
+
+            if is_perfect_bat:
+                # Perfect BAT pattern
+                selected["extra_points"].update(
+                    {
+                        "1.27AB=CD": (b_idx, ab_27_ext),
+                        "2BC": (b_idx, bc_2_ext),
+                    }
+                )
+            elif is_alternate_bat:
+                # Alternate BAT pattern
+                selected["extra_points"].update(
+                    {
+                        "2BC": (b_idx, bc_2_ext),
+                        "1.618AB=CD": (b_idx, ab_618_ext),
+                        "1.13XA": (b_idx, xa_13_ext),
+                    }
+                )
+            else:
+                selected["extra_points"].update(
+                    {
+                        "0.886XA": (b_idx, xa_886_retrace),
+                        "1.618BC": (b_idx, bc_618_ext),
+                    }
+                )
 
         x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmin()
         x = pivots.loc[x_idx, "P"]
@@ -1849,6 +1904,7 @@ def find_bearish_bat(
     """
     Bearish Bat harmonic pattern
     """
+    is_perfect_bat = is_alternate_bat = False
     pivot_len = pivots.shape[0]
 
     x_idx = pivots["P"].idxmax()
@@ -1899,6 +1955,17 @@ def find_bearish_bat(
         ab_diff = b - a
         bc_diff = b - c
 
+        if (
+            x == df.at[x_idx, "Low"]
+            or a == df.at[a_idx, "High"]
+            or b == df.at[b_idx, "Low"]
+            or c == df.at[c_idx, "High"]
+        ):
+            # Check that the pattern is well formed
+            x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmax()
+            x = pivots.loc[x_idx, "P"]
+            continue
+
         b_retrace = fib_ser.loc[(fib_ser - (ab_diff / xa_diff)).abs().idxmin()]
         c_retrace = fib_ser.loc[(fib_ser - (bc_diff / ab_diff)).abs().idxmin()]
 
@@ -1912,22 +1979,31 @@ def find_bearish_bat(
             x = pivots.loc[x_idx, "P"]
             continue
 
+        is_perfect_bat = b_retrace == 0.5 and (
+            c_retrace == 0.5 or c_retrace == 0.618
+        )
+        is_alternate_bat = b_retrace == 0.382
+
         xa_886_retrace = a + xa_diff * 0.886
 
         bc_618_ext = c + bc_diff * 1.618
+        bc_2_ext = c + bc_diff * 2
+        xa_13_ext = c + xa_diff * 1.13
+        ab_27_ext = c + ab_diff * 1.27
+        ab_618_ext = c + ab_diff * 1.618
+
         highest_close_after_b = df.loc[b_idx:, "Close"].max()
 
-        if d >= bc_618_ext and highest_close_after_b < x and d == highest_close_after_b:
-
-            if (
-                x == df.at[x_idx, "Low"]
-                or a == df.at[a_idx, "High"]
-                or b == df.at[b_idx, "Low"]
-                or c == df.at[c_idx, "High"]
-            ):
-                x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmax()
-                x = pivots.loc[x_idx, "P"]
-                continue
+        if (
+            d >= xa_886_retrace
+            and d == highest_close_after_b
+            and (
+                is_alternate_bat
+                and highest_close_after_b < xa_13_ext * 1.15
+                or not is_alternate_bat
+                and highest_close_after_b < x
+            )
+        ):
 
             selected = dict(
                 df_start=df.index[0],
@@ -1943,10 +2019,34 @@ def find_bearish_bat(
                 },
                 extra_points={
                     "direction": (c_idx, c),
-                    "0.886XA": (b_idx, xa_886_retrace),
-                    "1.618BC": (b_idx, bc_618_ext),
                 },
             )
+
+            if is_perfect_bat:
+                # Perfect BAT pattern
+                selected["extra_points"].update(
+                    {
+                        "1.27AB=CD": (b_idx, ab_27_ext),
+                        "2BC": (b_idx, bc_2_ext),
+                    }
+                )
+            elif is_alternate_bat:
+                # Alternate BAT pattern
+                selected["extra_points"].update(
+                    {
+                        "2BC": (b_idx, bc_2_ext),
+                        "1.618AB=CD": (b_idx, ab_618_ext),
+                        "1.13XA": (b_idx, xa_13_ext),
+                    }
+                )
+            else:
+                # Normal BAT pattern
+                selected["extra_points"].update(
+                    {
+                        "0.886XA": (b_idx, xa_886_retrace),
+                        "1.618BC": (b_idx, bc_618_ext),
+                    }
+                )
 
         x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmax()
         x = pivots.loc[x_idx, "P"]
