@@ -1877,10 +1877,20 @@ def find_bullish_bat(
                 # Alternate BAT pattern
                 alt_name = "BULL Alternate BAT"
 
+                values_dct = {
+                    "2BC": bc_2_ext,
+                    "2.618BC": c - bc_diff * 2.618,
+                    "3BC": c - bc_diff * 3,
+                    "3.618BC": c - bc_diff * 3.618,
+                    "1.618AB=CD": c - ab_diff * 1.618,
+                }
+
+                closest_var = min(
+                    values_dct, key=lambda k: abs(values_dct[k] - xa_13_ext)
+                )
                 selected["extra_points"].update(
                     {
-                        "2BC": (b_idx, bc_2_ext),
-                        "1.618AB=CD": (b_idx, ab_618_ext),
+                        closest_var: (b_idx, values_dct[closest_var]),
                         "1.13XA": (b_idx, xa_13_ext),
                     }
                 )
@@ -2046,10 +2056,21 @@ def find_bearish_bat(
                 # Alternate BAT pattern
                 alt_name = "Bear Alternate BAT"
 
+                values_dct = {
+                    "2BC": bc_2_ext,
+                    "2.618BC": c + bc_diff * 2.618,
+                    "3BC": c + bc_diff * 3,
+                    "3.618BC": c + bc_diff * 3.618,
+                    "1.618AB=CD": c + ab_diff * 1.618,
+                }
+
+                closest_var = min(
+                    values_dct, key=lambda k: abs(values_dct[k] - xa_13_ext)
+                )
+
                 selected["extra_points"].update(
                     {
-                        "2BC": (b_idx, bc_2_ext),
-                        "1.618AB=CD": (b_idx, ab_618_ext),
+                        closest_var: (b_idx, values_dct[closest_var]),
                         "1.13XA": (b_idx, xa_13_ext),
                     }
                 )
