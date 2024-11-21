@@ -1550,6 +1550,15 @@ def find_bullish_abcd(
         ab_diff = a - b
         c_retrace = bc_diff / ab_diff
 
+        if (
+            a == df.at[a_idx, "Low"]
+            or b == df.at[b_idx, "High"]
+            or c == df.at[c_idx, "Low"]
+        ):
+            # Check that the pattern is well formed
+            a, a_idx = c, c_idx
+            continue
+
         # Get the FIB ratio nearest to point C
         c_nearest_fib = fib_ser.loc[(fib_ser - c_retrace).abs().idxmin()]
 
@@ -1663,6 +1672,15 @@ def find_bearish_abcd(
         bc_diff = b - c
         ab_diff = b - a
         c_retrace = bc_diff / ab_diff
+
+        if (
+            a == df.at[a_idx, "High"]
+            or b == df.at[b_idx, "Low"]
+            or c == df.at[c_idx, "High"]
+        ):
+            # Check that the pattern is well formed
+            a, a_idx = c, c_idx
+            continue
 
         # Get the FIB ratio nearest to point C
         c_nearest_fib = fib_ser.loc[(fib_ser - c_retrace).abs().idxmin()]
