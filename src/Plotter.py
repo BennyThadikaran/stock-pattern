@@ -315,18 +315,24 @@ class Plotter:
         for label, point in points.items():
             x, y = point
 
-            if not xmin:
-                xmin = self.df.index.get_loc(x)
-
-            hline_levels.append(y)
-
             if label == "direction":
-                colors.append(self.config.get("BIAS_LINE_COLOR", "green"))
-                continue
+                self.main_ax.hlines(
+                    y,
+                    self.df.index.get_loc(x),
+                    xmax,
+                    colors=self.config.get("BIAS_LINE_COLOR", "green"),
+                )
+            else:
+                if not xmin:
+                    xmin = self.df.index.get_loc(x)
 
-            colors.append(self.line_color)
+                hline_levels.append(y)
 
-            self._annotate_fn(text=label, xy=(xmin, y), xytext=(10, -10))
+                colors.append(self.line_color)
+
+                self._annotate_fn(
+                    text=f"{label} - {y:.2f}", xy=(xmin, y), xytext=(10, -10)
+                )
 
         self.main_ax.hlines(hline_levels, xmin, xmax, colors=colors)
 
