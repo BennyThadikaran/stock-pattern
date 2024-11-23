@@ -1743,7 +1743,7 @@ def find_bearish_abcd(
             terminal_point = max(ab_cd_ext, bc_ext)
 
         closes_above_terminal_point = (
-            df.loc[c_idx:, "Close"] < terminal_point
+            df.loc[c_idx:, "Close"] > terminal_point
         ).sum()
 
         if (
