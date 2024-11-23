@@ -1548,7 +1548,6 @@ def find_bullish_abcd(
 
         bc_diff = c - b
         ab_diff = a - b
-        c_retrace = bc_diff / ab_diff
 
         if (
             a == df.at[a_idx, "Low"]
@@ -1560,13 +1559,14 @@ def find_bullish_abcd(
             continue
 
         # Get the FIB ratio nearest to point C
-        c_nearest_fib = fib_ser.loc[(fib_ser - c_retrace).abs().idxmin()]
+        c_retrace = fib_ser.loc[(fib_ser - (bc_diff / ab_diff)).abs().idxmin()]
+
 
         if c_retrace < 0.382 or c_retrace > 0.886:
             a, a_idx = c, c_idx
             continue
 
-        c_fib_inverse = 1 / c_nearest_fib
+        c_fib_inverse = 1 / c_retrace
 
         ab_cd_ext = c - ab_diff
         bc_ext = c - bc_diff * c_fib_inverse
@@ -1671,7 +1671,6 @@ def find_bearish_abcd(
 
         bc_diff = b - c
         ab_diff = b - a
-        c_retrace = bc_diff / ab_diff
 
         if (
             a == df.at[a_idx, "High"]
@@ -1683,13 +1682,13 @@ def find_bearish_abcd(
             continue
 
         # Get the FIB ratio nearest to point C
-        c_nearest_fib = fib_ser.loc[(fib_ser - c_retrace).abs().idxmin()]
+        c_retrace = fib_ser.loc[(fib_ser - (bc_diff / ab_diff)).abs().idxmin()]
 
         if c_retrace < 0.382 or c_retrace > 0.886:
             a, a_idx = c, c_idx
             continue
 
-        c_fib_inverse = 1 / c_nearest_fib
+        c_fib_inverse = 1 / c_retrace
 
         ab_cd_ext = c + ab_diff
         bc_ext = c + bc_diff * c_fib_inverse
