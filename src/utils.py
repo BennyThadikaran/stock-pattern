@@ -1900,19 +1900,42 @@ def find_bullish_bat(
 
         xa_886_retrace = a - xa_diff * 0.886
         bc_2_ext = c - bc_diff * 2
+        bc_618_ext = c - bc_diff * 1.618
         xa_13_ext = c - xa_diff * 1.13
 
+        ab_27_ext = c - ab_diff * 1.27
+
         lowest_close_after_b = df.loc[b_idx:, "Close"].min()
+        highest_high_after_c = df.loc[c_idx:, "High"].max()
+
+        if is_perfect_bat:
+            terminal_point = min(ab_27_ext, bc_2_ext)
+        elif is_alternate_bat:
+            values_dct = {
+                "2BC": bc_2_ext,
+                "2.618BC": c - bc_diff * 2.618,
+                "3BC": c - bc_diff * 3,
+                "3.618BC": c - bc_diff * 3.618,
+                "1.618AB=CD": c - ab_diff * 1.618,
+            }
+
+            closest_var = min(
+                values_dct, key=lambda k: abs(values_dct[k] - xa_13_ext)
+            )
+
+            terminal_point = min(xa_13_ext, values_dct[closest_var])
+        else:
+            terminal_point = min(xa_886_retrace, bc_618_ext)
+
+        closes_below_terminal_point = (
+            df.loc[c_idx:, "Close"] < terminal_point
+        ).sum()
 
         if (
-            d <= xa_886_retrace
+            d <= terminal_point
+            and closes_below_terminal_point < 7
             and d == lowest_close_after_b
-            and (
-                is_alternate_bat
-                and lowest_close_after_b > xa_13_ext * 0.985
-                or not is_alternate_bat
-                and lowest_close_after_b > x
-            )
+            and c == highest_high_after_c
         ):
 
             selected = dict(
@@ -1938,7 +1961,7 @@ def find_bullish_bat(
 
                 selected["extra_points"].update(
                     {
-                        "1.27AB=CD": (b_idx, c - ab_diff * 1.27),
+                        "1.27AB=CD": (b_idx, ab_27_ext),
                         "2BC": (b_idx, bc_2_ext),
                     }
                 )
@@ -1946,17 +1969,6 @@ def find_bullish_bat(
                 # Alternate BAT pattern
                 alt_name = "BULL Alternate BAT"
 
-                values_dct = {
-                    "2BC": bc_2_ext,
-                    "2.618BC": c - bc_diff * 2.618,
-                    "3BC": c - bc_diff * 3,
-                    "3.618BC": c - bc_diff * 3.618,
-                    "1.618AB=CD": c - ab_diff * 1.618,
-                }
-
-                closest_var = min(
-                    values_dct, key=lambda k: abs(values_dct[k] - xa_13_ext)
-                )
                 selected["extra_points"].update(
                     {
                         closest_var: (b_idx, values_dct[closest_var]),
@@ -1967,7 +1979,7 @@ def find_bullish_bat(
                 selected["extra_points"].update(
                     {
                         "0.886XA": (b_idx, xa_886_retrace),
-                        "1.618BC": (b_idx, c - bc_diff * 1.618),
+                        "1.618BC": (b_idx, bc_618_ext),
                     }
                 )
 
@@ -2065,23 +2077,48 @@ def find_bearish_bat(
         is_perfect_bat = b_retrace == 0.5 and (
             c_retrace == 0.5 or c_retrace == 0.618
         )
+
         is_alternate_bat = b_retrace == 0.382
 
         xa_886_retrace = a + xa_diff * 0.886
-        bc_2_ext = c + bc_diff * 2
         xa_13_ext = c + xa_diff * 1.13
 
+        bc_2_ext = c + bc_diff * 2
+        bc_618_ext = c + bc_diff * 1.618
+
+        ab_27_ext = c + ab_diff * 1.27
+
         highest_close_after_b = df.loc[b_idx:, "Close"].max()
+        lowest_low_after_c = df.loc[c_idx:, "Low"].min()
+        
+        if is_perfect_bat:
+            terminal_point = max(ab_27_ext, bc_2_ext)
+        elif is_alternate_bat:
+            values_dct = {
+                "2BC": bc_2_ext,
+                "2.618BC": c + bc_diff * 2.618,
+                "3BC": c + bc_diff * 3,
+                "3.618BC": c + bc_diff * 3.618,
+                "1.618AB=CD": c + ab_diff * 1.618,
+            }
+
+            closest_var = min(
+                values_dct, key=lambda k: abs(values_dct[k] - xa_13_ext)
+            )
+
+            terminal_point = max(xa_13_ext, values_dct[closest_var])
+        else:
+            terminal_point = max(xa_886_retrace, bc_618_ext)
+
+        closes_above_terminal_point = (
+            df.loc[c_idx:, "Close"] > terminal_point
+        ).sum()
 
         if (
-            d >= xa_886_retrace
+            d >= terminal_point 
+            and closes_above_terminal_point < 7
             and d == highest_close_after_b
-            and (
-                is_alternate_bat
-                and highest_close_after_b < xa_13_ext * 1.15
-                or not is_alternate_bat
-                and highest_close_after_b < x
-            )
+            and c == lowest_low_after_c
         ):
 
             selected = dict(
@@ -2107,25 +2144,13 @@ def find_bearish_bat(
 
                 selected["extra_points"].update(
                     {
-                        "1.27AB=CD": (b_idx, c + ab_diff * 1.27),
+                        "1.27AB=CD": (b_idx, ab_27_ext),
                         "2BC": (b_idx, bc_2_ext),
                     }
                 )
             elif is_alternate_bat:
                 # Alternate BAT pattern
                 alt_name = "Bear Alternate BAT"
-
-                values_dct = {
-                    "2BC": bc_2_ext,
-                    "2.618BC": c + bc_diff * 2.618,
-                    "3BC": c + bc_diff * 3,
-                    "3.618BC": c + bc_diff * 3.618,
-                    "1.618AB=CD": c + ab_diff * 1.618,
-                }
-
-                closest_var = min(
-                    values_dct, key=lambda k: abs(values_dct[k] - xa_13_ext)
-                )
 
                 selected["extra_points"].update(
                     {
@@ -2138,7 +2163,7 @@ def find_bearish_bat(
                 selected["extra_points"].update(
                     {
                         "0.886XA": (b_idx, xa_886_retrace),
-                        "1.618BC": (b_idx, c + bc_diff * 1.618),
+                        "1.618BC": (b_idx, bc_618_ext),
                     }
                 )
 
