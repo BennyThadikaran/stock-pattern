@@ -1508,6 +1508,7 @@ def find_bullish_abcd(
     Bullish AB = CD harmonic pattern
     """
 
+    alt_name = ""
     pivot_len = pivots.shape[0]
 
     a_idx = pivots["P"].idxmax()
@@ -1561,7 +1562,6 @@ def find_bullish_abcd(
         # Get the FIB ratio nearest to point C
         c_retrace = fib_ser.loc[(fib_ser - (bc_diff / ab_diff)).abs().idxmin()]
 
-
         if c_retrace < 0.382 or c_retrace > 0.886:
             a, a_idx = c, c_idx
             continue
@@ -1570,23 +1570,33 @@ def find_bullish_abcd(
 
         ab_cd_ext = c - ab_diff
         bc_ext = c - bc_diff * c_fib_inverse
+        bc_618_ext = c - bc_diff * 1.618
         ab_27_ext = c - ab_diff * 1.27
         ab_618_ext = c - ab_diff * 1.618
 
-        terminal_point = min(ab_27_ext, ab_618_ext)
-
-        validation_threshold = terminal_point * 0.985
         lowest_close_after_b = df.loc[b_idx:, "Close"].min()
         highest_high_after_c = df.loc[c_idx:, "High"].max()
 
-        # Add a 1.5 % (98.5 %) threshold below the terminal_point
+        is_perfect = c_retrace == 0.618 and ab_cd_ext <= bc_618_ext
+        is_alternate = lowest_close_after_b < max(ab_27_ext, ab_618_ext)
+
+        if is_perfect:
+            terminal_point = ab_cd_ext
+        elif is_alternate:
+            terminal_point = min(ab_27_ext, ab_618_ext)
+        else:
+            terminal_point = min(ab_cd_ext, bc_ext)
+
+        closes_below_terminal_point = (
+            df.loc[c_idx:, "Close"] < terminal_point
+        ).sum()
+
         if (
-            d < b
-            and lowest_close_after_b > validation_threshold
+            d <= terminal_point
+            and closes_below_terminal_point < 7
             and d == lowest_close_after_b
             and c == highest_high_after_c
         ):
-
             selected = dict(
                 df_start=df.index[0],
                 df_end=df.index[-1],
@@ -1600,14 +1610,36 @@ def find_bullish_abcd(
                 },
                 extra_points={
                     "direction": (c_idx, c),
-                    f"{c_fib_inverse:.3f}BC": (b_idx, bc_ext),
-                    "AB=CD": (b_idx, ab_cd_ext),
                 },
             )
 
-            if lowest_close_after_b < min(ab_cd_ext, bc_ext):
-                selected["extra_points"]["1.27AB=CD"] = (b_idx, ab_27_ext)
-                selected["extra_points"]["1.618AB=CD"] = (b_idx, ab_618_ext)
+            if is_perfect:
+                alt_name = "BULL Perfect AB=CD"
+
+                selected["extra_points"].update(
+                    {
+                        "AB=CD": (b_idx, ab_cd_ext),
+                        "1.618BC": (b_idx, bc_618_ext),
+                    }
+                )
+            elif is_alternate:
+                alt_name = "BULL Alternate AB=CD"
+
+                selected["extra_points"].update(
+                    {
+                        "1.27AB=CD": (b_idx, ab_27_ext),
+                        "1.618AB=CD": (b_idx, ab_618_ext),
+                    }
+                )
+            else:
+                alt_name = "BULL AB=CD"
+
+                selected["extra_points"].update(
+                    {
+                        f"{c_fib_inverse:.3f}BC": (b_idx, bc_ext),
+                        "AB=CD": (b_idx, ab_cd_ext),
+                    }
+                )
 
         a, a_idx = c, c_idx
 
@@ -1616,7 +1648,7 @@ def find_bullish_abcd(
             dict(
                 sym=sym,
                 pattern="ABCDU",
-                alt_name="BULL AB=CD",
+                alt_name=alt_name,
             )
         )
 
@@ -1630,6 +1662,7 @@ def find_bearish_abcd(
     Bearish AB = CD harmonic pattern
     """
 
+    alt_name = ""
     pivot_len = pivots.shape[0]
 
     a_idx = pivots["P"].idxmin()
@@ -1692,23 +1725,33 @@ def find_bearish_abcd(
 
         ab_cd_ext = c + ab_diff
         bc_ext = c + bc_diff * c_fib_inverse
+        bc_618_ext = c + bc_diff * 1.618
         ab_27_ext = c + ab_diff * 1.27
         ab_618_ext = c + ab_diff * 1.618
 
-        terminal_point = max(ab_27_ext, ab_618_ext)
-
-        validation_threshold = terminal_point * 1.015
         highest_close_after_b = df.loc[b_idx:, "Close"].max()
         lowest_low_after_c = df.loc[c_idx:, "Low"].min()
 
-        # Add a 1.5 % (101.5 %) threshold below the terminal_point
+        is_perfect = c_retrace == 0.618 and ab_cd_ext >= bc_618_ext
+        is_alternate = highest_close_after_b > min(ab_27_ext, ab_618_ext)
+
+        if is_perfect:
+            terminal_point = ab_cd_ext
+        elif is_alternate:
+            terminal_point = max(ab_27_ext, ab_618_ext)
+        else:
+            terminal_point = max(ab_cd_ext, bc_ext)
+
+        closes_above_terminal_point = (
+            df.loc[c_idx:, "Close"] < terminal_point
+        ).sum()
+
         if (
-            d > b
-            and highest_close_after_b < validation_threshold
+            d >= terminal_point
+            and closes_above_terminal_point < 7
             and d == highest_close_after_b
             and c == lowest_low_after_c
         ):
-
             selected = dict(
                 df_start=df.index[0],
                 df_end=df.index[-1],
@@ -1722,14 +1765,36 @@ def find_bearish_abcd(
                 },
                 extra_points={
                     "direction": (c_idx, c),
-                    f"{c_fib_inverse:.3f}BC": (b_idx, bc_ext),
-                    "AB=CD": (b_idx, ab_cd_ext),
                 },
             )
 
-            if highest_close_after_b > max(ab_cd_ext, bc_ext):
-                selected["extra_points"]["1.27AB=CD"] = (b_idx, ab_27_ext)
-                selected["extra_points"]["1.618AB=CD"] = (b_idx, ab_618_ext)
+            if is_perfect:
+                alt_name = "BEAR Perfect AB=CD"
+
+                selected["extra_points"].update(
+                    {
+                        "AB=CD": (b_idx, ab_cd_ext),
+                        "1.618BC": (b_idx, bc_618_ext),
+                    }
+                )
+            elif is_alternate:
+                alt_name = "BEAR Alternate AB=CD"
+
+                selected["extra_points"].update(
+                    {
+                        "1.27AB=CD": (b_idx, ab_27_ext),
+                        "1.618AB=CD": (b_idx, ab_618_ext),
+                    }
+                )
+            else:
+                alt_name = "BEAR AB=CD"
+
+                selected["extra_points"].update(
+                    {
+                        f"{c_fib_inverse:.3f}BC": (b_idx, bc_ext),
+                        "AB=CD": (b_idx, ab_cd_ext),
+                    }
+                )
 
         a, a_idx = c, c_idx
 
@@ -1738,7 +1803,7 @@ def find_bearish_abcd(
             dict(
                 sym=sym,
                 pattern="ABCDD",
-                alt_name="BEAR AB=CD",
+                alt_name=alt_name,
             )
         )
 
