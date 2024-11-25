@@ -1508,7 +1508,7 @@ def find_bullish_abcd(
     Bullish AB = CD harmonic pattern
     """
 
-    alt_name = ""
+    alt_name = "Bull AB=CD"
     pivot_len = pivots.shape[0]
 
     a_idx = pivots["P"].idxmax()
@@ -1614,7 +1614,7 @@ def find_bullish_abcd(
             )
 
             if is_perfect:
-                alt_name = "BULL Perfect AB=CD"
+                alt_name = "Bull Perfect AB=CD"
 
                 selected["extra_points"].update(
                     {
@@ -1623,7 +1623,7 @@ def find_bullish_abcd(
                     }
                 )
             elif is_alternate:
-                alt_name = "BULL Alternate AB=CD"
+                alt_name = "Bull Alternate AB=CD"
 
                 selected["extra_points"].update(
                     {
@@ -1632,8 +1632,6 @@ def find_bullish_abcd(
                     }
                 )
             else:
-                alt_name = "BULL AB=CD"
-
                 selected["extra_points"].update(
                     {
                         f"{c_fib_inverse:.3f}BC": (b_idx, bc_ext),
@@ -1662,7 +1660,7 @@ def find_bearish_abcd(
     Bearish AB = CD harmonic pattern
     """
 
-    alt_name = ""
+    alt_name = "Bear AB=CD"
     pivot_len = pivots.shape[0]
 
     a_idx = pivots["P"].idxmin()
@@ -1769,7 +1767,7 @@ def find_bearish_abcd(
             )
 
             if is_perfect:
-                alt_name = "BEAR Perfect AB=CD"
+                alt_name = "Bear Perfect AB=CD"
 
                 selected["extra_points"].update(
                     {
@@ -1778,7 +1776,7 @@ def find_bearish_abcd(
                     }
                 )
             elif is_alternate:
-                alt_name = "BEAR Alternate AB=CD"
+                alt_name = "Bear Alternate AB=CD"
 
                 selected["extra_points"].update(
                     {
@@ -1787,8 +1785,6 @@ def find_bearish_abcd(
                     }
                 )
             else:
-                alt_name = "BEAR AB=CD"
-
                 selected["extra_points"].update(
                     {
                         f"{c_fib_inverse:.3f}BC": (b_idx, bc_ext),
@@ -1967,7 +1963,7 @@ def find_bullish_bat(
                 )
             elif is_alternate_bat:
                 # Alternate BAT pattern
-                alt_name = "BULL Alternate BAT"
+                alt_name = "Bull Alternate BAT"
 
                 selected["extra_points"].update(
                     {
@@ -2090,7 +2086,7 @@ def find_bearish_bat(
 
         highest_close_after_b = df.loc[b_idx:, "Close"].max()
         lowest_low_after_c = df.loc[c_idx:, "Low"].min()
-        
+
         if is_perfect_bat:
             terminal_point = max(ab_27_ext, bc_2_ext)
         elif is_alternate_bat:
@@ -2115,7 +2111,7 @@ def find_bearish_bat(
         ).sum()
 
         if (
-            d >= terminal_point 
+            d >= terminal_point
             and closes_above_terminal_point < 7
             and d == highest_close_after_b
             and c == lowest_low_after_c
