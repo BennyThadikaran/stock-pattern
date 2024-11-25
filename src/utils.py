@@ -2170,3 +2170,308 @@ def find_bearish_bat(
         selected.update(dict(sym=sym, pattern="BATD", alt_name=alt_name))
 
     return selected
+
+
+def find_bullish_gartley(
+    sym: str, df: pd.DataFrame, pivots: pd.DataFrame
+) -> Optional[dict]:
+    """
+    Bullish Gartley harmonic pattern
+    """
+    alt_name = "Bull Gartley"
+    pivot_len = pivots.shape[0]
+
+    x_idx = pivots["P"].idxmin()
+    x = pivots.at[x_idx, "P"]
+
+    d_idx = df.index[-1]
+    d = df.at[d_idx, "Close"]
+
+    selected: Optional[dict] = None
+
+    assert isinstance(pivots.index, pd.DatetimeIndex)
+    assert isinstance(x_idx, pd.Timestamp)
+
+    while True:
+        pos_after_x = get_next_index(pivots.index, x_idx)
+
+        if pos_after_x >= pivot_len:
+            break
+
+        a_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmax()
+        a = pivots.at[a_idx, "P"]
+
+        pos_after_a = get_next_index(pivots.index, a_idx)
+
+        if pos_after_a >= pivot_len:
+            break
+
+        c_idx = pivots.loc[pivots.index[pos_after_a] :, "P"].idxmax()
+        c = pivots.at[c_idx, "P"]
+
+        b_idx = pivots.loc[a_idx:c_idx, "P"].idxmin()
+        b = pivots.at[b_idx, "P"]
+
+        if pivots.index.has_duplicates:
+            if isinstance(x, pd.Series):
+                x = pivots.at[x_idx, "P"].min()
+
+            if isinstance(a, pd.Series):
+                a = pivots.at[a_idx, "P"].max()
+
+            if isinstance(b, pd.Series):
+                b = pivots.at[b_idx, "P"].min()
+
+            if isinstance(c, pd.Series):
+                c = pivots.at[c_idx, "P"].max()
+
+        xa_diff = a - x
+        ab_diff = a - b
+        bc_diff = c - b
+
+        if (
+            x == df.at[x_idx, "High"]
+            or a == df.at[a_idx, "Low"]
+            or b == df.at[b_idx, "High"]
+            or c == df.at[c_idx, "Low"]
+        ):
+            # Check that the pattern is well formed
+            x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmin()
+            x = pivots.loc[x_idx, "P"]
+            continue
+
+        b_retrace = fib_ser.loc[(fib_ser - (ab_diff / xa_diff)).abs().idxmin()]
+        c_retrace = fib_ser.loc[(fib_ser - (bc_diff / ab_diff)).abs().idxmin()]
+
+        if b_retrace != 0.618 or c_retrace < 0.382 or c_retrace > 0.886:
+            x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmin()
+            x = pivots.loc[x_idx, "P"]
+            continue
+
+        c_fib_inverse = round(1 / c_retrace, 3)
+
+        is_perfect = b_retrace == 0.618 and c_retrace == 0.618
+
+        xa_786_retrace = a - xa_diff * 0.786
+
+        bc_618_ext = c - bc_diff * 1.618
+
+        ab_cd_ext = c - ab_diff
+
+        lowest_close_after_b = df.loc[b_idx:, "Close"].min()
+        highest_high_after_c = df.loc[c_idx:, "High"].max()
+
+        terminal_point = min(ab_cd_ext, xa_786_retrace)
+
+        closes_below_terminal_point = (
+            df.loc[c_idx:, "Close"] < terminal_point
+        ).sum()
+
+        if (
+            d <= terminal_point
+            and closes_below_terminal_point < 7
+            and d == lowest_close_after_b
+            and c == highest_high_after_c
+        ):
+
+            selected = dict(
+                df_start=df.index[0],
+                df_end=df.index[-1],
+                start=a_idx,
+                end=d_idx,
+                points={
+                    "X": (x_idx, x),
+                    "A": (a_idx, a),
+                    f"{b_retrace:.3f}B": (b_idx, b),
+                    f"{c_retrace:.3f}C": (c_idx, c),
+                    "D": (d_idx, d),
+                },
+                extra_points={
+                    "direction": (c_idx, c),
+                },
+            )
+
+            if is_perfect:
+                # Perfect Gartley pattern
+                alt_name = "Bull Perfect Gartley"
+
+                selected["extra_points"].update(
+                    {
+                        "AB=CD": (b_idx, ab_cd_ext),
+                        "0.786XA": (b_idx, xa_786_retrace),
+                        "1.618BC": (b_idx, bc_618_ext),
+                    }
+                )
+            else:
+                selected["extra_points"].update(
+                    {
+                        "AB=CD": (b_idx, ab_cd_ext),
+                        "0.786XA": (b_idx, xa_786_retrace),
+                    }
+                )
+
+                if c_fib_inverse <= 1.618:
+                    selected["extra_points"][f"{c_fib_inverse}BC"] = (
+                        b_idx,
+                        c - bc_diff * c_fib_inverse,
+                    )
+
+        x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmin()
+        x = pivots.loc[x_idx, "P"]
+
+    if selected:
+        selected.update(dict(sym=sym, pattern="GARTU", alt_name=alt_name))
+
+    return selected
+
+
+def find_bearish_gartley(
+    sym: str, df: pd.DataFrame, pivots: pd.DataFrame
+) -> Optional[dict]:
+    """
+    Bearish Gartley harmonic pattern
+    """
+    alt_name = "Bearish Gartley"
+    pivot_len = pivots.shape[0]
+
+    x_idx = pivots["P"].idxmax()
+    x = pivots.at[x_idx, "P"]
+
+    d_idx = df.index[-1]
+    d = df.at[d_idx, "Close"]
+
+    selected: Optional[dict] = None
+
+    assert isinstance(pivots.index, pd.DatetimeIndex)
+    assert isinstance(x_idx, pd.Timestamp)
+
+    while True:
+        pos_after_x = get_next_index(pivots.index, x_idx)
+
+        if pos_after_x >= pivot_len:
+            break
+
+        a_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmin()
+        a = pivots.at[a_idx, "P"]
+
+        pos_after_a = get_next_index(pivots.index, a_idx)
+
+        if pos_after_a >= pivot_len:
+            break
+
+        c_idx = pivots.loc[pivots.index[pos_after_a] :, "P"].idxmin()
+        c = pivots.at[c_idx, "P"]
+
+        b_idx = pivots.loc[a_idx:c_idx, "P"].idxmax()
+        b = pivots.at[b_idx, "P"]
+
+        if pivots.index.has_duplicates:
+            if isinstance(x, pd.Series):
+                x = pivots.at[x_idx, "P"].max()
+
+            if isinstance(a, pd.Series):
+                a = pivots.at[a_idx, "P"].min()
+
+            if isinstance(b, pd.Series):
+                b = pivots.at[b_idx, "P"].max()
+
+            if isinstance(c, pd.Series):
+                c = pivots.at[c_idx, "P"].min()
+
+        xa_diff = x - a
+        ab_diff = b - a
+        bc_diff = b - c
+
+        if (
+            x == df.at[x_idx, "Low"]
+            or a == df.at[a_idx, "High"]
+            or b == df.at[b_idx, "Low"]
+            or c == df.at[c_idx, "High"]
+        ):
+            # Check that the pattern is well formed
+            x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmax()
+            x = pivots.loc[x_idx, "P"]
+            continue
+
+        b_retrace = fib_ser.loc[(fib_ser - (ab_diff / xa_diff)).abs().idxmin()]
+        c_retrace = fib_ser.loc[(fib_ser - (bc_diff / ab_diff)).abs().idxmin()]
+
+        if b_retrace != 0.618 or c_retrace < 0.382 or c_retrace > 0.886:
+            x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmax()
+            x = pivots.loc[x_idx, "P"]
+            continue
+
+        c_fib_inverse = round(1 / c_retrace, 3)
+
+        is_perfect = b_retrace == 0.618 and c_retrace == 0.618
+
+        xa_786_retrace = a + xa_diff * 0.786
+
+        bc_618_ext = c + bc_diff * 1.618
+
+        ab_cd_ext = c + ab_diff
+
+        highest_close_after_b = df.loc[b_idx:, "Close"].max()
+        lowest_low_after_c = df.loc[c_idx:, "Low"].min()
+
+        terminal_point = max(ab_cd_ext, xa_786_retrace)
+
+        closes_above_terminal_point = (
+            df.loc[c_idx:, "Close"] > terminal_point
+        ).sum()
+
+        if (
+            d >= terminal_point
+            and closes_above_terminal_point < 7
+            and d == highest_close_after_b
+            and c == lowest_low_after_c
+        ):
+            selected = dict(
+                df_start=df.index[0],
+                df_end=df.index[-1],
+                start=a_idx,
+                end=d_idx,
+                points={
+                    "X": (x_idx, x),
+                    "A": (a_idx, a),
+                    f"{b_retrace:.3f}B": (b_idx, b),
+                    f"{c_retrace:.3f}C": (c_idx, c),
+                    "D": (d_idx, d),
+                },
+                extra_points={
+                    "direction": (c_idx, c),
+                },
+            )
+
+            if is_perfect:
+                # Perfect Gartley pattern
+                alt_name = "Bear Perfect Gartley"
+
+                selected["extra_points"].update(
+                    {
+                        "AB=CD": (b_idx, ab_cd_ext),
+                        "0.786XA": (b_idx, xa_786_retrace),
+                        "1.618BC": (b_idx, bc_618_ext),
+                    }
+                )
+            else:
+                selected["extra_points"].update(
+                    {
+                        "AB=CD": (b_idx, ab_cd_ext),
+                        "0.786XA": (b_idx, xa_786_retrace),
+                    }
+                )
+
+                if c_fib_inverse <= 1.618:
+                    selected["extra_points"][f"{c_fib_inverse}BC"] = (
+                        b_idx,
+                        c + bc_diff * c_fib_inverse,
+                    )
+
+        x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmax()
+        x = pivots.loc[x_idx, "P"]
+
+    if selected:
+        selected.update(dict(sym=sym, pattern="GARTD", alt_name=alt_name))
+
+    return selected
