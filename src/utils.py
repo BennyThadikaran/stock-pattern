@@ -2475,3 +2475,363 @@ def find_bearish_gartley(
         selected.update(dict(sym=sym, pattern="GARTD", alt_name=alt_name))
 
     return selected
+
+
+def find_bullish_crab(
+    sym: str, df: pd.DataFrame, pivots: pd.DataFrame
+) -> Optional[dict]:
+    """
+    Bullish Crab harmonic pattern
+    """
+    alt_name = "Bull Crab"
+    pivot_len = pivots.shape[0]
+
+    x_idx = pivots["P"].idxmin()
+    x = pivots.at[x_idx, "P"]
+
+    d_idx = df.index[-1]
+    d = df.at[d_idx, "Close"]
+
+    selected: Optional[dict] = None
+
+    assert isinstance(pivots.index, pd.DatetimeIndex)
+    assert isinstance(x_idx, pd.Timestamp)
+
+    while True:
+        pos_after_x = get_next_index(pivots.index, x_idx)
+
+        if pos_after_x >= pivot_len:
+            break
+
+        a_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmax()
+        a = pivots.at[a_idx, "P"]
+
+        pos_after_a = get_next_index(pivots.index, a_idx)
+
+        if pos_after_a >= pivot_len:
+            break
+
+        c_idx = pivots.loc[pivots.index[pos_after_a] :, "P"].idxmax()
+        c = pivots.at[c_idx, "P"]
+
+        b_idx = pivots.loc[a_idx:c_idx, "P"].idxmin()
+        b = pivots.at[b_idx, "P"]
+
+        if pivots.index.has_duplicates:
+            if isinstance(x, pd.Series):
+                x = pivots.at[x_idx, "P"].min()
+
+            if isinstance(a, pd.Series):
+                a = pivots.at[a_idx, "P"].max()
+
+            if isinstance(b, pd.Series):
+                b = pivots.at[b_idx, "P"].min()
+
+            if isinstance(c, pd.Series):
+                c = pivots.at[c_idx, "P"].max()
+
+        xa_diff = a - x
+        ab_diff = a - b
+        bc_diff = c - b
+
+        if (
+            x == df.at[x_idx, "High"]
+            or a == df.at[a_idx, "Low"]
+            or b == df.at[b_idx, "High"]
+            or c == df.at[c_idx, "Low"]
+        ):
+            # Check that the pattern is well formed
+            x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmin()
+            x = pivots.loc[x_idx, "P"]
+            continue
+
+        b_retrace = fib_ser.loc[(fib_ser - (ab_diff / xa_diff)).abs().idxmin()]
+        c_retrace = fib_ser.loc[(fib_ser - (bc_diff / ab_diff)).abs().idxmin()]
+
+        if b_retrace < 0.618 and c_retrace < 0.382 or c_retrace > 0.886:
+            x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmin()
+            x = pivots.loc[x_idx, "P"]
+            continue
+
+        is_perfect_crab = (
+            b_retrace == 0.618 and c_retrace == 0.5 or c_retrace == 0.618
+        )
+
+        is_deep_crab = b_retrace == 0.886 and b > x
+
+        xa_618_ext = a - xa_diff * 1.618
+
+        bc_3_14_ext = c - bc_diff * 3.14
+        ab_618_ext = a - ab_diff * 1.618
+        ab_27_ext = a - ab_diff * 1.27
+
+        if is_perfect_crab:
+            terminal_point = min(bc_3_14_ext, xa_618_ext, ab_618_ext)
+        elif is_deep_crab:
+            deep_crab_dct = {"1.27AB": ab_27_ext, "1.618AB": ab_618_ext}
+
+            closest_var = min(
+                deep_crab_dct, key=lambda k: abs(deep_crab_dct[k] - xa_618_ext)
+            )
+
+            terminal_point = min(xa_618_ext, deep_crab_dct[closest_var])
+        else:
+            values_dct = {
+                "2.618BC": c - bc_diff * 2.618,
+                "3.14BC": c - bc_diff * 3.14,
+                "3.618BC": c - bc_diff * 3.618,
+            }
+
+            closest_var = min(
+                values_dct, key=lambda k: abs(values_dct[k] - xa_618_ext)
+            )
+
+            terminal_point = min(xa_618_ext, values_dct[closest_var])
+
+        lowest_close_after_b = df.loc[b_idx:, "Close"].min()
+        highest_high_after_c = df.loc[c_idx:, "High"].max()
+
+        closes_below_terminal_point = (
+            df.loc[c_idx:, "Close"] < terminal_point
+        ).sum()
+
+        if (
+            d <= terminal_point
+            and closes_below_terminal_point < 7
+            and d == lowest_close_after_b
+            and c == highest_high_after_c
+        ):
+
+            selected = dict(
+                df_start=df.index[0],
+                df_end=df.index[-1],
+                start=a_idx,
+                end=d_idx,
+                points={
+                    "X": (x_idx, x),
+                    "A": (a_idx, a),
+                    f"{b_retrace:.3f}B": (b_idx, b),
+                    f"{c_retrace:.3f}C": (c_idx, c),
+                    "D": (d_idx, d),
+                },
+                extra_points={
+                    "direction": (c_idx, c),
+                },
+            )
+
+            if is_perfect_crab:
+                # Perfect crab pattern
+                alt_name = "Bull Perfect Crab"
+
+                selected["extra_points"].update(
+                    {
+                        "3.14BC": (b_idx, bc_3_14_ext),
+                        "1.618XA": (b_idx, xa_618_ext),
+                        "1.618AB": (b_idx, ab_618_ext),
+                    }
+                )
+            elif is_deep_crab:
+                # Deep Crab pattern
+                alt_name = "Bull Deep Crab"
+
+                selected["extra_points"].update(
+                    {
+                        "1.618XA": (b_idx, xa_618_ext),
+                        closest_var: (b_idx, deep_crab_dct[closest_var]),
+                    }
+                )
+            else:
+                selected["extra_points"].update(
+                    {
+                        "1.618XA": (b_idx, xa_618_ext),
+                        closest_var: (b_idx, values_dct[closest_var]),
+                    }
+                )
+
+        x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmin()
+        x = pivots.loc[x_idx, "P"]
+
+    if selected:
+        selected.update(dict(sym=sym, pattern="CRABU", alt_name=alt_name))
+
+    return selected
+
+
+def find_bearish_crab(
+    sym: str, df: pd.DataFrame, pivots: pd.DataFrame
+) -> Optional[dict]:
+    """
+    Bearish Crab harmonic pattern
+    """
+    alt_name = "Bear Crab"
+    pivot_len = pivots.shape[0]
+
+    x_idx = pivots["P"].idxmax()
+    x = pivots.at[x_idx, "P"]
+
+    d_idx = df.index[-1]
+    d = df.at[d_idx, "Close"]
+
+    selected: Optional[dict] = None
+
+    assert isinstance(pivots.index, pd.DatetimeIndex)
+    assert isinstance(x_idx, pd.Timestamp)
+
+    while True:
+        pos_after_x = get_next_index(pivots.index, x_idx)
+
+        if pos_after_x >= pivot_len:
+            break
+
+        a_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmin()
+        a = pivots.at[a_idx, "P"]
+
+        pos_after_a = get_next_index(pivots.index, a_idx)
+
+        if pos_after_a >= pivot_len:
+            break
+
+        c_idx = pivots.loc[pivots.index[pos_after_a] :, "P"].idxmin()
+        c = pivots.at[c_idx, "P"]
+
+        b_idx = pivots.loc[a_idx:c_idx, "P"].idxmax()
+        b = pivots.at[b_idx, "P"]
+
+        if pivots.index.has_duplicates:
+            if isinstance(x, pd.Series):
+                x = pivots.at[x_idx, "P"].max()
+
+            if isinstance(a, pd.Series):
+                a = pivots.at[a_idx, "P"].min()
+
+            if isinstance(b, pd.Series):
+                b = pivots.at[b_idx, "P"].max()
+
+            if isinstance(c, pd.Series):
+                c = pivots.at[c_idx, "P"].min()
+
+        xa_diff = x - a
+        ab_diff = b - a
+        bc_diff = b - c
+
+        if (
+            x == df.at[x_idx, "Low"]
+            or a == df.at[a_idx, "High"]
+            or b == df.at[b_idx, "Low"]
+            or c == df.at[c_idx, "High"]
+        ):
+            # Check that the pattern is well formed
+            x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmax()
+            x = pivots.loc[x_idx, "P"]
+            continue
+
+        b_retrace = fib_ser.loc[(fib_ser - (ab_diff / xa_diff)).abs().idxmin()]
+        c_retrace = fib_ser.loc[(fib_ser - (bc_diff / ab_diff)).abs().idxmin()]
+
+        if b_retrace < 0.618 and c_retrace < 0.382 or c_retrace > 0.886:
+            x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmax()
+            x = pivots.loc[x_idx, "P"]
+            continue
+
+        is_perfect_crab = (
+            b_retrace == 0.618 and c_retrace == 0.5 or c_retrace == 0.618
+        )
+
+        is_deep_crab = b_retrace == 0.886 and b < x
+
+        xa_618_ext = a + xa_diff * 1.618
+
+        bc_3_14_ext = c + bc_diff * 3.14
+        ab_618_ext = a + ab_diff * 1.618
+        ab_27_ext = a + ab_diff * 1.27
+
+        if is_perfect_crab:
+            terminal_point = max(bc_3_14_ext, xa_618_ext, ab_618_ext)
+        elif is_deep_crab:
+            deep_crab_dct = {"1.27AB": ab_27_ext, "1.618AB": ab_618_ext}
+
+            closest_var = min(
+                deep_crab_dct, key=lambda k: abs(deep_crab_dct[k] - xa_618_ext)
+            )
+
+            terminal_point = max(xa_618_ext, deep_crab_dct[closest_var])
+        else:
+            values_dct = {
+                "2.618BC": c + bc_diff * 2.618,
+                "3.14BC": c + bc_diff * 3.14,
+                "3.618BC": c + bc_diff * 3.618,
+            }
+
+            closest_var = min(
+                values_dct, key=lambda k: abs(values_dct[k] - xa_618_ext)
+            )
+
+            terminal_point = max(xa_618_ext, values_dct[closest_var])
+
+        highest_close_after_b = df.loc[b_idx:, "Close"].max()
+        lowest_low_after_c = df.loc[c_idx:, "Low"].min()
+
+        closes_below_terminal_point = (
+            df.loc[c_idx:, "Close"] > terminal_point
+        ).sum()
+
+        if (
+            d >= terminal_point
+            and closes_below_terminal_point < 7
+            and d == highest_close_after_b
+            and c == lowest_low_after_c
+        ):
+
+            selected = dict(
+                df_start=df.index[0],
+                df_end=df.index[-1],
+                start=a_idx,
+                end=d_idx,
+                points={
+                    "X": (x_idx, x),
+                    "A": (a_idx, a),
+                    f"{b_retrace:.3f}B": (b_idx, b),
+                    f"{c_retrace:.3f}C": (c_idx, c),
+                    "D": (d_idx, d),
+                },
+                extra_points={
+                    "direction": (c_idx, c),
+                },
+            )
+
+            if is_perfect_crab:
+                # Perfect crab pattern
+                alt_name = "Bear Perfect Crab"
+
+                selected["extra_points"].update(
+                    {
+                        "3.14BC": (b_idx, bc_3_14_ext),
+                        "1.618XA": (b_idx, xa_618_ext),
+                        "1.618AB": (b_idx, ab_618_ext),
+                    }
+                )
+            elif is_deep_crab:
+                # Deep Crab pattern
+                alt_name = "Bear Deep Crab"
+
+                selected["extra_points"].update(
+                    {
+                        "1.618XA": (b_idx, xa_618_ext),
+                        closest_var: (b_idx, deep_crab_dct[closest_var]),
+                    }
+                )
+            else:
+                selected["extra_points"].update(
+                    {
+                        "1.618XA": (b_idx, xa_618_ext),
+                        closest_var: (b_idx, values_dct[closest_var]),
+                    }
+                )
+
+        x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmax()
+        x = pivots.loc[x_idx, "P"]
+
+    if selected:
+        selected.update(dict(sym=sym, pattern="CRABD", alt_name=alt_name))
+
+    return selected
