@@ -412,7 +412,7 @@ if __name__ == "__main__":
         "--pattern",
         type=str,
         metavar="str",
-        choices=fn_dict.keys(),
+        choices=tuple(fn_dict.keys()) + ("all", "bull", "bear"),
         help=f"String pattern. One of {', '.join(fn_dict.keys())}",
     )
 
