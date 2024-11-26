@@ -6,7 +6,9 @@ import sys
 from argparse import ArgumentParser
 from datetime import datetime
 from pathlib import Path
-from typing import Callable, Dict, List, Optional, Tuple, Union
+from typing import Callable, Dict, List, Optional, Tuple
+
+import questionary
 
 import utils
 from loaders.AbstractLoader import AbstractLoader
@@ -28,35 +30,69 @@ def uncaught_exception_handler(*args):
     cleanup(loader, futures)
 
 
-def get_user_input() -> str:
-    user_input = input(
-        """
-    Enter a number to select a pattern.
+def get_user_selection() -> Optional[str]:
+    while True:
+        ptn_key = questionary.select(
+            message="Select an option [ ** Excludes Trendlines & Triangles ]",
+            choices=[
+                questionary.Choice("[ALL] Scan All", value="all"),
+                questionary.Choice("[BULL] Scan only Bull **", value="bull"),
+                questionary.Choice("[BEAR] Scan only Bear **", value="bear"),
+                questionary.Choice(
+                    "[TRNG] Triangles (Symetrical, Ascending, Descending)",
+                    value="trng",
+                ),
+                questionary.Choice("[UPTL] Uptrend lines", value="uptl"),
+                questionary.Choice("[DNTL] Downtrend lines", value="dntl"),
+                questionary.Choice("SELECT BULL pattern", value="SELECT_BULL"),
+                questionary.Choice("SELECT BEAR pattern", value="SELECT_BEAR"),
+            ],
+            use_shortcuts=True,
+        ).ask()
 
-    0.  ALL   - Scan all patterns
-    1:  BULL  - All Bullish patterns
-    2:  BEAR  - All Bearish patterns
-    3.  VCPU  - Bullish VCP (Volatility Contraction pattern)
-    4.  VCPD  - Bearish VCP
-    5.  DBOT  - Double Bottom (Bullish)
-    6.  DTOP  - Double Top (Bearish)
-    7.  HNSD  - Head and Shoulder
-    8.  HNSU  - Reverse Head and Shoulder
-    9.  TRNG  - Triangles (Symmetrical, Ascending, Descending)
-    10. UPTL  - Uptrend line
-    11. DNTL  - Downtrend line
-    12. ABCDU - AB=CD Bullish Harmonic pattern (EXPERIMENTAL - WIP)
-    13. ABCDD - AB=CD Bearish Harmonic pattern (EXPERIMENTAL - WIP)
-    14. BATU  - Bullish BAT Harmonic pattern (EXPERIMENTAL - WIP)
-    15. BATD  - Bearish BAT Harmonic pattern (EXPERIMENTAL - WIP)
-    > """
-    )
+        if ptn_key == "SELECT_BULL":
+            ptn_key = questionary.select(
+                message="Select a BULL pattern",
+                choices=[
+                    questionary.Choice(
+                        "[VCPU] Volatility Contraction", value="vcpu"
+                    ),
+                    questionary.Choice("[DBOT] Double Bottom", value="dbot"),
+                    questionary.Choice("[HSNU] Head & Shoulders", value="hnsu"),
+                    questionary.Choice("[ABCDU] AB=CD Harmonic", value="abcdu"),
+                    questionary.Choice("[BATU] BAT Harmonic", value="batu"),
+                    questionary.Choice(
+                        "[GARTU] Gartley Harmonic", value="gartu"
+                    ),
+                    questionary.Choice("[CRABU] Crab Harmonic", value="crabu"),
+                    questionary.Choice("Back to main", value="MAIN"),
+                ],
+                use_shortcuts=True,
+            ).ask()
+        elif ptn_key == "SELECT_BEAR":
+            ptn_key = questionary.select(
+                message="Select a BEAR pattern",
+                choices=[
+                    questionary.Choice(
+                        "[VCPD] Volatility Contraction", value="vcpd"
+                    ),
+                    questionary.Choice("[DTOP] Double Top", value="dtop"),
+                    questionary.Choice("[HNSD] Head & Shoulders", value="hnsd"),
+                    questionary.Choice("[ABCDD] AB=CD Harmonic", value="abcdd"),
+                    questionary.Choice("[BATD] BAT Harmonic", value="batd"),
+                    questionary.Choice(
+                        "[GARTD] Gartley Harmonic", value="gartd"
+                    ),
+                    questionary.Choice("[CRABD] Crab Harmonic", value="crabd"),
+                    questionary.Choice("Back to main", value="MAIN"),
+                ],
+                use_shortcuts=True,
+            ).ask()
 
-    if not (user_input.isdigit() and int(user_input) in range(16)):
-        print("Enter a key from the list")
-        return get_user_input()
+        if ptn_key == "MAIN":
+            continue
 
-    return user_input
+        return ptn_key
 
 
 def get_loader_class(config):
@@ -306,7 +342,7 @@ def process(
 # Differentiate between the main thread and child threads on Windows
 # see https://stackoverflow.com/a/57811249
 if __name__ == "__main__":
-    version = "4.0.2"
+    version = "4.0.3"
 
     futures: List[concurrent.futures.Future] = []
 
@@ -322,28 +358,29 @@ if __name__ == "__main__":
     # Load configuration
     DIR = Path(__file__).parent
 
-    key_list = (
-        "all",
-        "bull",
-        "bear",
-        "vcpu",
-        "vcpd",
-        "dbot",
-        "dtop",
-        "hnsd",
-        "hnsu",
-        "trng",
-        "uptl",
-        "dntl",
-        "abcdu",
-        "abcdd",
-        "batu",
-        "batd",
-    )
+    fn_dict: Dict[str, Callable] = {
+        "vcpu": utils.find_bullish_vcp,
+        "dbot": utils.find_double_bottom,
+        "hnsu": utils.find_reverse_hns,
+        "vcpd": utils.find_bearish_vcp,
+        "dtop": utils.find_double_top,
+        "hnsd": utils.find_hns,
+        "trng": utils.find_triangles,
+        "uptl": utils.find_uptrend_line,
+        "dntl": utils.find_downtrend_line,
+        "abcdu": utils.find_bullish_abcd,
+        "abcdd": utils.find_bearish_abcd,
+        "batu": utils.find_bullish_bat,
+        "batd": utils.find_bearish_bat,
+        "gartu": utils.find_bullish_gartley,
+        "gartd": utils.find_bearish_gartley,
+        "crabu": utils.find_bullish_crab,
+        "crabd": utils.find_bearish_crab,
+    }
 
     # Parse CLI arguments
     parser = ArgumentParser(
-        description="Python CLI tool to identify common Chart patterns",
+        description="Python CLI tool to identify common Chart patterns. Includes Harmonic chart patterns.",
         epilog="https://github.com/BennyThadikaran/stock-pattern",
     )
 
@@ -375,8 +412,8 @@ if __name__ == "__main__":
         "--pattern",
         type=str,
         metavar="str",
-        choices=key_list,
-        help=f"String pattern. One of {', '.join(key_list)}",
+        choices=fn_dict.keys(),
+        help=f"String pattern. One of {', '.join(fn_dict.keys())}",
     )
 
     parser.add_argument(
@@ -538,39 +575,16 @@ if __name__ == "__main__":
         logger.exception("", exc_info=e)
         exit()
 
-    fn_dict: Dict[str, Union[str, Callable]] = {
-        "all": "all",
-        "bull": "bull",
-        "bear": "bear",
-        "vcpu": utils.find_bullish_vcp,
-        "dbot": utils.find_double_bottom,
-        "hnsu": utils.find_reverse_hns,
-        "vcpd": utils.find_bearish_vcp,
-        "dtop": utils.find_double_top,
-        "hnsd": utils.find_hns,
-        "trng": utils.find_triangles,
-        "uptl": utils.find_uptrend_line,
-        "dntl": utils.find_downtrend_line,
-        "abcdu": utils.find_bullish_abcd,
-        "abcdd": utils.find_bearish_abcd,
-        "batu": utils.find_bullish_bat,
-        "batd": utils.find_bearish_bat,
-    }
-
     if args.pattern:
-        key: str = args.pattern
+        key = args.pattern
     else:
-        try:
-            user_input = get_user_input()
-        except KeyboardInterrupt:
+        key = get_user_selection()
+
+        if key is None:
             cleanup(loader, futures)
             exit()
 
-        key = key_list[int(user_input)]
-
         args.pattern = key
-
-    fn = fn_dict[key]
 
     logger.info(
         f"Scanning `{key.upper()}` patterns on `{loader.tf}`. Press Ctrl - C to exit"
@@ -580,24 +594,18 @@ if __name__ == "__main__":
 
     patterns: List[dict] = []
 
-    if callable(fn):
-        fns = (fn,)
-    elif fn == "bull":
-        bull_list = ("vcpu", "hnsu", "dbot")
+    if key in fn_dict:
+        fns = (fn_dict[key],)
+    elif key == "bull":
+        bull_list = ("vcpu", "hnsu", "dbot", "abcdu", "batu", "crabu", "gartu")
 
-        fns = tuple(
-            v for k, v in fn_dict.items() if k in bull_list and callable(v)
-        )
-    elif fn == "bear":
-        bear_list = ("vcpd", "hnsd", "dtop")
+        fns = tuple(v for k, v in fn_dict.items() if k in bull_list)
+    elif key == "bear":
+        bear_list = ("vcpd", "hnsd", "dtop", "abcdd", "batd", "crabd", "gartd")
 
-        fns = tuple(
-            v for k, v in fn_dict.items() if k in bear_list and callable(v)
-        )
+        fns = tuple(v for k, v in fn_dict.items() if k in bear_list)
     else:
-        fns = tuple(
-            v for k, v in fn_dict.items() if k in key_list[3:10] and callable(v)
-        )
+        fns = tuple(v for k, v in fn_dict.items() if k in list(fn_dict.keys()))
 
     try:
         patterns = process(data, key, fns, futures)

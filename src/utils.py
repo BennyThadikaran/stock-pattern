@@ -31,6 +31,7 @@ ascii_upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 fib_ser = pd.Series((0.382, 0.5, 0.618, 0.707, 0.786, 0.886))
 
+
 def getY(slope, yintercept, x_value) -> float:
     """
     Returns the value of the Y-axis (Price) at the given X-axis value
@@ -930,7 +931,8 @@ def find_triangles(
 
             return dict(
                 sym=sym,
-                pattern=triangle,
+                pattern="TRNG",
+                alt_name=triangle,
                 start=a_idx,
                 end=f_idx,
                 df_start=df.index[0],
@@ -1506,6 +1508,7 @@ def find_bullish_abcd(
     Bullish AB = CD harmonic pattern
     """
 
+    alt_name = "Bull AB=CD"
     pivot_len = pivots.shape[0]
 
     a_idx = pivots["P"].idxmax()
@@ -1546,43 +1549,57 @@ def find_bullish_abcd(
 
         bc_diff = c - b
         ab_diff = a - b
-        c_retrace = bc_diff / ab_diff
+
+        if (
+            a == df.at[a_idx, "Low"]
+            or b == df.at[b_idx, "High"]
+            or c == df.at[c_idx, "Low"]
+        ):
+            # Check that the pattern is well formed
+            a, a_idx = c, c_idx
+            continue
 
         # Get the FIB ratio nearest to point C
-        c_nearest_fib = fib_ser.loc[(fib_ser - c_retrace).abs().idxmin()]
+        c_retrace = fib_ser.loc[(fib_ser - (bc_diff / ab_diff)).abs().idxmin()]
 
         if c_retrace < 0.382 or c_retrace > 0.886:
             a, a_idx = c, c_idx
             continue
 
-        c_fib_inverse = 1 / c_nearest_fib
+        c_fib_inverse = 1 / c_retrace
 
-        bc_extension = c - ab_diff
-        bc_fib_extension = a - (ab_diff * c_fib_inverse)
+        ab_cd_ext = c - ab_diff
+        bc_ext = c - bc_diff * c_fib_inverse
+        bc_618_ext = c - bc_diff * 1.618
+        ab_27_ext = c - ab_diff * 1.27
+        ab_618_ext = c - ab_diff * 1.618
 
-        terminal_point = min(bc_extension, bc_fib_extension)
-
-        validation_threshold = terminal_point * 0.985
         lowest_close_after_b = df.loc[b_idx:, "Close"].min()
         highest_high_after_c = df.loc[c_idx:, "High"].max()
 
-        # Add a 1.5 % (98.5 %) threshold below the terminal_point
+        is_perfect = c_retrace == 0.618 and ab_cd_ext <= bc_618_ext
+        is_alternate = lowest_close_after_b < max(ab_27_ext, ab_618_ext)
+
+        if is_perfect:
+            terminal_point = ab_cd_ext
+        elif is_alternate:
+            terminal_point = min(ab_27_ext, ab_618_ext)
+        else:
+            terminal_point = min(ab_cd_ext, bc_ext)
+
+        closes_below_terminal_point = (
+            df.loc[c_idx:, "Close"] < terminal_point
+        ).sum()
+
         if (
-            d < b
-            and lowest_close_after_b > validation_threshold
+            d <= terminal_point
+            and closes_below_terminal_point < 7
             and d == lowest_close_after_b
             and c == highest_high_after_c
         ):
-
-            # termination_zone = abs(bc_extension - bc_fib_extension) / max(
-            #     bc_extension, bc_fib_extension
-            # )
-            #
-            # if termination_zone > 0.1:
-            #     a, a_idx = c, c_idx
-            #     continue
-
             selected = dict(
+                df_start=df.index[0],
+                df_end=df.index[-1],
                 start=a_idx,
                 end=d_idx,
                 points={
@@ -1593,10 +1610,34 @@ def find_bullish_abcd(
                 },
                 extra_points={
                     "direction": (c_idx, c),
-                    f"{c_fib_inverse:.3f}BC": (b_idx, bc_fib_extension),
-                    "AB=CD": (b_idx, bc_extension),
                 },
             )
+
+            if is_perfect:
+                alt_name = "Bull Perfect AB=CD"
+
+                selected["extra_points"].update(
+                    {
+                        "AB=CD": (b_idx, ab_cd_ext),
+                        "1.618BC": (b_idx, bc_618_ext),
+                    }
+                )
+            elif is_alternate:
+                alt_name = "Bull Alternate AB=CD"
+
+                selected["extra_points"].update(
+                    {
+                        "1.27AB=CD": (b_idx, ab_27_ext),
+                        "1.618AB=CD": (b_idx, ab_618_ext),
+                    }
+                )
+            else:
+                selected["extra_points"].update(
+                    {
+                        f"{c_fib_inverse:.3f}BC": (b_idx, bc_ext),
+                        "AB=CD": (b_idx, ab_cd_ext),
+                    }
+                )
 
         a, a_idx = c, c_idx
 
@@ -1604,9 +1645,8 @@ def find_bullish_abcd(
         selected.update(
             dict(
                 sym=sym,
-                pattern="BULL AB=CD",
-                df_start=df.index[0],
-                df_end=df.index[-1],
+                pattern="ABCDU",
+                alt_name=alt_name,
             )
         )
 
@@ -1620,6 +1660,7 @@ def find_bearish_abcd(
     Bearish AB = CD harmonic pattern
     """
 
+    alt_name = "Bear AB=CD"
     pivot_len = pivots.shape[0]
 
     a_idx = pivots["P"].idxmin()
@@ -1661,42 +1702,54 @@ def find_bearish_abcd(
 
         bc_diff = b - c
         ab_diff = b - a
-        c_retrace = bc_diff / ab_diff
+
+        if (
+            a == df.at[a_idx, "High"]
+            or b == df.at[b_idx, "Low"]
+            or c == df.at[c_idx, "High"]
+        ):
+            # Check that the pattern is well formed
+            a, a_idx = c, c_idx
+            continue
 
         # Get the FIB ratio nearest to point C
-        c_nearest_fib = fib_ser.loc[(fib_ser - c_retrace).abs().idxmin()]
+        c_retrace = fib_ser.loc[(fib_ser - (bc_diff / ab_diff)).abs().idxmin()]
 
         if c_retrace < 0.382 or c_retrace > 0.886:
             a, a_idx = c, c_idx
             continue
 
-        c_fib_inverse = 1 / c_nearest_fib
+        c_fib_inverse = 1 / c_retrace
 
-        bc_extension = c + ab_diff
-        bc_fib_extension = a + (ab_diff * c_fib_inverse)
+        ab_cd_ext = c + ab_diff
+        bc_ext = c + bc_diff * c_fib_inverse
+        bc_618_ext = c + bc_diff * 1.618
+        ab_27_ext = c + ab_diff * 1.27
+        ab_618_ext = c + ab_diff * 1.618
 
-        terminal_point = max(bc_extension, bc_fib_extension)
-
-        validation_threshold = terminal_point * 1.015
         highest_close_after_b = df.loc[b_idx:, "Close"].max()
         lowest_low_after_c = df.loc[c_idx:, "Low"].min()
 
-        # Add a 1.5 % (101.5 %) threshold below the terminal_point
+        is_perfect = c_retrace == 0.618 and ab_cd_ext >= bc_618_ext
+        is_alternate = highest_close_after_b > min(ab_27_ext, ab_618_ext)
+
+        if is_perfect:
+            terminal_point = ab_cd_ext
+        elif is_alternate:
+            terminal_point = max(ab_27_ext, ab_618_ext)
+        else:
+            terminal_point = max(ab_cd_ext, bc_ext)
+
+        closes_above_terminal_point = (
+            df.loc[c_idx:, "Close"] > terminal_point
+        ).sum()
+
         if (
-            d > b
-            and highest_close_after_b < validation_threshold
+            d >= terminal_point
+            and closes_above_terminal_point < 7
             and d == highest_close_after_b
             and c == lowest_low_after_c
         ):
-
-            # termination_zone = abs(bc_extension - bc_fib_extension) / min(
-            #     bc_extension, bc_fib_extension
-            # )
-            #
-            # if termination_zone > 0.1:
-            #     a, a_idx = c, c_idx
-            #     continue
-
             selected = dict(
                 df_start=df.index[0],
                 df_end=df.index[-1],
@@ -1710,10 +1763,34 @@ def find_bearish_abcd(
                 },
                 extra_points={
                     "direction": (c_idx, c),
-                    f"{c_fib_inverse:.3f}BC": (b_idx, bc_fib_extension),
-                    "AB=CD": (b_idx, bc_extension),
                 },
             )
+
+            if is_perfect:
+                alt_name = "Bear Perfect AB=CD"
+
+                selected["extra_points"].update(
+                    {
+                        "AB=CD": (b_idx, ab_cd_ext),
+                        "1.618BC": (b_idx, bc_618_ext),
+                    }
+                )
+            elif is_alternate:
+                alt_name = "Bear Alternate AB=CD"
+
+                selected["extra_points"].update(
+                    {
+                        "1.27AB=CD": (b_idx, ab_27_ext),
+                        "1.618AB=CD": (b_idx, ab_618_ext),
+                    }
+                )
+            else:
+                selected["extra_points"].update(
+                    {
+                        f"{c_fib_inverse:.3f}BC": (b_idx, bc_ext),
+                        "AB=CD": (b_idx, ab_cd_ext),
+                    }
+                )
 
         a, a_idx = c, c_idx
 
@@ -1721,7 +1798,8 @@ def find_bearish_abcd(
         selected.update(
             dict(
                 sym=sym,
-                pattern="BULL AB=CD",
+                pattern="ABCDD",
+                alt_name=alt_name,
             )
         )
 
@@ -1734,6 +1812,8 @@ def find_bullish_bat(
     """
     Bullish Bat harmonic pattern
     """
+    is_perfect_bat = is_alternate_bat = False
+    alt_name = "Bull BAT"
     pivot_len = pivots.shape[0]
 
     x_idx = pivots["P"].idxmin()
@@ -1784,6 +1864,17 @@ def find_bullish_bat(
         ab_diff = a - b
         bc_diff = c - b
 
+        if (
+            x == df.at[x_idx, "High"]
+            or a == df.at[a_idx, "Low"]
+            or b == df.at[b_idx, "High"]
+            or c == df.at[c_idx, "Low"]
+        ):
+            # Check that the pattern is well formed
+            x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmin()
+            x = pivots.loc[x_idx, "P"]
+            continue
+
         b_retrace = fib_ser.loc[(fib_ser - (ab_diff / xa_diff)).abs().idxmin()]
         c_retrace = fib_ser.loc[(fib_ser - (bc_diff / ab_diff)).abs().idxmin()]
 
@@ -1797,22 +1888,51 @@ def find_bullish_bat(
             x = pivots.loc[x_idx, "P"]
             continue
 
+        is_perfect_bat = b_retrace == 0.5 and (
+            c_retrace == 0.5 or c_retrace == 0.618
+        )
+
+        is_alternate_bat = b_retrace == 0.382
+
         xa_886_retrace = a - xa_diff * 0.886
+        bc_2_ext = c - bc_diff * 2
+        bc_618_ext = c - bc_diff * 1.618
+        xa_13_ext = c - xa_diff * 1.13
 
-        bc_618_ext = a - ab_diff * 1.618
+        ab_27_ext = c - ab_diff * 1.27
+
         lowest_close_after_b = df.loc[b_idx:, "Close"].min()
+        highest_high_after_c = df.loc[c_idx:, "High"].max()
 
-        if d < b and lowest_close_after_b > x and d == lowest_close_after_b:
+        if is_perfect_bat:
+            terminal_point = min(ab_27_ext, bc_2_ext)
+        elif is_alternate_bat:
+            values_dct = {
+                "2BC": bc_2_ext,
+                "2.618BC": c - bc_diff * 2.618,
+                "3BC": c - bc_diff * 3,
+                "3.618BC": c - bc_diff * 3.618,
+                "1.618AB=CD": c - ab_diff * 1.618,
+            }
 
-            if (
-                x == df.at[x_idx, "High"]
-                or a == df.at[a_idx, "Low"]
-                or b == df.at[b_idx, "High"]
-                or c == df.at[c_idx, "Low"]
-            ):
-                x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmin()
-                x = pivots.loc[x_idx, "P"]
-                continue
+            closest_var = min(
+                values_dct, key=lambda k: abs(values_dct[k] - xa_13_ext)
+            )
+
+            terminal_point = min(xa_13_ext, values_dct[closest_var])
+        else:
+            terminal_point = min(xa_886_retrace, bc_618_ext)
+
+        closes_below_terminal_point = (
+            df.loc[c_idx:, "Close"] < terminal_point
+        ).sum()
+
+        if (
+            d <= terminal_point
+            and closes_below_terminal_point < 7
+            and d == lowest_close_after_b
+            and c == highest_high_after_c
+        ):
 
             selected = dict(
                 df_start=df.index[0],
@@ -1828,21 +1948,42 @@ def find_bullish_bat(
                 },
                 extra_points={
                     "direction": (c_idx, c),
-                    "0.886XA": (b_idx, xa_886_retrace),
-                    "1.618AB=CD": (b_idx, bc_618_ext),
                 },
             )
+
+            if is_perfect_bat:
+                # Perfect BAT pattern
+                alt_name = "Bull Perfect BAT"
+
+                selected["extra_points"].update(
+                    {
+                        "1.27AB=CD": (b_idx, ab_27_ext),
+                        "2BC": (b_idx, bc_2_ext),
+                    }
+                )
+            elif is_alternate_bat:
+                # Alternate BAT pattern
+                alt_name = "Bull Alternate BAT"
+
+                selected["extra_points"].update(
+                    {
+                        closest_var: (b_idx, values_dct[closest_var]),
+                        "1.13XA": (b_idx, xa_13_ext),
+                    }
+                )
+            else:
+                selected["extra_points"].update(
+                    {
+                        "0.886XA": (b_idx, xa_886_retrace),
+                        "1.618BC": (b_idx, bc_618_ext),
+                    }
+                )
 
         x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmin()
         x = pivots.loc[x_idx, "P"]
 
     if selected:
-        selected.update(
-            dict(
-                sym=sym,
-                pattern="BATU",
-            )
-        )
+        selected.update(dict(sym=sym, pattern="BATU", alt_name=alt_name))
 
     return selected
 
@@ -1853,6 +1994,8 @@ def find_bearish_bat(
     """
     Bearish Bat harmonic pattern
     """
+    is_perfect_bat = is_alternate_bat = False
+    alt_name = "Bear BAT"
     pivot_len = pivots.shape[0]
 
     x_idx = pivots["P"].idxmax()
@@ -1903,6 +2046,17 @@ def find_bearish_bat(
         ab_diff = b - a
         bc_diff = b - c
 
+        if (
+            x == df.at[x_idx, "Low"]
+            or a == df.at[a_idx, "High"]
+            or b == df.at[b_idx, "Low"]
+            or c == df.at[c_idx, "High"]
+        ):
+            # Check that the pattern is well formed
+            x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmax()
+            x = pivots.loc[x_idx, "P"]
+            continue
+
         b_retrace = fib_ser.loc[(fib_ser - (ab_diff / xa_diff)).abs().idxmin()]
         c_retrace = fib_ser.loc[(fib_ser - (bc_diff / ab_diff)).abs().idxmin()]
 
@@ -1916,22 +2070,52 @@ def find_bearish_bat(
             x = pivots.loc[x_idx, "P"]
             continue
 
+        is_perfect_bat = b_retrace == 0.5 and (
+            c_retrace == 0.5 or c_retrace == 0.618
+        )
+
+        is_alternate_bat = b_retrace == 0.382
+
         xa_886_retrace = a + xa_diff * 0.886
+        xa_13_ext = c + xa_diff * 1.13
 
-        bc_618_ext = a + ab_diff * 1.618
+        bc_2_ext = c + bc_diff * 2
+        bc_618_ext = c + bc_diff * 1.618
+
+        ab_27_ext = c + ab_diff * 1.27
+
         highest_close_after_b = df.loc[b_idx:, "Close"].max()
+        lowest_low_after_c = df.loc[c_idx:, "Low"].min()
 
-        if d > b and highest_close_after_b < x and d == highest_close_after_b:
+        if is_perfect_bat:
+            terminal_point = max(ab_27_ext, bc_2_ext)
+        elif is_alternate_bat:
+            values_dct = {
+                "2BC": bc_2_ext,
+                "2.618BC": c + bc_diff * 2.618,
+                "3BC": c + bc_diff * 3,
+                "3.618BC": c + bc_diff * 3.618,
+                "1.618AB=CD": c + ab_diff * 1.618,
+            }
 
-            if (
-                x == df.at[x_idx, "Low"]
-                or a == df.at[a_idx, "High"]
-                or b == df.at[b_idx, "Low"]
-                or c == df.at[c_idx, "High"]
-            ):
-                x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmax()
-                x = pivots.loc[x_idx, "P"]
-                continue
+            closest_var = min(
+                values_dct, key=lambda k: abs(values_dct[k] - xa_13_ext)
+            )
+
+            terminal_point = max(xa_13_ext, values_dct[closest_var])
+        else:
+            terminal_point = max(xa_886_retrace, bc_618_ext)
+
+        closes_above_terminal_point = (
+            df.loc[c_idx:, "Close"] > terminal_point
+        ).sum()
+
+        if (
+            d >= terminal_point
+            and closes_above_terminal_point < 7
+            and d == highest_close_after_b
+            and c == lowest_low_after_c
+        ):
 
             selected = dict(
                 df_start=df.index[0],
@@ -1947,20 +2131,707 @@ def find_bearish_bat(
                 },
                 extra_points={
                     "direction": (c_idx, c),
-                    "0.886XA": (b_idx, xa_886_retrace),
-                    "AB=CD": (b_idx, bc_618_ext),
                 },
             )
+
+            if is_perfect_bat:
+                # Perfect BAT pattern
+                alt_name = "Bear Perfect BAT"
+
+                selected["extra_points"].update(
+                    {
+                        "1.27AB=CD": (b_idx, ab_27_ext),
+                        "2BC": (b_idx, bc_2_ext),
+                    }
+                )
+            elif is_alternate_bat:
+                # Alternate BAT pattern
+                alt_name = "Bear Alternate BAT"
+
+                selected["extra_points"].update(
+                    {
+                        closest_var: (b_idx, values_dct[closest_var]),
+                        "1.13XA": (b_idx, xa_13_ext),
+                    }
+                )
+            else:
+                # Normal BAT pattern
+                selected["extra_points"].update(
+                    {
+                        "0.886XA": (b_idx, xa_886_retrace),
+                        "1.618BC": (b_idx, bc_618_ext),
+                    }
+                )
 
         x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmax()
         x = pivots.loc[x_idx, "P"]
 
     if selected:
-        selected.update(
-            dict(
-                sym=sym,
-                pattern="BATD",
+        selected.update(dict(sym=sym, pattern="BATD", alt_name=alt_name))
+
+    return selected
+
+
+def find_bullish_gartley(
+    sym: str, df: pd.DataFrame, pivots: pd.DataFrame
+) -> Optional[dict]:
+    """
+    Bullish Gartley harmonic pattern
+    """
+    alt_name = "Bull Gartley"
+    pivot_len = pivots.shape[0]
+
+    x_idx = pivots["P"].idxmin()
+    x = pivots.at[x_idx, "P"]
+
+    d_idx = df.index[-1]
+    d = df.at[d_idx, "Close"]
+
+    selected: Optional[dict] = None
+
+    assert isinstance(pivots.index, pd.DatetimeIndex)
+    assert isinstance(x_idx, pd.Timestamp)
+
+    while True:
+        pos_after_x = get_next_index(pivots.index, x_idx)
+
+        if pos_after_x >= pivot_len:
+            break
+
+        a_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmax()
+        a = pivots.at[a_idx, "P"]
+
+        pos_after_a = get_next_index(pivots.index, a_idx)
+
+        if pos_after_a >= pivot_len:
+            break
+
+        c_idx = pivots.loc[pivots.index[pos_after_a] :, "P"].idxmax()
+        c = pivots.at[c_idx, "P"]
+
+        b_idx = pivots.loc[a_idx:c_idx, "P"].idxmin()
+        b = pivots.at[b_idx, "P"]
+
+        if pivots.index.has_duplicates:
+            if isinstance(x, pd.Series):
+                x = pivots.at[x_idx, "P"].min()
+
+            if isinstance(a, pd.Series):
+                a = pivots.at[a_idx, "P"].max()
+
+            if isinstance(b, pd.Series):
+                b = pivots.at[b_idx, "P"].min()
+
+            if isinstance(c, pd.Series):
+                c = pivots.at[c_idx, "P"].max()
+
+        xa_diff = a - x
+        ab_diff = a - b
+        bc_diff = c - b
+
+        if (
+            x == df.at[x_idx, "High"]
+            or a == df.at[a_idx, "Low"]
+            or b == df.at[b_idx, "High"]
+            or c == df.at[c_idx, "Low"]
+        ):
+            # Check that the pattern is well formed
+            x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmin()
+            x = pivots.loc[x_idx, "P"]
+            continue
+
+        b_retrace = fib_ser.loc[(fib_ser - (ab_diff / xa_diff)).abs().idxmin()]
+        c_retrace = fib_ser.loc[(fib_ser - (bc_diff / ab_diff)).abs().idxmin()]
+
+        if b_retrace != 0.618 or c_retrace < 0.382 or c_retrace > 0.886:
+            x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmin()
+            x = pivots.loc[x_idx, "P"]
+            continue
+
+        c_fib_inverse = round(1 / c_retrace, 3)
+
+        is_perfect = b_retrace == 0.618 and c_retrace == 0.618
+
+        xa_786_retrace = a - xa_diff * 0.786
+
+        bc_618_ext = c - bc_diff * 1.618
+
+        ab_cd_ext = c - ab_diff
+
+        lowest_close_after_b = df.loc[b_idx:, "Close"].min()
+        highest_high_after_c = df.loc[c_idx:, "High"].max()
+
+        terminal_point = min(ab_cd_ext, xa_786_retrace)
+
+        closes_below_terminal_point = (
+            df.loc[c_idx:, "Close"] < terminal_point
+        ).sum()
+
+        if (
+            d <= terminal_point
+            and closes_below_terminal_point < 7
+            and d == lowest_close_after_b
+            and c == highest_high_after_c
+        ):
+
+            selected = dict(
+                df_start=df.index[0],
+                df_end=df.index[-1],
+                start=a_idx,
+                end=d_idx,
+                points={
+                    "X": (x_idx, x),
+                    "A": (a_idx, a),
+                    f"{b_retrace:.3f}B": (b_idx, b),
+                    f"{c_retrace:.3f}C": (c_idx, c),
+                    "D": (d_idx, d),
+                },
+                extra_points={
+                    "direction": (c_idx, c),
+                },
             )
+
+            if is_perfect:
+                # Perfect Gartley pattern
+                alt_name = "Bull Perfect Gartley"
+
+                selected["extra_points"].update(
+                    {
+                        "AB=CD": (b_idx, ab_cd_ext),
+                        "0.786XA": (b_idx, xa_786_retrace),
+                        "1.618BC": (b_idx, bc_618_ext),
+                    }
+                )
+            else:
+                selected["extra_points"].update(
+                    {
+                        "AB=CD": (b_idx, ab_cd_ext),
+                        "0.786XA": (b_idx, xa_786_retrace),
+                    }
+                )
+
+                if c_fib_inverse <= 1.618:
+                    selected["extra_points"][f"{c_fib_inverse}BC"] = (
+                        b_idx,
+                        c - bc_diff * c_fib_inverse,
+                    )
+
+        x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmin()
+        x = pivots.loc[x_idx, "P"]
+
+    if selected:
+        selected.update(dict(sym=sym, pattern="GARTU", alt_name=alt_name))
+
+    return selected
+
+
+def find_bearish_gartley(
+    sym: str, df: pd.DataFrame, pivots: pd.DataFrame
+) -> Optional[dict]:
+    """
+    Bearish Gartley harmonic pattern
+    """
+    alt_name = "Bearish Gartley"
+    pivot_len = pivots.shape[0]
+
+    x_idx = pivots["P"].idxmax()
+    x = pivots.at[x_idx, "P"]
+
+    d_idx = df.index[-1]
+    d = df.at[d_idx, "Close"]
+
+    selected: Optional[dict] = None
+
+    assert isinstance(pivots.index, pd.DatetimeIndex)
+    assert isinstance(x_idx, pd.Timestamp)
+
+    while True:
+        pos_after_x = get_next_index(pivots.index, x_idx)
+
+        if pos_after_x >= pivot_len:
+            break
+
+        a_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmin()
+        a = pivots.at[a_idx, "P"]
+
+        pos_after_a = get_next_index(pivots.index, a_idx)
+
+        if pos_after_a >= pivot_len:
+            break
+
+        c_idx = pivots.loc[pivots.index[pos_after_a] :, "P"].idxmin()
+        c = pivots.at[c_idx, "P"]
+
+        b_idx = pivots.loc[a_idx:c_idx, "P"].idxmax()
+        b = pivots.at[b_idx, "P"]
+
+        if pivots.index.has_duplicates:
+            if isinstance(x, pd.Series):
+                x = pivots.at[x_idx, "P"].max()
+
+            if isinstance(a, pd.Series):
+                a = pivots.at[a_idx, "P"].min()
+
+            if isinstance(b, pd.Series):
+                b = pivots.at[b_idx, "P"].max()
+
+            if isinstance(c, pd.Series):
+                c = pivots.at[c_idx, "P"].min()
+
+        xa_diff = x - a
+        ab_diff = b - a
+        bc_diff = b - c
+
+        if (
+            x == df.at[x_idx, "Low"]
+            or a == df.at[a_idx, "High"]
+            or b == df.at[b_idx, "Low"]
+            or c == df.at[c_idx, "High"]
+        ):
+            # Check that the pattern is well formed
+            x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmax()
+            x = pivots.loc[x_idx, "P"]
+            continue
+
+        b_retrace = fib_ser.loc[(fib_ser - (ab_diff / xa_diff)).abs().idxmin()]
+        c_retrace = fib_ser.loc[(fib_ser - (bc_diff / ab_diff)).abs().idxmin()]
+
+        if b_retrace != 0.618 or c_retrace < 0.382 or c_retrace > 0.886:
+            x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmax()
+            x = pivots.loc[x_idx, "P"]
+            continue
+
+        c_fib_inverse = round(1 / c_retrace, 3)
+
+        is_perfect = b_retrace == 0.618 and c_retrace == 0.618
+
+        xa_786_retrace = a + xa_diff * 0.786
+
+        bc_618_ext = c + bc_diff * 1.618
+
+        ab_cd_ext = c + ab_diff
+
+        highest_close_after_b = df.loc[b_idx:, "Close"].max()
+        lowest_low_after_c = df.loc[c_idx:, "Low"].min()
+
+        terminal_point = max(ab_cd_ext, xa_786_retrace)
+
+        closes_above_terminal_point = (
+            df.loc[c_idx:, "Close"] > terminal_point
+        ).sum()
+
+        if (
+            d >= terminal_point
+            and closes_above_terminal_point < 7
+            and d == highest_close_after_b
+            and c == lowest_low_after_c
+        ):
+            selected = dict(
+                df_start=df.index[0],
+                df_end=df.index[-1],
+                start=a_idx,
+                end=d_idx,
+                points={
+                    "X": (x_idx, x),
+                    "A": (a_idx, a),
+                    f"{b_retrace:.3f}B": (b_idx, b),
+                    f"{c_retrace:.3f}C": (c_idx, c),
+                    "D": (d_idx, d),
+                },
+                extra_points={
+                    "direction": (c_idx, c),
+                },
+            )
+
+            if is_perfect:
+                # Perfect Gartley pattern
+                alt_name = "Bear Perfect Gartley"
+
+                selected["extra_points"].update(
+                    {
+                        "AB=CD": (b_idx, ab_cd_ext),
+                        "0.786XA": (b_idx, xa_786_retrace),
+                        "1.618BC": (b_idx, bc_618_ext),
+                    }
+                )
+            else:
+                selected["extra_points"].update(
+                    {
+                        "AB=CD": (b_idx, ab_cd_ext),
+                        "0.786XA": (b_idx, xa_786_retrace),
+                    }
+                )
+
+                if c_fib_inverse <= 1.618:
+                    selected["extra_points"][f"{c_fib_inverse}BC"] = (
+                        b_idx,
+                        c + bc_diff * c_fib_inverse,
+                    )
+
+        x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmax()
+        x = pivots.loc[x_idx, "P"]
+
+    if selected:
+        selected.update(dict(sym=sym, pattern="GARTD", alt_name=alt_name))
+
+    return selected
+
+
+def find_bullish_crab(
+    sym: str, df: pd.DataFrame, pivots: pd.DataFrame
+) -> Optional[dict]:
+    """
+    Bullish Crab harmonic pattern
+    """
+    alt_name = "Bull Crab"
+    pivot_len = pivots.shape[0]
+
+    x_idx = pivots["P"].idxmin()
+    x = pivots.at[x_idx, "P"]
+
+    d_idx = df.index[-1]
+    d = df.at[d_idx, "Close"]
+
+    selected: Optional[dict] = None
+
+    assert isinstance(pivots.index, pd.DatetimeIndex)
+    assert isinstance(x_idx, pd.Timestamp)
+
+    while True:
+        pos_after_x = get_next_index(pivots.index, x_idx)
+
+        if pos_after_x >= pivot_len:
+            break
+
+        a_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmax()
+        a = pivots.at[a_idx, "P"]
+
+        pos_after_a = get_next_index(pivots.index, a_idx)
+
+        if pos_after_a >= pivot_len:
+            break
+
+        c_idx = pivots.loc[pivots.index[pos_after_a] :, "P"].idxmax()
+        c = pivots.at[c_idx, "P"]
+
+        b_idx = pivots.loc[a_idx:c_idx, "P"].idxmin()
+        b = pivots.at[b_idx, "P"]
+
+        if pivots.index.has_duplicates:
+            if isinstance(x, pd.Series):
+                x = pivots.at[x_idx, "P"].min()
+
+            if isinstance(a, pd.Series):
+                a = pivots.at[a_idx, "P"].max()
+
+            if isinstance(b, pd.Series):
+                b = pivots.at[b_idx, "P"].min()
+
+            if isinstance(c, pd.Series):
+                c = pivots.at[c_idx, "P"].max()
+
+        xa_diff = a - x
+        ab_diff = a - b
+        bc_diff = c - b
+
+        if (
+            x == df.at[x_idx, "High"]
+            or a == df.at[a_idx, "Low"]
+            or b == df.at[b_idx, "High"]
+            or c == df.at[c_idx, "Low"]
+        ):
+            # Check that the pattern is well formed
+            x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmin()
+            x = pivots.loc[x_idx, "P"]
+            continue
+
+        b_retrace = fib_ser.loc[(fib_ser - (ab_diff / xa_diff)).abs().idxmin()]
+        c_retrace = fib_ser.loc[(fib_ser - (bc_diff / ab_diff)).abs().idxmin()]
+
+        if b_retrace < 0.618 and c_retrace < 0.382 or c_retrace > 0.886:
+            x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmin()
+            x = pivots.loc[x_idx, "P"]
+            continue
+
+        is_perfect_crab = (
+            b_retrace == 0.618 and c_retrace == 0.5 or c_retrace == 0.618
         )
+
+        is_deep_crab = b_retrace == 0.886 and b > x
+
+        xa_618_ext = a - xa_diff * 1.618
+
+        bc_3_14_ext = c - bc_diff * 3.14
+        ab_618_ext = a - ab_diff * 1.618
+        ab_27_ext = a - ab_diff * 1.27
+
+        if is_perfect_crab:
+            terminal_point = min(bc_3_14_ext, xa_618_ext, ab_618_ext)
+        elif is_deep_crab:
+            deep_crab_dct = {"1.27AB": ab_27_ext, "1.618AB": ab_618_ext}
+
+            closest_var = min(
+                deep_crab_dct, key=lambda k: abs(deep_crab_dct[k] - xa_618_ext)
+            )
+
+            terminal_point = min(xa_618_ext, deep_crab_dct[closest_var])
+        else:
+            values_dct = {
+                "2.618BC": c - bc_diff * 2.618,
+                "3.14BC": c - bc_diff * 3.14,
+                "3.618BC": c - bc_diff * 3.618,
+            }
+
+            closest_var = min(
+                values_dct, key=lambda k: abs(values_dct[k] - xa_618_ext)
+            )
+
+            terminal_point = min(xa_618_ext, values_dct[closest_var])
+
+        lowest_close_after_b = df.loc[b_idx:, "Close"].min()
+        highest_high_after_c = df.loc[c_idx:, "High"].max()
+
+        closes_below_terminal_point = (
+            df.loc[c_idx:, "Close"] < terminal_point
+        ).sum()
+
+        if (
+            d <= terminal_point
+            and closes_below_terminal_point < 7
+            and d == lowest_close_after_b
+            and c == highest_high_after_c
+        ):
+
+            selected = dict(
+                df_start=df.index[0],
+                df_end=df.index[-1],
+                start=a_idx,
+                end=d_idx,
+                points={
+                    "X": (x_idx, x),
+                    "A": (a_idx, a),
+                    f"{b_retrace:.3f}B": (b_idx, b),
+                    f"{c_retrace:.3f}C": (c_idx, c),
+                    "D": (d_idx, d),
+                },
+                extra_points={
+                    "direction": (c_idx, c),
+                },
+            )
+
+            if is_perfect_crab:
+                # Perfect crab pattern
+                alt_name = "Bull Perfect Crab"
+
+                selected["extra_points"].update(
+                    {
+                        "3.14BC": (b_idx, bc_3_14_ext),
+                        "1.618XA": (b_idx, xa_618_ext),
+                        "1.618AB": (b_idx, ab_618_ext),
+                    }
+                )
+            elif is_deep_crab:
+                # Deep Crab pattern
+                alt_name = "Bull Deep Crab"
+
+                selected["extra_points"].update(
+                    {
+                        "1.618XA": (b_idx, xa_618_ext),
+                        closest_var: (b_idx, deep_crab_dct[closest_var]),
+                    }
+                )
+            else:
+                selected["extra_points"].update(
+                    {
+                        "1.618XA": (b_idx, xa_618_ext),
+                        closest_var: (b_idx, values_dct[closest_var]),
+                    }
+                )
+
+        x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmin()
+        x = pivots.loc[x_idx, "P"]
+
+    if selected:
+        selected.update(dict(sym=sym, pattern="CRABU", alt_name=alt_name))
+
+    return selected
+
+
+def find_bearish_crab(
+    sym: str, df: pd.DataFrame, pivots: pd.DataFrame
+) -> Optional[dict]:
+    """
+    Bearish Crab harmonic pattern
+    """
+    alt_name = "Bear Crab"
+    pivot_len = pivots.shape[0]
+
+    x_idx = pivots["P"].idxmax()
+    x = pivots.at[x_idx, "P"]
+
+    d_idx = df.index[-1]
+    d = df.at[d_idx, "Close"]
+
+    selected: Optional[dict] = None
+
+    assert isinstance(pivots.index, pd.DatetimeIndex)
+    assert isinstance(x_idx, pd.Timestamp)
+
+    while True:
+        pos_after_x = get_next_index(pivots.index, x_idx)
+
+        if pos_after_x >= pivot_len:
+            break
+
+        a_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmin()
+        a = pivots.at[a_idx, "P"]
+
+        pos_after_a = get_next_index(pivots.index, a_idx)
+
+        if pos_after_a >= pivot_len:
+            break
+
+        c_idx = pivots.loc[pivots.index[pos_after_a] :, "P"].idxmin()
+        c = pivots.at[c_idx, "P"]
+
+        b_idx = pivots.loc[a_idx:c_idx, "P"].idxmax()
+        b = pivots.at[b_idx, "P"]
+
+        if pivots.index.has_duplicates:
+            if isinstance(x, pd.Series):
+                x = pivots.at[x_idx, "P"].max()
+
+            if isinstance(a, pd.Series):
+                a = pivots.at[a_idx, "P"].min()
+
+            if isinstance(b, pd.Series):
+                b = pivots.at[b_idx, "P"].max()
+
+            if isinstance(c, pd.Series):
+                c = pivots.at[c_idx, "P"].min()
+
+        xa_diff = x - a
+        ab_diff = b - a
+        bc_diff = b - c
+
+        if (
+            x == df.at[x_idx, "Low"]
+            or a == df.at[a_idx, "High"]
+            or b == df.at[b_idx, "Low"]
+            or c == df.at[c_idx, "High"]
+        ):
+            # Check that the pattern is well formed
+            x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmax()
+            x = pivots.loc[x_idx, "P"]
+            continue
+
+        b_retrace = fib_ser.loc[(fib_ser - (ab_diff / xa_diff)).abs().idxmin()]
+        c_retrace = fib_ser.loc[(fib_ser - (bc_diff / ab_diff)).abs().idxmin()]
+
+        if b_retrace < 0.618 and c_retrace < 0.382 or c_retrace > 0.886:
+            x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmax()
+            x = pivots.loc[x_idx, "P"]
+            continue
+
+        is_perfect_crab = (
+            b_retrace == 0.618 and c_retrace == 0.5 or c_retrace == 0.618
+        )
+
+        is_deep_crab = b_retrace == 0.886 and b < x
+
+        xa_618_ext = a + xa_diff * 1.618
+
+        bc_3_14_ext = c + bc_diff * 3.14
+        ab_618_ext = a + ab_diff * 1.618
+        ab_27_ext = a + ab_diff * 1.27
+
+        if is_perfect_crab:
+            terminal_point = max(bc_3_14_ext, xa_618_ext, ab_618_ext)
+        elif is_deep_crab:
+            deep_crab_dct = {"1.27AB": ab_27_ext, "1.618AB": ab_618_ext}
+
+            closest_var = min(
+                deep_crab_dct, key=lambda k: abs(deep_crab_dct[k] - xa_618_ext)
+            )
+
+            terminal_point = max(xa_618_ext, deep_crab_dct[closest_var])
+        else:
+            values_dct = {
+                "2.618BC": c + bc_diff * 2.618,
+                "3.14BC": c + bc_diff * 3.14,
+                "3.618BC": c + bc_diff * 3.618,
+            }
+
+            closest_var = min(
+                values_dct, key=lambda k: abs(values_dct[k] - xa_618_ext)
+            )
+
+            terminal_point = max(xa_618_ext, values_dct[closest_var])
+
+        highest_close_after_b = df.loc[b_idx:, "Close"].max()
+        lowest_low_after_c = df.loc[c_idx:, "Low"].min()
+
+        closes_below_terminal_point = (
+            df.loc[c_idx:, "Close"] > terminal_point
+        ).sum()
+
+        if (
+            d >= terminal_point
+            and closes_below_terminal_point < 7
+            and d == highest_close_after_b
+            and c == lowest_low_after_c
+        ):
+
+            selected = dict(
+                df_start=df.index[0],
+                df_end=df.index[-1],
+                start=a_idx,
+                end=d_idx,
+                points={
+                    "X": (x_idx, x),
+                    "A": (a_idx, a),
+                    f"{b_retrace:.3f}B": (b_idx, b),
+                    f"{c_retrace:.3f}C": (c_idx, c),
+                    "D": (d_idx, d),
+                },
+                extra_points={
+                    "direction": (c_idx, c),
+                },
+            )
+
+            if is_perfect_crab:
+                # Perfect crab pattern
+                alt_name = "Bear Perfect Crab"
+
+                selected["extra_points"].update(
+                    {
+                        "3.14BC": (b_idx, bc_3_14_ext),
+                        "1.618XA": (b_idx, xa_618_ext),
+                        "1.618AB": (b_idx, ab_618_ext),
+                    }
+                )
+            elif is_deep_crab:
+                # Deep Crab pattern
+                alt_name = "Bear Deep Crab"
+
+                selected["extra_points"].update(
+                    {
+                        "1.618XA": (b_idx, xa_618_ext),
+                        closest_var: (b_idx, deep_crab_dct[closest_var]),
+                    }
+                )
+            else:
+                selected["extra_points"].update(
+                    {
+                        "1.618XA": (b_idx, xa_618_ext),
+                        closest_var: (b_idx, values_dct[closest_var]),
+                    }
+                )
+
+        x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmax()
+        x = pivots.loc[x_idx, "P"]
+
+    if selected:
+        selected.update(dict(sym=sym, pattern="CRABD", alt_name=alt_name))
 
     return selected

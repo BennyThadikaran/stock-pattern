@@ -46,6 +46,15 @@ py backtest.py -p trng --date 2023-12-01 --period 60
 """
 
 
+def uncaught_exception_handler(*args):
+    """
+    Handle all Uncaught Exceptions
+
+    Function passed to sys.excepthook
+    """
+    logger.critical("Uncaught Exception", exc_info=args)
+
+
 def parse_cli_args():
     key_list = (
         "vcpu",
@@ -61,6 +70,10 @@ def parse_cli_args():
         "abcdd",
         "batu",
         "batd",
+        "garu",
+        "gard",
+        "crabu",
+        "crabd",
     )
 
     parser = argparse.ArgumentParser(description="Run backdated pattern scan")
@@ -181,6 +194,10 @@ def scan(
         "abcdd": utils.find_bearish_abcd,
         "batu": utils.find_bullish_bat,
         "batd": utils.find_bearish_bat,
+        "garu": utils.find_bullish_gartley,
+        "gard": utils.find_bearish_gartley,
+        "crabu": utils.find_bullish_crab,
+        "crabd": utils.find_bearish_crab,
     }
 
     df = loader.get(sym)
@@ -334,6 +351,7 @@ if __name__ == "__main__":
 
     logger = logging.getLogger(__name__)
 
+    sys.excepthook = uncaught_exception_handler
     DIR = Path(__file__).parent
 
     if "-c" in sys.argv or "--config" in sys.argv:
