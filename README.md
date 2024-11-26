@@ -1,14 +1,14 @@
 # Stock-Pattern
 
-A Python CLI scanner to detect and plot common chart patterns
+A Python CLI scanner to detect and plot common chart patterns. Includes Harmonic chart patterns
 
 **Supports Python >= 3.8**
 
-**UPDATE:** v3.2.2 adds support for trendline detection and AB=CD harmonic pattern (Experimental work-in-progress)
-
 If you :heart: my work so far, please :star2: this repo.
 
-![stock-pattern-cli](https://res.cloudinary.com/doyu4uovr/image/upload/s--CieAES1A--/c_scale,f_auto,w_800/v1716034129/stock-pattern/stock-pattern-cli-v3_z92axi.png)
+![stock-pattern-cli-1](https://res.cloudinary.com/doyu4uovr/image/upload/s--HjrsEmtc--/c_scale,f_auto,w_500/v1732622055/stock-pattern/stock-pattern-ui-1_agjjxp.png)
+
+![stock-pattern-cli-2](https://res.cloudinary.com/doyu4uovr/image/upload/s--qoHrLTS---/c_scale,f_auto,w_500/v1732622054/stock-pattern/stock-pattern-ui-2_jwpvv1.png)
 
 These were a series of pattern scanners I wrote for experimentation and fun in 2022. My inspiration was this Medium article [Algorithmically Detecting (and Trading) Technical Chart Patterns with Python](https://medium.com/automation-generation/algorithmically-detecting-and-trading-technical-chart-patterns-with-python-c577b3a396ed)
 
@@ -63,13 +63,13 @@ For backtest.py usage, see [wiki backtest](https://github.com/BennyThadikaran/st
 
 ## Screenshots
 
-**HUDCO - Double Bottom 16th June 2022**
+**HUDCO - Bull VCP 25th Apr 2024**
 
-![HUDCO - Double Bottom](https://res.cloudinary.com/doyu4uovr/image/upload/s--nQ10RsSG--/c_scale,f_auto,w_700/v1702918851/stock-pattern/hudco-double-bottom_dtcvwj.png)
+![HUDCO - Bull VCP](https://res.cloudinary.com/doyu4uovr/image/upload/s--ACa-Ml5n--/c_scale,f_auto,w_800/v1732622055/stock-pattern/hudco-vcpu-daily_sccvoh.png)
 
-**GRAPHITE - Bear VCP 18th Oct 2022**
+**RRKABEL - Bull BAT Harmonic pattern 18th Oct 2022**
 
-![GRAPHITE - Bear VCP](https://res.cloudinary.com/doyu4uovr/image/upload/s--LLToQmNv--/c_scale,f_auto,w_700/v1702918851/stock-pattern/graphite-bear-vcp_yi7cmv.png)
+![RRKABEL - Bull BAT](https://res.cloudinary.com/doyu4uovr/image/upload/s--ge7esWPA--/c_scale,f_auto,w_800/v1732622055/stock-pattern/rrkabel-bull-bat-daily_yewyxv.png)
 
 **MGL - Reverse Head & Shoulder 16th June 2022**
 
