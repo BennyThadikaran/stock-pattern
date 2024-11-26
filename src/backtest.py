@@ -70,6 +70,10 @@ def parse_cli_args():
         "abcdd",
         "batu",
         "batd",
+        "garu",
+        "gard",
+        "crabu",
+        "crabd",
     )
 
     parser = argparse.ArgumentParser(description="Run backdated pattern scan")
@@ -190,6 +194,10 @@ def scan(
         "abcdd": utils.find_bearish_abcd,
         "batu": utils.find_bullish_bat,
         "batd": utils.find_bearish_bat,
+        "garu": utils.find_bullish_gartley,
+        "gard": utils.find_bearish_gartley,
+        "crabu": utils.find_bullish_crab,
+        "crabd": utils.find_bearish_crab,
     }
 
     df = loader.get(sym)
