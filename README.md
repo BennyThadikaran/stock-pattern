@@ -67,7 +67,7 @@ For backtest.py usage, see [wiki backtest](https://github.com/BennyThadikaran/st
 
 ![HUDCO - Bull VCP](https://res.cloudinary.com/doyu4uovr/image/upload/s--ACa-Ml5n--/c_scale,f_auto,w_800/v1732622055/stock-pattern/hudco-vcpu-daily_sccvoh.png)
 
-**RRKABEL - Bull BAT Harmonic pattern 18th Oct 2022**
+**RRKABEL - Bull BAT Harmonic pattern 13th Mar 2024**
 
 ![RRKABEL - Bull BAT](https://res.cloudinary.com/doyu4uovr/image/upload/s--ge7esWPA--/c_scale,f_auto,w_800/v1732622055/stock-pattern/rrkabel-bull-bat-daily_yewyxv.png)
 
