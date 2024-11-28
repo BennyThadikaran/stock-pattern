@@ -257,7 +257,7 @@ class Plotter:
 
         dt = self.df.index[round(x)]
 
-        dt_str = f"{dt:%d %b %Y}".upper()
+        dt_str = f"{dt:%d %b'%y %H:%M}".upper()
 
         open, high, low, close, vol = self.df.loc[
             dt, ["Open", "High", "Low", "Close", "Volume"]
