@@ -12,6 +12,19 @@ import pandas as pd
 
 from loaders.AbstractLoader import AbstractLoader
 
+try:
+    pairwise_fn = itertools.pairwise
+except AttributeError:
+    # Support for Python 3.8 and 3.9
+    # https://docs.python.org/3.8/library/itertools.html#itertools-recipes
+    def pairwise(iterable):
+        "s -> (s0,s1), (s1,s2), (s2, s3), ..."
+        a, b = itertools.tee(iterable)
+        next(b, None)
+        return zip(a, b)
+
+    pairwise_fn = pairwise
+
 
 class Plotter:
     idx = 0
@@ -231,7 +244,7 @@ class Plotter:
             return tuple(line for line in itertools.batched(points.values(), 2))
 
         points = dct["points"]
-        return tuple(line for line in itertools.pairwise(points.values()))
+        return tuple(line for line in pairwise_fn(points.values()))
 
     def format_coords(self, x, y):
         s = " " * 5
