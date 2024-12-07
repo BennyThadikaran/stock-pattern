@@ -32,6 +32,32 @@ ascii_upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 fib_ser = pd.Series((0.236, 0.382, 0.5, 0.618, 0.707, 0.786, 0.886, 1))
 
 
+def find_relative_clusters(levels, reference_key) -> dict:
+    """
+    Find price levels relatively close to the price associated with the reference key.
+
+    Parameters:
+        price_levels (dict): A dictionary of price levels with keys as level names and values as prices (float).
+        reference_key (str): The key in the dictionary to use as the reference point.
+    """
+    reference_price = levels[reference_key]
+
+    mean_dev = np.mean(
+        tuple(
+            abs(price - reference_price)
+            for price in levels.values()
+            if price != reference_price
+        )
+    )
+
+    # Find price levels that fall within the mean deviation range
+    return {
+        level: price
+        for level, price in levels.items()
+        if abs(price - reference_price) <= mean_dev
+    }
+
+
 def getY(slope, yintercept, x_value) -> float:
     """
     Returns the value of the Y-axis (Price) at the given X-axis value
