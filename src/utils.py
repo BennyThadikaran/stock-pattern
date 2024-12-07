@@ -1614,7 +1614,9 @@ def find_bullish_abcd(
             terminal_point = min(ab_27_ext, ab_618_ext)
 
         lows_after_c = df.loc[c_idx:, "Low"]
-        lows_below_terminal_point = lows_after_c[lows_after_c < terminal_point]
+        lows_below_terminal_point = lows_after_c.loc[
+            lows_after_c < terminal_point
+        ]
 
         if lows_below_terminal_point.empty:
             has_tested = False
@@ -1794,9 +1796,9 @@ def find_bearish_abcd(
         ).sum()
 
         if (
-            d > b + (terminal_point - b) * 0.5
-            and closes_above_terminal_point < 7
+            closes_above_terminal_point < 7
             and c == lowest_low_after_c
+            and d > b + (terminal_point - b) * 0.5
             and (
                 has_tested
                 and (df.index[-1] - highs_above_terminal_point.index[0]).days
