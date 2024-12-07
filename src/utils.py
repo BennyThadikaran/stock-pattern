@@ -2368,14 +2368,22 @@ def find_bullish_gartley(
         b_retrace = fib_ser.loc[(fib_ser - (ab_diff / xa_diff)).abs().idxmin()]
         c_retrace = fib_ser.loc[(fib_ser - (bc_diff / ab_diff)).abs().idxmin()]
 
-        if b_retrace != 0.618 or c_retrace < 0.382 or c_retrace > 0.886:
+        lowest_close_after_c = df.loc[c_idx:, "Close"].min()
+        highest_high_after_c = df.loc[c_idx:, "High"].max()
+
+        is_perfect = b_retrace == 0.618 and c_retrace == 0.618
+
+        if (
+            b_retrace != 0.618
+            or c_retrace < 0.382
+            or c_retrace > 0.886
+            or lowest_close_after_c < x
+        ):
             x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmin()
             x = pivots.loc[x_idx, "P"]
             continue
 
         c_fib_inverse = round(1 / c_retrace, 3)
-
-        is_perfect = b_retrace == 0.618 and c_retrace == 0.618
 
         xa_786_retrace = a - xa_diff * 0.786
 
@@ -2383,22 +2391,33 @@ def find_bullish_gartley(
 
         ab_cd_ext = c - ab_diff
 
-        lowest_close_after_b = df.loc[b_idx:, "Close"].min()
-        highest_high_after_c = df.loc[c_idx:, "High"].max()
-
-        terminal_point = min(ab_cd_ext, xa_786_retrace)
+        terminal_point = xa_786_retrace
 
         closes_below_terminal_point = (
             df.loc[c_idx:, "Close"] < terminal_point
         ).sum()
 
-        if (
-            d <= terminal_point
-            and closes_below_terminal_point < 7
-            and d == lowest_close_after_b
-            and c == highest_high_after_c
-        ):
+        lows_after_c = df.loc[c_idx:, "Low"]
 
+        lows_below_terminal_point = lows_after_c.loc[
+            lows_after_c < terminal_point
+        ]
+
+        if lows_below_terminal_point.empty:
+            has_tested = False
+        else:
+            has_tested = True
+
+        if (
+            d < b
+            and closes_below_terminal_point < 7
+            and c == highest_high_after_c
+            and (
+                has_tested
+                and (df.index[-1] - lows_below_terminal_point.index[0]).days < 7
+                or not has_tested
+            )
+        ):
             selected = dict(
                 df_start=df.index[0],
                 df_end=df.index[-1],
@@ -2420,26 +2439,39 @@ def find_bullish_gartley(
                 # Perfect Gartley pattern
                 alt_name = "Bull Perfect Gartley"
 
+                clustered_levels = find_relative_clusters(
+                    {
+                        "AB=CD": ab_cd_ext,
+                        "0.786XA": xa_786_retrace,
+                        "1.618BC": bc_618_ext,
+                    },
+                    "0.786XA",
+                )
+
                 selected["extra_points"].update(
                     {
-                        "AB=CD": (b_idx, ab_cd_ext),
-                        "0.786XA": (b_idx, xa_786_retrace),
-                        "1.618BC": (b_idx, bc_618_ext),
+                        level: (b_idx, price)
+                        for level, price in clustered_levels.items()
+                        if price > x
                     }
                 )
             else:
-                selected["extra_points"].update(
+                clustered_levels = find_relative_clusters(
                     {
-                        "AB=CD": (b_idx, ab_cd_ext),
-                        "0.786XA": (b_idx, xa_786_retrace),
-                    }
+                        "AB=CD": ab_cd_ext,
+                        "0.786XA": xa_786_retrace,
+                        f"{c_fib_inverse}BC": c - bc_diff * c_fib_inverse,
+                    },
+                    "0.786XA",
                 )
 
-                if c_fib_inverse <= 1.618:
-                    selected["extra_points"][f"{c_fib_inverse}BC"] = (
-                        b_idx,
-                        c - bc_diff * c_fib_inverse,
-                    )
+                selected["extra_points"].update(
+                    {
+                        level: (b_idx, price)
+                        for level, price in clustered_levels.items()
+                        if price > x
+                    }
+                )
 
         x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmin()
         x = pivots.loc[x_idx, "P"]
@@ -2521,14 +2553,22 @@ def find_bearish_gartley(
         b_retrace = fib_ser.loc[(fib_ser - (ab_diff / xa_diff)).abs().idxmin()]
         c_retrace = fib_ser.loc[(fib_ser - (bc_diff / ab_diff)).abs().idxmin()]
 
-        if b_retrace != 0.618 or c_retrace < 0.382 or c_retrace > 0.886:
+        highest_close_after_c = df.loc[c_idx:, "Close"].max()
+        lowest_low_after_c = df.loc[c_idx:, "Low"].min()
+
+        is_perfect = b_retrace == 0.618 and c_retrace == 0.618
+
+        if (
+            b_retrace != 0.618
+            or c_retrace < 0.382
+            or c_retrace > 0.886
+            or highest_close_after_c > x
+        ):
             x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmax()
             x = pivots.loc[x_idx, "P"]
             continue
 
         c_fib_inverse = round(1 / c_retrace, 3)
-
-        is_perfect = b_retrace == 0.618 and c_retrace == 0.618
 
         xa_786_retrace = a + xa_diff * 0.786
 
@@ -2536,20 +2576,33 @@ def find_bearish_gartley(
 
         ab_cd_ext = c + ab_diff
 
-        highest_close_after_b = df.loc[b_idx:, "Close"].max()
-        lowest_low_after_c = df.loc[c_idx:, "Low"].min()
+        terminal_point = xa_786_retrace
 
-        terminal_point = max(ab_cd_ext, xa_786_retrace)
+        highs_after_c = df.loc[c_idx:, "High"]
+
+        highs_above_terminal_point = highs_after_c[
+            highs_after_c > terminal_point
+        ]
+
+        if highs_above_terminal_point.empty:
+            has_tested = False
+        else:
+            has_tested = True
 
         closes_above_terminal_point = (
             df.loc[c_idx:, "Close"] > terminal_point
         ).sum()
 
         if (
-            d >= terminal_point
+            d > b
             and closes_above_terminal_point < 7
-            and d == highest_close_after_b
             and c == lowest_low_after_c
+            and (
+                has_tested
+                and (df.index[-1] - highs_above_terminal_point.index[0]).days
+                < 7
+                or not has_tested
+            )
         ):
             selected = dict(
                 df_start=df.index[0],
@@ -2572,26 +2625,39 @@ def find_bearish_gartley(
                 # Perfect Gartley pattern
                 alt_name = "Bear Perfect Gartley"
 
+                clustered_levels = find_relative_clusters(
+                    {
+                        "AB=CD": ab_cd_ext,
+                        "0.786XA": xa_786_retrace,
+                        "1.618BC": bc_618_ext,
+                    },
+                    "0.786XA",
+                )
+
                 selected["extra_points"].update(
                     {
-                        "AB=CD": (b_idx, ab_cd_ext),
-                        "0.786XA": (b_idx, xa_786_retrace),
-                        "1.618BC": (b_idx, bc_618_ext),
+                        level: (b_idx, price)
+                        for level, price in clustered_levels.items()
+                        if price < x
                     }
                 )
             else:
-                selected["extra_points"].update(
+                clustered_levels = find_relative_clusters(
                     {
-                        "AB=CD": (b_idx, ab_cd_ext),
-                        "0.786XA": (b_idx, xa_786_retrace),
-                    }
+                        "AB=CD": ab_cd_ext,
+                        "0.786XA": xa_786_retrace,
+                        f"{c_fib_inverse}BC": c + bc_diff * c_fib_inverse,
+                    },
+                    "0.786XA",
                 )
 
-                if c_fib_inverse <= 1.618:
-                    selected["extra_points"][f"{c_fib_inverse}BC"] = (
-                        b_idx,
-                        c + bc_diff * c_fib_inverse,
-                    )
+                selected["extra_points"].update(
+                    {
+                        level: (b_idx, price)
+                        for level, price in clustered_levels.items()
+                        if price < x
+                    }
+                )
 
         x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmax()
         x = pivots.loc[x_idx, "P"]
