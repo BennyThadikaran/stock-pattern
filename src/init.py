@@ -33,11 +33,17 @@ def uncaught_exception_handler(*args):
 def get_user_selection() -> Optional[str]:
     while True:
         ptn_key = questionary.select(
-            message="Select an option [ ** Excludes Trendlines & Triangles ]",
+            message="Select an option [ ** Excludes Trendlines & Triangles & Harmonics ]",
             choices=[
-                questionary.Choice("[ALL] Scan All", value="all"),
+                questionary.Choice("[ALL] Scan All **", value="all"),
                 questionary.Choice("[BULL] Scan only Bull **", value="bull"),
                 questionary.Choice("[BEAR] Scan only Bear **", value="bear"),
+                questionary.Choice(
+                    "[BULL_HARM] All BULL Harmonic pattern", value="bull_harm"
+                ),
+                questionary.Choice(
+                    "[BEAR_HARM] All BEAR Harmonic pattern", value="bear_harm"
+                ),
                 questionary.Choice(
                     "[TRNG] Triangles (Symetrical, Ascending, Descending)",
                     value="trng",
@@ -412,7 +418,8 @@ if __name__ == "__main__":
         "--pattern",
         type=str,
         metavar="str",
-        choices=tuple(fn_dict.keys()) + ("all", "bull", "bear"),
+        choices=tuple(fn_dict.keys())
+        + ("all", "bull", "bear", "bull_harm", "bear_harm"),
         help=f"String pattern. One of {', '.join(fn_dict.keys())}",
     )
 
@@ -597,15 +604,25 @@ if __name__ == "__main__":
     if key in fn_dict:
         fns = (fn_dict[key],)
     elif key == "bull":
-        bull_list = ("vcpu", "hnsu", "dbot", "abcdu", "batu", "crabu", "gartu")
+        bull_list = ("vcpu", "hnsu", "dbot")
 
         fns = tuple(v for k, v in fn_dict.items() if k in bull_list)
     elif key == "bear":
-        bear_list = ("vcpd", "hnsd", "dtop", "abcdd", "batd", "crabd", "gartd")
+        bear_list = ("vcpd", "hnsd", "dtop")
+
+        fns = tuple(v for k, v in fn_dict.items() if k in bear_list)
+    elif key == "bull_harm":
+        bull_list = ("abcdu", "batu", "gartu", "crabu")
+
+        fns = tuple(v for k, v in fn_dict.items() if k in bull_list)
+    elif key == "bear_harm":
+        bear_list = ("abcdd", "batd", "gartd", "crabd")
 
         fns = tuple(v for k, v in fn_dict.items() if k in bear_list)
     else:
-        fns = tuple(v for k, v in fn_dict.items() if k in list(fn_dict.keys()))
+        fns = tuple(
+            fn_dict[k] for k in ("vcpu", "hnsu", "dbot", "vcpd", "hnsd", "dtop")
+        )
 
     try:
         patterns = process(data, key, fns, futures)
