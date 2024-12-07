@@ -29,7 +29,7 @@ is_silent = None
 
 ascii_upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
-fib_ser = pd.Series((0.382, 0.5, 0.618, 0.707, 0.786, 0.886))
+fib_ser = pd.Series((0.236, 0.382, 0.5, 0.618, 0.707, 0.786, 0.886, 1))
 
 
 def getY(slope, yintercept, x_value) -> float:
