@@ -32,7 +32,7 @@ ascii_upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 fib_ser = pd.Series((0.236, 0.382, 0.5, 0.618, 0.707, 0.786, 0.886, 1))
 
 
-def find_relative_clusters(levels, reference_key) -> dict:
+def get_relative_clusters(levels, reference_key) -> dict:
     """
     Find price levels relatively close to the price associated with the reference key.
 
@@ -1966,7 +1966,7 @@ def find_bullish_bat(
         if is_perfect_bat:
             terminal_point = min(ab_27_ext, bc_2_ext, xa_886_retrace)
         elif is_alternate_bat:
-            clustered_levels = find_relative_clusters(
+            clustered_levels = get_relative_clusters(
                 {
                     "1.13XA": xa_13_ext,
                     "2BC": bc_2_ext,
@@ -1984,7 +1984,7 @@ def find_bullish_bat(
 
             terminal_point = clustered_levels[lowest_var]
         else:
-            clustered_levels = find_relative_clusters(
+            clustered_levels = get_relative_clusters(
                 {
                     "0.886XA": xa_886_retrace,
                     "1.618BC": bc_618_ext,
@@ -2185,7 +2185,7 @@ def find_bearish_bat(
         if is_perfect_bat:
             terminal_point = max(ab_27_ext, bc_2_ext, xa_886_retrace)
         elif is_alternate_bat:
-            clustered_levels = find_relative_clusters(
+            clustered_levels = get_relative_clusters(
                 {
                     "1.13XA": xa_13_ext,
                     "1.618AB=CD": c + ab_diff * 1.618,
@@ -2201,7 +2201,7 @@ def find_bearish_bat(
 
             terminal_point = clustered_levels[max_var]
         else:
-            clustered_levels = find_relative_clusters(
+            clustered_levels = get_relative_clusters(
                 {
                     "0.886XA": xa_886_retrace,
                     "1.618BC": bc_618_ext,
@@ -2441,7 +2441,7 @@ def find_bullish_gartley(
                 # Perfect Gartley pattern
                 alt_name = "Bull Perfect Gartley"
 
-                clustered_levels = find_relative_clusters(
+                clustered_levels = get_relative_clusters(
                     {
                         "AB=CD": ab_cd_ext,
                         "0.786XA": xa_786_retrace,
@@ -2458,7 +2458,7 @@ def find_bullish_gartley(
                     }
                 )
             else:
-                clustered_levels = find_relative_clusters(
+                clustered_levels = get_relative_clusters(
                     {
                         "AB=CD": ab_cd_ext,
                         "0.786XA": xa_786_retrace,
@@ -2627,7 +2627,7 @@ def find_bearish_gartley(
                 # Perfect Gartley pattern
                 alt_name = "Bear Perfect Gartley"
 
-                clustered_levels = find_relative_clusters(
+                clustered_levels = get_relative_clusters(
                     {
                         "AB=CD": ab_cd_ext,
                         "0.786XA": xa_786_retrace,
@@ -2644,7 +2644,7 @@ def find_bearish_gartley(
                     }
                 )
             else:
-                clustered_levels = find_relative_clusters(
+                clustered_levels = get_relative_clusters(
                     {
                         "AB=CD": ab_cd_ext,
                         "0.786XA": xa_786_retrace,
@@ -2813,7 +2813,7 @@ def find_bullish_crab(
                 # Perfect crab pattern
                 alt_name = "Bull Perfect Crab"
 
-                clustered_levels = find_relative_clusters(
+                clustered_levels = get_relative_clusters(
                     {
                         "3.14BC": bc_3_14_ext,
                         "1.618XA": xa_618_ext,
@@ -2833,7 +2833,7 @@ def find_bullish_crab(
                 # Deep Crab pattern
                 alt_name = "Bull Deep Crab"
 
-                clustered_levels = find_relative_clusters(
+                clustered_levels = get_relative_clusters(
                     {
                         "1.618XA": xa_618_ext,
                         "1.27AB": ab_27_ext,
@@ -2850,7 +2850,7 @@ def find_bullish_crab(
                     }
                 )
             else:
-                clustered_levels = find_relative_clusters(
+                clustered_levels = get_relative_clusters(
                     {
                         "1.618XA": xa_618_ext,
                         "2.618BC": c - bc_diff * 2.618,
@@ -3023,7 +3023,7 @@ def find_bearish_crab(
                 # Perfect crab pattern
                 alt_name = "Bear Perfect Crab"
 
-                clustered_levels = find_relative_clusters(
+                clustered_levels = get_relative_clusters(
                     {
                         "3.14BC": bc_3_14_ext,
                         "1.618XA": xa_618_ext,
@@ -3043,7 +3043,7 @@ def find_bearish_crab(
                 # Deep Crab pattern
                 alt_name = "Bear Deep Crab"
 
-                clustered_levels = find_relative_clusters(
+                clustered_levels = get_relative_clusters(
                     {
                         "1.618XA": xa_618_ext,
                         "1.27AB": ab_27_ext,
@@ -3060,7 +3060,7 @@ def find_bearish_crab(
                     }
                 )
             else:
-                clustered_levels = find_relative_clusters(
+                clustered_levels = get_relative_clusters(
                     {
                         "1.618XA": xa_618_ext,
                         "2.618BC": c + bc_diff * 2.618,
