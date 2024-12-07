@@ -29,7 +29,33 @@ is_silent = None
 
 ascii_upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
-fib_ser = pd.Series((0.382, 0.5, 0.618, 0.707, 0.786, 0.886))
+fib_ser = pd.Series((0.236, 0.382, 0.5, 0.618, 0.707, 0.786, 0.886, 1))
+
+
+def get_relative_clusters(levels, reference_key) -> dict:
+    """
+    Find price levels relatively close to the price associated with the reference key.
+
+    Parameters:
+        price_levels (dict): A dictionary of price levels with keys as level names and values as prices (float).
+        reference_key (str): The key in the dictionary to use as the reference point.
+    """
+    reference_price = levels[reference_key]
+
+    mean_dev = np.mean(
+        tuple(
+            abs(price - reference_price)
+            for price in levels.values()
+            if price != reference_price
+        )
+    )
+
+    # Find price levels that fall within the mean deviation range
+    return {
+        level: price
+        for level, price in levels.items()
+        if abs(price - reference_price) <= mean_dev
+    }
 
 
 def getY(slope, yintercept, x_value) -> float:
@@ -1574,28 +1600,42 @@ def find_bullish_abcd(
         ab_27_ext = c - ab_diff * 1.27
         ab_618_ext = c - ab_diff * 1.618
 
-        lowest_close_after_b = df.loc[b_idx:, "Close"].min()
+        lowest_close_after_c = df.loc[c_idx:, "Close"].min()
         highest_high_after_c = df.loc[c_idx:, "High"].max()
 
         is_perfect = c_retrace == 0.618 and ab_cd_ext <= bc_618_ext
-        is_alternate = lowest_close_after_b < max(ab_27_ext, ab_618_ext)
+        is_alternate = lowest_close_after_c < max(ab_27_ext, ab_618_ext)
+
+        terminal_point = ab_cd_ext
 
         if is_perfect:
             terminal_point = ab_cd_ext
         elif is_alternate:
             terminal_point = min(ab_27_ext, ab_618_ext)
+
+        lows_after_c = df.loc[c_idx:, "Low"]
+        lows_below_terminal_point = lows_after_c.loc[
+            lows_after_c < terminal_point
+        ]
+
+        if lows_below_terminal_point.empty:
+            has_tested = False
         else:
-            terminal_point = min(ab_cd_ext, bc_ext)
+            has_tested = True
 
         closes_below_terminal_point = (
             df.loc[c_idx:, "Close"] < terminal_point
         ).sum()
 
         if (
-            d <= terminal_point
+            d < b - (b - terminal_point) * 0.5
             and closes_below_terminal_point < 7
-            and d == lowest_close_after_b
             and c == highest_high_after_c
+            and (
+                has_tested
+                and (df.index[-1] - lows_below_terminal_point.index[0]).days < 7
+                or not has_tested
+            )
         ):
             selected = dict(
                 df_start=df.index[0],
@@ -1727,28 +1767,44 @@ def find_bearish_abcd(
         ab_27_ext = c + ab_diff * 1.27
         ab_618_ext = c + ab_diff * 1.618
 
-        highest_close_after_b = df.loc[b_idx:, "Close"].max()
+        highest_close_after_c = df.loc[c_idx:, "Close"].max()
         lowest_low_after_c = df.loc[c_idx:, "Low"].min()
 
         is_perfect = c_retrace == 0.618 and ab_cd_ext >= bc_618_ext
-        is_alternate = highest_close_after_b > min(ab_27_ext, ab_618_ext)
+        is_alternate = highest_close_after_c > min(ab_27_ext, ab_618_ext)
+
+        terminal_point = ab_cd_ext
 
         if is_perfect:
             terminal_point = ab_cd_ext
         elif is_alternate:
             terminal_point = max(ab_27_ext, ab_618_ext)
+
+        highs_after_c = df.loc[c_idx:, "High"]
+
+        highs_above_terminal_point = highs_after_c[
+            highs_after_c > terminal_point
+        ]
+
+        if highs_above_terminal_point.empty:
+            has_tested = False
         else:
-            terminal_point = max(ab_cd_ext, bc_ext)
+            has_tested = True
 
         closes_above_terminal_point = (
             df.loc[c_idx:, "Close"] > terminal_point
         ).sum()
 
         if (
-            d >= terminal_point
-            and closes_above_terminal_point < 7
-            and d == highest_close_after_b
+            closes_above_terminal_point < 7
             and c == lowest_low_after_c
+            and d > b + (terminal_point - b) * 0.5
+            and (
+                has_tested
+                and (df.index[-1] - highs_above_terminal_point.index[0]).days
+                < 7
+                or not has_tested
+            )
         ):
             selected = dict(
                 df_start=df.index[0],
@@ -1878,6 +1934,15 @@ def find_bullish_bat(
         b_retrace = fib_ser.loc[(fib_ser - (ab_diff / xa_diff)).abs().idxmin()]
         c_retrace = fib_ser.loc[(fib_ser - (bc_diff / ab_diff)).abs().idxmin()]
 
+        lowest_close_after_c = df.loc[c_idx:, "Close"].min()
+        highest_high_after_c = df.loc[c_idx:, "High"].max()
+
+        is_perfect_bat = b_retrace == 0.5 and (
+            c_retrace == 0.5 or c_retrace == 0.618
+        )
+
+        is_alternate_bat = b_retrace == 0.382 and lowest_close_after_c < x
+
         if (
             b_retrace < 0.382
             or b_retrace > 0.5
@@ -1888,52 +1953,77 @@ def find_bullish_bat(
             x = pivots.loc[x_idx, "P"]
             continue
 
-        is_perfect_bat = b_retrace == 0.5 and (
-            c_retrace == 0.5 or c_retrace == 0.618
-        )
-
-        is_alternate_bat = b_retrace == 0.382
+        clustered_levels = {}
 
         xa_886_retrace = a - xa_diff * 0.886
+        xa_13_ext = c - xa_diff * 1.13
+
         bc_2_ext = c - bc_diff * 2
         bc_618_ext = c - bc_diff * 1.618
-        xa_13_ext = c - xa_diff * 1.13
 
         ab_27_ext = c - ab_diff * 1.27
 
-        lowest_close_after_b = df.loc[b_idx:, "Close"].min()
-        highest_high_after_c = df.loc[c_idx:, "High"].max()
-
         if is_perfect_bat:
-            terminal_point = min(ab_27_ext, bc_2_ext)
+            terminal_point = min(ab_27_ext, bc_2_ext, xa_886_retrace)
         elif is_alternate_bat:
-            values_dct = {
-                "2BC": bc_2_ext,
-                "2.618BC": c - bc_diff * 2.618,
-                "3BC": c - bc_diff * 3,
-                "3.618BC": c - bc_diff * 3.618,
-                "1.618AB=CD": c - ab_diff * 1.618,
-            }
-
-            closest_var = min(
-                values_dct, key=lambda k: abs(values_dct[k] - xa_13_ext)
+            clustered_levels = get_relative_clusters(
+                {
+                    "1.13XA": xa_13_ext,
+                    "2BC": bc_2_ext,
+                    "2.618BC": c - bc_diff * 2.618,
+                    "3BC": c - bc_diff * 3,
+                    "3.618BC": c - bc_diff * 3.618,
+                    "1.618AB=CD": c - ab_diff * 1.618,
+                },
+                "1.13XA",
             )
 
-            terminal_point = min(xa_13_ext, values_dct[closest_var])
+            lowest_var = min(
+                clustered_levels, key=lambda k: clustered_levels[k]
+            )
+
+            terminal_point = clustered_levels[lowest_var]
         else:
-            terminal_point = min(xa_886_retrace, bc_618_ext)
+            clustered_levels = get_relative_clusters(
+                {
+                    "0.886XA": xa_886_retrace,
+                    "1.618BC": bc_618_ext,
+                    "2BC": bc_2_ext,
+                    "2.618BC": c - bc_diff * 2.618,
+                },
+                "0.886XA",
+            )
+
+            lowest_var = min(
+                clustered_levels, key=lambda k: clustered_levels[k]
+            )
+
+            terminal_point = clustered_levels[lowest_var]
+
+        lows_below_c = df.loc[c_idx:, "Low"]
+        lows_below_terminal_point = lows_below_c.loc[
+            lows_below_c < terminal_point
+        ]
+
+        if lows_below_terminal_point.empty:
+            has_tested = False
+        else:
+            has_tested = True
 
         closes_below_terminal_point = (
             df.loc[c_idx:, "Close"] < terminal_point
         ).sum()
 
         if (
-            d <= terminal_point
-            and closes_below_terminal_point < 7
-            and d == lowest_close_after_b
+            closes_below_terminal_point < 7
             and c == highest_high_after_c
+            and d < b - (b - terminal_point) * 0.5
+            and (
+                has_tested
+                and (df.index[-1] - lows_below_terminal_point.index[0]).days < 7
+                or not has_tested
+            )
         ):
-
             selected = dict(
                 df_start=df.index[0],
                 df_end=df.index[-1],
@@ -1959,6 +2049,7 @@ def find_bullish_bat(
                     {
                         "1.27AB=CD": (b_idx, ab_27_ext),
                         "2BC": (b_idx, bc_2_ext),
+                        "0.886XA": (b_idx, xa_886_retrace),
                     }
                 )
             elif is_alternate_bat:
@@ -1967,15 +2058,17 @@ def find_bullish_bat(
 
                 selected["extra_points"].update(
                     {
-                        closest_var: (b_idx, values_dct[closest_var]),
-                        "1.13XA": (b_idx, xa_13_ext),
+                        level: (b_idx, price)
+                        for level, price in clustered_levels.items()
+                        if price <= x
                     }
                 )
             else:
                 selected["extra_points"].update(
                     {
-                        "0.886XA": (b_idx, xa_886_retrace),
-                        "1.618BC": (b_idx, bc_618_ext),
+                        level: (b_idx, price)
+                        for level, price in clustered_levels.items()
+                        if price > x
                     }
                 )
 
@@ -2060,6 +2153,15 @@ def find_bearish_bat(
         b_retrace = fib_ser.loc[(fib_ser - (ab_diff / xa_diff)).abs().idxmin()]
         c_retrace = fib_ser.loc[(fib_ser - (bc_diff / ab_diff)).abs().idxmin()]
 
+        highest_close_after_c = df.loc[c_idx:, "Close"].max()
+        lowest_low_after_c = df.loc[c_idx:, "Low"].min()
+
+        is_perfect_bat = b_retrace == 0.5 and (
+            c_retrace == 0.5 or c_retrace == 0.618
+        )
+
+        is_alternate_bat = b_retrace == 0.382 and highest_close_after_c > x
+
         if (
             b_retrace < 0.382
             or b_retrace > 0.5
@@ -2070,11 +2172,7 @@ def find_bearish_bat(
             x = pivots.loc[x_idx, "P"]
             continue
 
-        is_perfect_bat = b_retrace == 0.5 and (
-            c_retrace == 0.5 or c_retrace == 0.618
-        )
-
-        is_alternate_bat = b_retrace == 0.382
+        clustered_levels = {}
 
         xa_886_retrace = a + xa_diff * 0.886
         xa_13_ext = c + xa_diff * 1.13
@@ -2084,37 +2182,63 @@ def find_bearish_bat(
 
         ab_27_ext = c + ab_diff * 1.27
 
-        highest_close_after_b = df.loc[b_idx:, "Close"].max()
-        lowest_low_after_c = df.loc[c_idx:, "Low"].min()
-
         if is_perfect_bat:
-            terminal_point = max(ab_27_ext, bc_2_ext)
+            terminal_point = max(ab_27_ext, bc_2_ext, xa_886_retrace)
         elif is_alternate_bat:
-            values_dct = {
-                "2BC": bc_2_ext,
-                "2.618BC": c + bc_diff * 2.618,
-                "3BC": c + bc_diff * 3,
-                "3.618BC": c + bc_diff * 3.618,
-                "1.618AB=CD": c + ab_diff * 1.618,
-            }
-
-            closest_var = min(
-                values_dct, key=lambda k: abs(values_dct[k] - xa_13_ext)
+            clustered_levels = get_relative_clusters(
+                {
+                    "1.13XA": xa_13_ext,
+                    "1.618AB=CD": c + ab_diff * 1.618,
+                    "2BC": bc_2_ext,
+                    "2.618BC": c + bc_diff * 2.618,
+                    "3BC": c + bc_diff * 3,
+                    "3.618BC": c + bc_diff * 3.618,
+                },
+                "1.13XA",
             )
 
-            terminal_point = max(xa_13_ext, values_dct[closest_var])
+            max_var = max(clustered_levels, key=lambda k: clustered_levels[k])
+
+            terminal_point = clustered_levels[max_var]
         else:
-            terminal_point = max(xa_886_retrace, bc_618_ext)
+            clustered_levels = get_relative_clusters(
+                {
+                    "0.886XA": xa_886_retrace,
+                    "1.618BC": bc_618_ext,
+                    "2BC": bc_2_ext,
+                    "2.618BC": c + bc_diff * 2.618,
+                },
+                "0.886XA",
+            )
+
+            max_var = max(clustered_levels, key=lambda k: clustered_levels[k])
+
+            terminal_point = clustered_levels[max_var]
+
+        highs_above_c = df.loc[c_idx:, "High"]
+        highs_above_terminal_point = highs_above_c.loc[
+            highs_above_c > terminal_point
+        ]
+
+        if highs_above_terminal_point.empty:
+            has_tested = False
+        else:
+            has_tested = True
 
         closes_above_terminal_point = (
             df.loc[c_idx:, "Close"] > terminal_point
         ).sum()
 
         if (
-            d >= terminal_point
-            and closes_above_terminal_point < 7
-            and d == highest_close_after_b
+            closes_above_terminal_point < 7
             and c == lowest_low_after_c
+            and d > b + (terminal_point - b) * 0.5
+            and (
+                has_tested
+                and (df.index[-1] - highs_above_terminal_point.index[0]).days
+                < 7
+                or not has_tested
+            )
         ):
 
             selected = dict(
@@ -2142,6 +2266,7 @@ def find_bearish_bat(
                     {
                         "1.27AB=CD": (b_idx, ab_27_ext),
                         "2BC": (b_idx, bc_2_ext),
+                        "0.886XA": (b_idx, xa_886_retrace),
                     }
                 )
             elif is_alternate_bat:
@@ -2150,16 +2275,18 @@ def find_bearish_bat(
 
                 selected["extra_points"].update(
                     {
-                        closest_var: (b_idx, values_dct[closest_var]),
-                        "1.13XA": (b_idx, xa_13_ext),
+                        level: (b_idx, price)
+                        for level, price in clustered_levels.items()
+                        if price >= x
                     }
                 )
             else:
                 # Normal BAT pattern
                 selected["extra_points"].update(
                     {
-                        "0.886XA": (b_idx, xa_886_retrace),
-                        "1.618BC": (b_idx, bc_618_ext),
+                        level: (b_idx, price)
+                        for level, price in clustered_levels.items()
+                        if price < x
                     }
                 )
 
@@ -2243,14 +2370,22 @@ def find_bullish_gartley(
         b_retrace = fib_ser.loc[(fib_ser - (ab_diff / xa_diff)).abs().idxmin()]
         c_retrace = fib_ser.loc[(fib_ser - (bc_diff / ab_diff)).abs().idxmin()]
 
-        if b_retrace != 0.618 or c_retrace < 0.382 or c_retrace > 0.886:
+        lowest_close_after_c = df.loc[c_idx:, "Close"].min()
+        highest_high_after_c = df.loc[c_idx:, "High"].max()
+
+        is_perfect = b_retrace == 0.618 and c_retrace == 0.618
+
+        if (
+            b_retrace != 0.618
+            or c_retrace < 0.382
+            or c_retrace > 0.886
+            or lowest_close_after_c < x
+        ):
             x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmin()
             x = pivots.loc[x_idx, "P"]
             continue
 
         c_fib_inverse = round(1 / c_retrace, 3)
-
-        is_perfect = b_retrace == 0.618 and c_retrace == 0.618
 
         xa_786_retrace = a - xa_diff * 0.786
 
@@ -2258,22 +2393,33 @@ def find_bullish_gartley(
 
         ab_cd_ext = c - ab_diff
 
-        lowest_close_after_b = df.loc[b_idx:, "Close"].min()
-        highest_high_after_c = df.loc[c_idx:, "High"].max()
-
-        terminal_point = min(ab_cd_ext, xa_786_retrace)
+        terminal_point = xa_786_retrace
 
         closes_below_terminal_point = (
             df.loc[c_idx:, "Close"] < terminal_point
         ).sum()
 
-        if (
-            d <= terminal_point
-            and closes_below_terminal_point < 7
-            and d == lowest_close_after_b
-            and c == highest_high_after_c
-        ):
+        lows_after_c = df.loc[c_idx:, "Low"]
 
+        lows_below_terminal_point = lows_after_c.loc[
+            lows_after_c < terminal_point
+        ]
+
+        if lows_below_terminal_point.empty:
+            has_tested = False
+        else:
+            has_tested = True
+
+        if (
+            d < b
+            and closes_below_terminal_point < 7
+            and c == highest_high_after_c
+            and (
+                has_tested
+                and (df.index[-1] - lows_below_terminal_point.index[0]).days < 7
+                or not has_tested
+            )
+        ):
             selected = dict(
                 df_start=df.index[0],
                 df_end=df.index[-1],
@@ -2295,26 +2441,39 @@ def find_bullish_gartley(
                 # Perfect Gartley pattern
                 alt_name = "Bull Perfect Gartley"
 
+                clustered_levels = get_relative_clusters(
+                    {
+                        "AB=CD": ab_cd_ext,
+                        "0.786XA": xa_786_retrace,
+                        "1.618BC": bc_618_ext,
+                    },
+                    "0.786XA",
+                )
+
                 selected["extra_points"].update(
                     {
-                        "AB=CD": (b_idx, ab_cd_ext),
-                        "0.786XA": (b_idx, xa_786_retrace),
-                        "1.618BC": (b_idx, bc_618_ext),
+                        level: (b_idx, price)
+                        for level, price in clustered_levels.items()
+                        if price > x
                     }
                 )
             else:
-                selected["extra_points"].update(
+                clustered_levels = get_relative_clusters(
                     {
-                        "AB=CD": (b_idx, ab_cd_ext),
-                        "0.786XA": (b_idx, xa_786_retrace),
-                    }
+                        "AB=CD": ab_cd_ext,
+                        "0.786XA": xa_786_retrace,
+                        f"{c_fib_inverse}BC": c - bc_diff * c_fib_inverse,
+                    },
+                    "0.786XA",
                 )
 
-                if c_fib_inverse <= 1.618:
-                    selected["extra_points"][f"{c_fib_inverse}BC"] = (
-                        b_idx,
-                        c - bc_diff * c_fib_inverse,
-                    )
+                selected["extra_points"].update(
+                    {
+                        level: (b_idx, price)
+                        for level, price in clustered_levels.items()
+                        if price > x
+                    }
+                )
 
         x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmin()
         x = pivots.loc[x_idx, "P"]
@@ -2396,14 +2555,22 @@ def find_bearish_gartley(
         b_retrace = fib_ser.loc[(fib_ser - (ab_diff / xa_diff)).abs().idxmin()]
         c_retrace = fib_ser.loc[(fib_ser - (bc_diff / ab_diff)).abs().idxmin()]
 
-        if b_retrace != 0.618 or c_retrace < 0.382 or c_retrace > 0.886:
+        highest_close_after_c = df.loc[c_idx:, "Close"].max()
+        lowest_low_after_c = df.loc[c_idx:, "Low"].min()
+
+        is_perfect = b_retrace == 0.618 and c_retrace == 0.618
+
+        if (
+            b_retrace != 0.618
+            or c_retrace < 0.382
+            or c_retrace > 0.886
+            or highest_close_after_c > x
+        ):
             x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmax()
             x = pivots.loc[x_idx, "P"]
             continue
 
         c_fib_inverse = round(1 / c_retrace, 3)
-
-        is_perfect = b_retrace == 0.618 and c_retrace == 0.618
 
         xa_786_retrace = a + xa_diff * 0.786
 
@@ -2411,20 +2578,33 @@ def find_bearish_gartley(
 
         ab_cd_ext = c + ab_diff
 
-        highest_close_after_b = df.loc[b_idx:, "Close"].max()
-        lowest_low_after_c = df.loc[c_idx:, "Low"].min()
+        terminal_point = xa_786_retrace
 
-        terminal_point = max(ab_cd_ext, xa_786_retrace)
+        highs_after_c = df.loc[c_idx:, "High"]
+
+        highs_above_terminal_point = highs_after_c[
+            highs_after_c > terminal_point
+        ]
+
+        if highs_above_terminal_point.empty:
+            has_tested = False
+        else:
+            has_tested = True
 
         closes_above_terminal_point = (
             df.loc[c_idx:, "Close"] > terminal_point
         ).sum()
 
         if (
-            d >= terminal_point
+            d > b
             and closes_above_terminal_point < 7
-            and d == highest_close_after_b
             and c == lowest_low_after_c
+            and (
+                has_tested
+                and (df.index[-1] - highs_above_terminal_point.index[0]).days
+                < 7
+                or not has_tested
+            )
         ):
             selected = dict(
                 df_start=df.index[0],
@@ -2447,26 +2627,39 @@ def find_bearish_gartley(
                 # Perfect Gartley pattern
                 alt_name = "Bear Perfect Gartley"
 
+                clustered_levels = get_relative_clusters(
+                    {
+                        "AB=CD": ab_cd_ext,
+                        "0.786XA": xa_786_retrace,
+                        "1.618BC": bc_618_ext,
+                    },
+                    "0.786XA",
+                )
+
                 selected["extra_points"].update(
                     {
-                        "AB=CD": (b_idx, ab_cd_ext),
-                        "0.786XA": (b_idx, xa_786_retrace),
-                        "1.618BC": (b_idx, bc_618_ext),
+                        level: (b_idx, price)
+                        for level, price in clustered_levels.items()
+                        if price < x
                     }
                 )
             else:
-                selected["extra_points"].update(
+                clustered_levels = get_relative_clusters(
                     {
-                        "AB=CD": (b_idx, ab_cd_ext),
-                        "0.786XA": (b_idx, xa_786_retrace),
-                    }
+                        "AB=CD": ab_cd_ext,
+                        "0.786XA": xa_786_retrace,
+                        f"{c_fib_inverse}BC": c + bc_diff * c_fib_inverse,
+                    },
+                    "0.786XA",
                 )
 
-                if c_fib_inverse <= 1.618:
-                    selected["extra_points"][f"{c_fib_inverse}BC"] = (
-                        b_idx,
-                        c + bc_diff * c_fib_inverse,
-                    )
+                selected["extra_points"].update(
+                    {
+                        level: (b_idx, price)
+                        for level, price in clustered_levels.items()
+                        if price < x
+                    }
+                )
 
         x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmax()
         x = pivots.loc[x_idx, "P"]
@@ -2548,16 +2741,21 @@ def find_bullish_crab(
         b_retrace = fib_ser.loc[(fib_ser - (ab_diff / xa_diff)).abs().idxmin()]
         c_retrace = fib_ser.loc[(fib_ser - (bc_diff / ab_diff)).abs().idxmin()]
 
-        if b_retrace < 0.618 and c_retrace < 0.382 or c_retrace > 0.886:
+        is_perfect_crab = b_retrace == 0.618 and (
+            c_retrace == 0.5 or c_retrace == 0.618
+        )
+
+        is_deep_crab = b_retrace == 0.886
+
+        if (
+            b_retrace > 0.618
+            and not is_deep_crab
+            or b_retrace < 0.382
+            or (c_retrace < 0.382 or c_retrace > 0.886)
+        ):
             x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmin()
             x = pivots.loc[x_idx, "P"]
             continue
-
-        is_perfect_crab = (
-            b_retrace == 0.618 and c_retrace == 0.5 or c_retrace == 0.618
-        )
-
-        is_deep_crab = b_retrace == 0.886 and b > x
 
         xa_618_ext = a - xa_diff * 1.618
 
@@ -2565,41 +2763,33 @@ def find_bullish_crab(
         ab_618_ext = a - ab_diff * 1.618
         ab_27_ext = a - ab_diff * 1.27
 
-        if is_perfect_crab:
-            terminal_point = min(bc_3_14_ext, xa_618_ext, ab_618_ext)
-        elif is_deep_crab:
-            deep_crab_dct = {"1.27AB": ab_27_ext, "1.618AB": ab_618_ext}
+        terminal_point = xa_618_ext
 
-            closest_var = min(
-                deep_crab_dct, key=lambda k: abs(deep_crab_dct[k] - xa_618_ext)
-            )
-
-            terminal_point = min(xa_618_ext, deep_crab_dct[closest_var])
-        else:
-            values_dct = {
-                "2.618BC": c - bc_diff * 2.618,
-                "3.14BC": c - bc_diff * 3.14,
-                "3.618BC": c - bc_diff * 3.618,
-            }
-
-            closest_var = min(
-                values_dct, key=lambda k: abs(values_dct[k] - xa_618_ext)
-            )
-
-            terminal_point = min(xa_618_ext, values_dct[closest_var])
-
-        lowest_close_after_b = df.loc[b_idx:, "Close"].min()
         highest_high_after_c = df.loc[c_idx:, "High"].max()
+
+        lows_after_c = df.loc[c_idx:, "Low"]
+        lows_below_terminal_point = lows_after_c.loc[
+            lows_after_c < terminal_point
+        ]
+
+        if lows_below_terminal_point.empty:
+            has_tested = False
+        else:
+            has_tested = True
 
         closes_below_terminal_point = (
             df.loc[c_idx:, "Close"] < terminal_point
         ).sum()
 
         if (
-            d <= terminal_point
+            d < b - (b - terminal_point) * 0.5
             and closes_below_terminal_point < 7
-            and d == lowest_close_after_b
             and c == highest_high_after_c
+            and (
+                has_tested
+                and (df.index[-1] - lows_below_terminal_point.index[0]).days < 7
+                or not has_tested
+            )
         ):
 
             selected = dict(
@@ -2623,28 +2813,58 @@ def find_bullish_crab(
                 # Perfect crab pattern
                 alt_name = "Bull Perfect Crab"
 
+                clustered_levels = get_relative_clusters(
+                    {
+                        "3.14BC": bc_3_14_ext,
+                        "1.618XA": xa_618_ext,
+                        "1.618AB": ab_618_ext,
+                    },
+                    "1.618XA",
+                )
+
                 selected["extra_points"].update(
                     {
-                        "3.14BC": (b_idx, bc_3_14_ext),
-                        "1.618XA": (b_idx, xa_618_ext),
-                        "1.618AB": (b_idx, ab_618_ext),
+                        level: (b_idx, price)
+                        for level, price in clustered_levels.items()
+                        if price < x
                     }
                 )
             elif is_deep_crab:
                 # Deep Crab pattern
                 alt_name = "Bull Deep Crab"
 
+                clustered_levels = get_relative_clusters(
+                    {
+                        "1.618XA": xa_618_ext,
+                        "1.27AB": ab_27_ext,
+                        "1.618AB": ab_618_ext,
+                    },
+                    "1.618XA",
+                )
+
                 selected["extra_points"].update(
                     {
-                        "1.618XA": (b_idx, xa_618_ext),
-                        closest_var: (b_idx, deep_crab_dct[closest_var]),
+                        level: (b_idx, price)
+                        for level, price in clustered_levels.items()
+                        if price < x
                     }
                 )
             else:
+                clustered_levels = get_relative_clusters(
+                    {
+                        "1.618XA": xa_618_ext,
+                        "2.618BC": c - bc_diff * 2.618,
+                        "3.14BC": c - bc_diff * 3.14,
+                        "3.618BC": c - bc_diff * 3.618,
+                    },
+                    "1.618XA",
+                )
+
                 selected["extra_points"].update(
                     {
-                        "1.618XA": (b_idx, xa_618_ext),
-                        closest_var: (b_idx, values_dct[closest_var]),
+                        level: (b_idx, price)
+                        for level, price in clustered_levels.items()
+                        if price < x
                     }
                 )
 
@@ -2728,58 +2948,58 @@ def find_bearish_crab(
         b_retrace = fib_ser.loc[(fib_ser - (ab_diff / xa_diff)).abs().idxmin()]
         c_retrace = fib_ser.loc[(fib_ser - (bc_diff / ab_diff)).abs().idxmin()]
 
-        if b_retrace < 0.618 and c_retrace < 0.382 or c_retrace > 0.886:
+        is_perfect_crab = b_retrace == 0.618 and (
+            c_retrace == 0.5 or c_retrace == 0.618
+        )
+
+        is_deep_crab = b_retrace == 0.886
+
+        if (
+            b_retrace > 0.618
+            and not is_deep_crab
+            or b_retrace < 0.382
+            or (c_retrace < 0.382 or c_retrace > 0.886)
+        ):
             x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmax()
             x = pivots.loc[x_idx, "P"]
             continue
 
-        is_perfect_crab = (
-            b_retrace == 0.618 and c_retrace == 0.5 or c_retrace == 0.618
-        )
-
-        is_deep_crab = b_retrace == 0.886 and b < x
-
         xa_618_ext = a + xa_diff * 1.618
 
         bc_3_14_ext = c + bc_diff * 3.14
+
         ab_618_ext = a + ab_diff * 1.618
         ab_27_ext = a + ab_diff * 1.27
 
-        if is_perfect_crab:
-            terminal_point = max(bc_3_14_ext, xa_618_ext, ab_618_ext)
-        elif is_deep_crab:
-            deep_crab_dct = {"1.27AB": ab_27_ext, "1.618AB": ab_618_ext}
+        terminal_point = xa_618_ext
 
-            closest_var = min(
-                deep_crab_dct, key=lambda k: abs(deep_crab_dct[k] - xa_618_ext)
-            )
-
-            terminal_point = max(xa_618_ext, deep_crab_dct[closest_var])
-        else:
-            values_dct = {
-                "2.618BC": c + bc_diff * 2.618,
-                "3.14BC": c + bc_diff * 3.14,
-                "3.618BC": c + bc_diff * 3.618,
-            }
-
-            closest_var = min(
-                values_dct, key=lambda k: abs(values_dct[k] - xa_618_ext)
-            )
-
-            terminal_point = max(xa_618_ext, values_dct[closest_var])
-
-        highest_close_after_b = df.loc[b_idx:, "Close"].max()
         lowest_low_after_c = df.loc[c_idx:, "Low"].min()
 
-        closes_below_terminal_point = (
+        highs_after_c = df.loc[c_idx:, "High"]
+
+        highs_above_terminal_point = highs_after_c[
+            highs_after_c > terminal_point
+        ]
+
+        if highs_above_terminal_point.empty:
+            has_tested = False
+        else:
+            has_tested = True
+
+        closes_above_terminal_point = (
             df.loc[c_idx:, "Close"] > terminal_point
         ).sum()
 
         if (
-            d >= terminal_point
-            and closes_below_terminal_point < 7
-            and d == highest_close_after_b
+            closes_above_terminal_point < 7
             and c == lowest_low_after_c
+            and d > b + (terminal_point - b) * 0.5
+            and (
+                has_tested
+                and (df.index[-1] - highs_above_terminal_point.index[0]).days
+                < 7
+                or not has_tested
+            )
         ):
 
             selected = dict(
@@ -2803,28 +3023,58 @@ def find_bearish_crab(
                 # Perfect crab pattern
                 alt_name = "Bear Perfect Crab"
 
+                clustered_levels = get_relative_clusters(
+                    {
+                        "3.14BC": bc_3_14_ext,
+                        "1.618XA": xa_618_ext,
+                        "1.618AB": ab_618_ext,
+                    },
+                    "1.618XA",
+                )
+
                 selected["extra_points"].update(
                     {
-                        "3.14BC": (b_idx, bc_3_14_ext),
-                        "1.618XA": (b_idx, xa_618_ext),
-                        "1.618AB": (b_idx, ab_618_ext),
+                        level: (b_idx, price)
+                        for level, price in clustered_levels.items()
+                        if price > x
                     }
                 )
             elif is_deep_crab:
                 # Deep Crab pattern
                 alt_name = "Bear Deep Crab"
 
+                clustered_levels = get_relative_clusters(
+                    {
+                        "1.618XA": xa_618_ext,
+                        "1.27AB": ab_27_ext,
+                        "1.618AB": ab_618_ext,
+                    },
+                    "1.618XA",
+                )
+
                 selected["extra_points"].update(
                     {
-                        "1.618XA": (b_idx, xa_618_ext),
-                        closest_var: (b_idx, deep_crab_dct[closest_var]),
+                        level: (b_idx, price)
+                        for level, price in clustered_levels.items()
+                        if price > x
                     }
                 )
             else:
+                clustered_levels = get_relative_clusters(
+                    {
+                        "1.618XA": xa_618_ext,
+                        "2.618BC": c + bc_diff * 2.618,
+                        "3.14BC": c + bc_diff * 3.14,
+                        "3.618BC": c + bc_diff * 3.618,
+                    },
+                    "1.618XA",
+                )
+
                 selected["extra_points"].update(
                     {
-                        "1.618XA": (b_idx, xa_618_ext),
-                        closest_var: (b_idx, values_dct[closest_var]),
+                        level: (b_idx, price)
+                        for level, price in clustered_levels.items()
+                        if price > x
                     }
                 )
 

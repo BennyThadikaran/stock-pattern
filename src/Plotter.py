@@ -25,6 +25,25 @@ except AttributeError:
 
     pairwise_fn = pairwise
 
+try:
+    batched_fn = itertools.batched
+except AttributeError:
+    # Support for batched function for Python 3.12 and lower
+    # Source https://docs.python.org/3/library/itertools.html#itertools.batched
+    def batched(iterable, n, *, strict=False):
+        """
+        batched('ABCDEFG', 3) → ABC DEF G
+        """
+        if n < 1:
+            raise ValueError("n must be at least one")
+        it = iter(iterable)
+        while batch := tuple(itertools.islice(it, n)):
+            if strict and len(batch) != n:
+                raise ValueError("batched(): incomplete batch")
+            yield batch
+
+    batched_fn = batched
+
 
 class Plotter:
     idx = 0
@@ -241,7 +260,7 @@ class Plotter:
         if pattern in ("Symmetric", "Ascending", "Descending", "DNTL", "UPTL"):
             points = dct["extra_points"]
 
-            return tuple(line for line in itertools.batched(points.values(), 2))
+            return tuple(line for line in batched_fn(points.values(), 2))
 
         points = dct["points"]
         return tuple(line for line in pairwise_fn(points.values()))
