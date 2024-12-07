@@ -1600,28 +1600,40 @@ def find_bullish_abcd(
         ab_27_ext = c - ab_diff * 1.27
         ab_618_ext = c - ab_diff * 1.618
 
-        lowest_close_after_b = df.loc[b_idx:, "Close"].min()
+        lowest_close_after_c = df.loc[c_idx:, "Close"].min()
         highest_high_after_c = df.loc[c_idx:, "High"].max()
 
         is_perfect = c_retrace == 0.618 and ab_cd_ext <= bc_618_ext
-        is_alternate = lowest_close_after_b < max(ab_27_ext, ab_618_ext)
+        is_alternate = lowest_close_after_c < max(ab_27_ext, ab_618_ext)
+
+        terminal_point = ab_cd_ext
 
         if is_perfect:
             terminal_point = ab_cd_ext
         elif is_alternate:
             terminal_point = min(ab_27_ext, ab_618_ext)
+
+        lows_after_c = df.loc[c_idx:, "Low"]
+        lows_below_terminal_point = lows_after_c[lows_after_c < terminal_point]
+
+        if lows_below_terminal_point.empty:
+            has_tested = False
         else:
-            terminal_point = min(ab_cd_ext, bc_ext)
+            has_tested = True
 
         closes_below_terminal_point = (
             df.loc[c_idx:, "Close"] < terminal_point
         ).sum()
 
         if (
-            d <= terminal_point
+            d < b - (b - terminal_point) * 0.5
             and closes_below_terminal_point < 7
-            and d == lowest_close_after_b
             and c == highest_high_after_c
+            and (
+                has_tested
+                and (df.index[-1] - lows_below_terminal_point.index[0]).days < 7
+                or not has_tested
+            )
         ):
             selected = dict(
                 df_start=df.index[0],
@@ -1753,28 +1765,44 @@ def find_bearish_abcd(
         ab_27_ext = c + ab_diff * 1.27
         ab_618_ext = c + ab_diff * 1.618
 
-        highest_close_after_b = df.loc[b_idx:, "Close"].max()
+        highest_close_after_c = df.loc[c_idx:, "Close"].max()
         lowest_low_after_c = df.loc[c_idx:, "Low"].min()
 
         is_perfect = c_retrace == 0.618 and ab_cd_ext >= bc_618_ext
-        is_alternate = highest_close_after_b > min(ab_27_ext, ab_618_ext)
+        is_alternate = highest_close_after_c > min(ab_27_ext, ab_618_ext)
+
+        terminal_point = ab_cd_ext
 
         if is_perfect:
             terminal_point = ab_cd_ext
         elif is_alternate:
             terminal_point = max(ab_27_ext, ab_618_ext)
+
+        highs_after_c = df.loc[c_idx:, "High"]
+
+        highs_above_terminal_point = highs_after_c[
+            highs_after_c > terminal_point
+        ]
+
+        if highs_above_terminal_point.empty:
+            has_tested = False
         else:
-            terminal_point = max(ab_cd_ext, bc_ext)
+            has_tested = True
 
         closes_above_terminal_point = (
             df.loc[c_idx:, "Close"] > terminal_point
         ).sum()
 
         if (
-            d >= terminal_point
+            d > b + (terminal_point - b) * 0.5
             and closes_above_terminal_point < 7
-            and d == highest_close_after_b
             and c == lowest_low_after_c
+            and (
+                has_tested
+                and (df.index[-1] - highs_above_terminal_point.index[0]).days
+                < 7
+                or not has_tested
+            )
         ):
             selected = dict(
                 df_start=df.index[0],
