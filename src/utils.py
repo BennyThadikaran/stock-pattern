@@ -1576,8 +1576,13 @@ def find_bullish_abcd(
         bc_diff = c - b
         ab_diff = a - b
 
+        lowest_low_ac = df.loc[a_idx:c_idx, "Low"].min()
+        highest_high_from_b = df.loc[b_idx:, "High"].max()
+
         if (
-            a == df.at[a_idx, "Low"]
+            lowest_low_ac != b
+            or highest_high_from_b != c
+            or a == df.at[a_idx, "Low"]
             or b == df.at[b_idx, "High"]
             or c == df.at[c_idx, "Low"]
         ):
@@ -1743,8 +1748,13 @@ def find_bearish_abcd(
         bc_diff = b - c
         ab_diff = b - a
 
+        highest_high_ac = df.loc[a_idx:c_idx, "High"].max()
+        lowest_low_from_b = df.loc[b_idx:, "Low"].min()
+
         if (
-            a == df.at[a_idx, "High"]
+            highest_high_ac != b
+            or lowest_low_from_b != c
+            or a == df.at[a_idx, "High"]
             or b == df.at[b_idx, "Low"]
             or c == df.at[c_idx, "High"]
         ):
@@ -1920,8 +1930,15 @@ def find_bullish_bat(
         ab_diff = a - b
         bc_diff = c - b
 
+        lowest_low_ac = df.loc[a_idx:c_idx, "Low"].min()
+        highest_high_xb = df.loc[x_idx:b_idx, "High"].max()
+        highest_high_from_b = df.loc[b_idx:, "High"].max()
+
         if (
-            x == df.at[x_idx, "High"]
+            highest_high_xb != a
+            or lowest_low_ac != b
+            or highest_high_from_b != c
+            or x == df.at[x_idx, "High"]
             or a == df.at[a_idx, "Low"]
             or b == df.at[b_idx, "High"]
             or c == df.at[c_idx, "Low"]
@@ -2139,8 +2156,15 @@ def find_bearish_bat(
         ab_diff = b - a
         bc_diff = b - c
 
+        lowest_low_from_b = df.loc[b_idx:, "Low"].min()
+        highest_high_ac = df.loc[a_idx:c_idx, "High"].max()
+        lowest_low_xb = df.loc[x_idx:b_idx, "Low"].min()
+
         if (
-            x == df.at[x_idx, "Low"]
+            lowest_low_xb != a
+            or highest_high_ac != b
+            or lowest_low_from_b != c
+            or x == df.at[x_idx, "Low"]
             or a == df.at[a_idx, "High"]
             or b == df.at[b_idx, "Low"]
             or c == df.at[c_idx, "High"]
@@ -2356,8 +2380,17 @@ def find_bullish_gartley(
         ab_diff = a - b
         bc_diff = c - b
 
+        highest_high_xb = df.loc[x_idx:b_idx, "High"].max()
+        lowest_low_ac = df.loc[a_idx:c_idx, "Low"].min()
+        highest_high_from_b = df.loc[b_idx:, "High"].max()
+        lowest_close_from_c = df.loc[c_idx:, "Close"].min()
+
         if (
-            x == df.at[x_idx, "High"]
+            highest_high_xb != a
+            or lowest_low_ac != b
+            or highest_high_from_b != c
+            or lowest_close_from_c < x
+            or x == df.at[x_idx, "High"]
             or a == df.at[a_idx, "Low"]
             or b == df.at[b_idx, "High"]
             or c == df.at[c_idx, "Low"]
@@ -2541,8 +2574,17 @@ def find_bearish_gartley(
         ab_diff = b - a
         bc_diff = b - c
 
+        lowest_low_xb = df.loc[x_idx:b_idx, "Low"].min()
+        highest_high_ac = df.loc[a_idx:c_idx, "High"].max()
+        lowest_low_from_c = df.loc[c_idx:, "Low"].min()
+        highest_close_from_c = df.loc[c_idx:, "Close"].max()
+
         if (
-            x == df.at[x_idx, "Low"]
+            lowest_low_xb != a
+            or highest_high_ac != b
+            or lowest_low_from_c != c
+            or highest_close_from_c > x
+            or x == df.at[x_idx, "Low"]
             or a == df.at[a_idx, "High"]
             or b == df.at[b_idx, "Low"]
             or c == df.at[c_idx, "High"]
@@ -2727,8 +2769,15 @@ def find_bullish_crab(
         ab_diff = a - b
         bc_diff = c - b
 
+        highest_high_xb = df.loc[x_idx:b_idx, "High"].max()
+        lowest_low_ac = df.loc[a_idx:c_idx, "Low"].min()
+        highest_high_from_b = df.loc[b_idx:, "High"].max()
+
         if (
-            x == df.at[x_idx, "High"]
+            highest_high_xb != a
+            or lowest_low_ac != b
+            or highest_high_from_b != c
+            or x == df.at[x_idx, "High"]
             or a == df.at[a_idx, "Low"]
             or b == df.at[b_idx, "High"]
             or c == df.at[c_idx, "Low"]
@@ -2934,8 +2983,15 @@ def find_bearish_crab(
         ab_diff = b - a
         bc_diff = b - c
 
+        lowest_low_xb = df.loc[x_idx:b_idx, "Low"].min()
+        highest_high_ac = df.loc[a_idx:c_idx, "High"].max()
+        lowest_low_from_b = df.loc[b_idx:, "Low"].min()
+
         if (
-            x == df.at[x_idx, "Low"]
+            lowest_low_xb != a
+            or highest_high_ac != b
+            or lowest_low_from_b != c
+            or x == df.at[x_idx, "Low"]
             or a == df.at[a_idx, "High"]
             or b == df.at[b_idx, "Low"]
             or c == df.at[c_idx, "High"]
