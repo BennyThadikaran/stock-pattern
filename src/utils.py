@@ -3141,3 +3141,369 @@ def find_bearish_crab(
         selected.update(dict(sym=sym, pattern="CRABD", alt_name=alt_name))
 
     return selected
+
+
+def find_bullish_butterfly(
+    sym: str, df: pd.DataFrame, pivots: pd.DataFrame
+) -> Optional[dict]:
+    """
+    Bullish Butterfly harmonic pattern
+    """
+    alt_name = "Bull Butterfly"
+    pivot_len = pivots.shape[0]
+
+    x_idx = pivots["P"].idxmin()
+    x = pivots.at[x_idx, "P"]
+
+    d_idx = df.index[-1]
+    d = df.at[d_idx, "Close"]
+
+    selected: Optional[dict] = None
+
+    assert isinstance(pivots.index, pd.DatetimeIndex)
+    assert isinstance(x_idx, pd.Timestamp)
+
+    while True:
+        pos_after_x = get_next_index(pivots.index, x_idx)
+
+        if pos_after_x >= pivot_len:
+            break
+
+        a_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmax()
+        a = pivots.at[a_idx, "P"]
+
+        pos_after_a = get_next_index(pivots.index, a_idx)
+
+        if pos_after_a >= pivot_len:
+            break
+
+        c_idx = pivots.loc[pivots.index[pos_after_a] :, "P"].idxmax()
+        c = pivots.at[c_idx, "P"]
+
+        b_idx = pivots.loc[a_idx:c_idx, "P"].idxmin()
+        b = pivots.at[b_idx, "P"]
+
+        if pivots.index.has_duplicates:
+            if isinstance(x, pd.Series):
+                x = pivots.at[x_idx, "P"].min()
+
+            if isinstance(a, pd.Series):
+                a = pivots.at[a_idx, "P"].max()
+
+            if isinstance(b, pd.Series):
+                b = pivots.at[b_idx, "P"].min()
+
+            if isinstance(c, pd.Series):
+                c = pivots.at[c_idx, "P"].max()
+
+        xa_diff = a - x
+        ab_diff = a - b
+        bc_diff = c - b
+
+        highest_high_xb = df.loc[x_idx:b_idx, "High"].max()
+        lowest_low_ac = df.loc[a_idx:c_idx, "Low"].min()
+        highest_high_from_b = df.loc[b_idx:, "High"].max()
+
+        if (
+            highest_high_xb != a
+            or lowest_low_ac != b
+            or highest_high_from_b != c
+            or x == df.at[x_idx, "High"]
+            or a == df.at[a_idx, "Low"]
+            or b == df.at[b_idx, "High"]
+            or c == df.at[c_idx, "Low"]
+        ):
+            # Check that the pattern is well formed
+            x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmin()
+            x = pivots.loc[x_idx, "P"]
+            continue
+
+        b_retrace = fib_ser.loc[(fib_ser - (ab_diff / xa_diff)).abs().idxmin()]
+        c_retrace = fib_ser.loc[(fib_ser - (bc_diff / ab_diff)).abs().idxmin()]
+
+        is_perfect = b_retrace == 0.786 and (0.5 <= c_retrace <= 0.886)
+
+        if b_retrace != 0.786 or c_retrace < 0.382 or c_retrace > 0.886:
+            x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmin()
+            x = pivots.loc[x_idx, "P"]
+            continue
+
+        xa_27_ext = a - xa_diff * 1.27
+        ab_27_ext = a - ab_diff * 1.27
+
+        bc_618_ext = c - bc_diff * 1.618
+
+        terminal_point = xa_27_ext
+
+        lows_below_c = df.loc[c_idx:, "Low"]
+
+        lows_below_terminal_point = lows_below_c.loc[
+            lows_below_c < terminal_point
+        ]
+
+        if lows_below_terminal_point.empty:
+            has_tested = False
+        else:
+            has_tested = True
+
+        closes_below_terminal_point = (
+            df.loc[c_idx:, "Close"] < terminal_point
+        ).sum()
+
+        if (
+            closes_below_terminal_point < 7
+            and d < b - (b - terminal_point) * 0.5
+            and (
+                has_tested
+                and (d_idx - lows_below_terminal_point.index[0]).days < 7
+                or not has_tested
+            )
+        ):
+            selected = dict(
+                df_start=df.index[0],
+                df_end=df.index[-1],
+                start=a_idx,
+                end=d_idx,
+                points={
+                    "X": (x_idx, x),
+                    "A": (a_idx, a),
+                    f"{b_retrace:.3f}B": (b_idx, b),
+                    f"{c_retrace:.3f}C": (c_idx, c),
+                    "D": (d_idx, d),
+                },
+                extra_points={
+                    "direction": (c_idx, c),
+                },
+            )
+
+            if is_perfect:
+                # Perfect Butterfly pattern
+                alt_name = "Bull Perfect Butterfly"
+
+                clustered_levels = get_relative_clusters(
+                    {
+                        "1.27XA": xa_27_ext,
+                        "1.618BC": bc_618_ext,
+                        "1.27AB=CD": ab_27_ext,
+                    },
+                    "1.27XA",
+                )
+
+                selected["extra_points"].update(
+                    {
+                        level: (b_idx, price)
+                        for level, price in clustered_levels.items()
+                        if price <= x
+                    }
+                )
+            else:
+                clustered_levels = get_relative_clusters(
+                    {
+                        "1.27XA": xa_27_ext,
+                        "1.618BC": bc_618_ext,
+                        "2BC": c - bc_diff * 2,
+                        "2.24BC": c - bc_diff * 2.24,
+                        "AB=CD": c - ab_diff,
+                        "1.27AB=CD": ab_27_ext,
+                    },
+                    "1.27XA",
+                )
+
+                selected["extra_points"].update(
+                    {
+                        level: (b_idx, price)
+                        for level, price in clustered_levels.items()
+                        if price <= x
+                    }
+                )
+
+        x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmin()
+        x = pivots.loc[x_idx, "P"]
+
+    if selected:
+        selected.update(dict(sym=sym, pattern="BFLYU", alt_name=alt_name))
+
+    return selected
+
+
+def find_bearish_butterfly(
+    sym: str, df: pd.DataFrame, pivots: pd.DataFrame
+) -> Optional[dict]:
+    """
+    Bearish Butterfly harmonic pattern
+    """
+    alt_name = "Bear Butterfly"
+    pivot_len = pivots.shape[0]
+
+    x_idx = pivots["P"].idxmax()
+    x = pivots.at[x_idx, "P"]
+
+    d_idx = df.index[-1]
+    d = df.at[d_idx, "Close"]
+
+    selected: Optional[dict] = None
+
+    assert isinstance(pivots.index, pd.DatetimeIndex)
+    assert isinstance(x_idx, pd.Timestamp)
+
+    while True:
+        pos_after_x = get_next_index(pivots.index, x_idx)
+
+        if pos_after_x >= pivot_len:
+            break
+
+        a_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmin()
+        a = pivots.at[a_idx, "P"]
+
+        pos_after_a = get_next_index(pivots.index, a_idx)
+
+        if pos_after_a >= pivot_len:
+            break
+
+        c_idx = pivots.loc[pivots.index[pos_after_a] :, "P"].idxmin()
+        c = pivots.at[c_idx, "P"]
+
+        b_idx = pivots.loc[a_idx:c_idx, "P"].idxmax()
+        b = pivots.at[b_idx, "P"]
+
+        if pivots.index.has_duplicates:
+            if isinstance(x, pd.Series):
+                x = pivots.at[x_idx, "P"].max()
+
+            if isinstance(a, pd.Series):
+                a = pivots.at[a_idx, "P"].min()
+
+            if isinstance(b, pd.Series):
+                b = pivots.at[b_idx, "P"].max()
+
+            if isinstance(c, pd.Series):
+                c = pivots.at[c_idx, "P"].min()
+
+        xa_diff = x - a
+        ab_diff = b - a
+        bc_diff = b - c
+
+        lowest_low_xb = df.loc[x_idx:b_idx, "Low"].min()
+        highest_high_ac = df.loc[a_idx:c_idx, "High"].max()
+        lowest_low_from_b = df.loc[b_idx:, "Low"].min()
+
+        if (
+            lowest_low_xb != a
+            or highest_high_ac != b
+            or lowest_low_from_b != c
+            or x == df.at[x_idx, "Low"]
+            or a == df.at[a_idx, "High"]
+            or b == df.at[b_idx, "Low"]
+            or c == df.at[c_idx, "High"]
+        ):
+            # Check that the pattern is well formed
+            x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmax()
+            x = pivots.loc[x_idx, "P"]
+            continue
+
+        b_retrace = fib_ser.loc[(fib_ser - (ab_diff / xa_diff)).abs().idxmin()]
+        c_retrace = fib_ser.loc[(fib_ser - (bc_diff / ab_diff)).abs().idxmin()]
+
+        is_perfect = b_retrace == 0.786 and (0.5 <= c_retrace <= 0.886)
+
+        if b_retrace != 0.786 or c_retrace < 0.382 or c_retrace > 0.886:
+            x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmax()
+            x = pivots.loc[x_idx, "P"]
+            continue
+
+        xa_27_ext = a + xa_diff * 1.27
+        ab_27_ext = a + ab_diff * 1.27
+
+        bc_618_ext = c + bc_diff * 1.618
+
+        terminal_point = xa_27_ext
+
+        highs_after_c = df.loc[c_idx:, "Low"]
+
+        highs_above_terminal_point = highs_after_c.loc[
+            highs_after_c > terminal_point
+        ]
+
+        if highs_above_terminal_point.empty:
+            has_tested = False
+        else:
+            has_tested = True
+
+        closes_above_terminal_point = (
+            df.loc[c_idx:, "Close"] > terminal_point
+        ).sum()
+
+        if (
+            closes_above_terminal_point < 7
+            and d < b - (b - terminal_point) * 0.5
+            and (
+                has_tested
+                and (d_idx - highs_above_terminal_point.index[0]).days < 7
+                or not has_tested
+            )
+        ):
+            selected = dict(
+                df_start=df.index[0],
+                df_end=df.index[-1],
+                start=a_idx,
+                end=d_idx,
+                points={
+                    "X": (x_idx, x),
+                    "A": (a_idx, a),
+                    f"{b_retrace:.3f}B": (b_idx, b),
+                    f"{c_retrace:.3f}C": (c_idx, c),
+                    "D": (d_idx, d),
+                },
+                extra_points={
+                    "direction": (c_idx, c),
+                },
+            )
+
+            if is_perfect:
+                # Perfect Butterfly pattern
+                alt_name = "Bear Perfect Butterfly"
+
+                clustered_levels = get_relative_clusters(
+                    {
+                        "1.27XA": xa_27_ext,
+                        "1.618BC": bc_618_ext,
+                        "1.27AB=CD": ab_27_ext,
+                    },
+                    "1.27XA",
+                )
+
+                selected["extra_points"].update(
+                    {
+                        level: (b_idx, price)
+                        for level, price in clustered_levels.items()
+                        if price >= x
+                    }
+                )
+            else:
+                clustered_levels = get_relative_clusters(
+                    {
+                        "1.27XA": xa_27_ext,
+                        "1.618BC": bc_618_ext,
+                        "2BC": c + bc_diff * 2,
+                        "2.24BC": c + bc_diff * 2.24,
+                        "AB=CD": c + ab_diff,
+                        "1.27AB=CD": ab_27_ext,
+                    },
+                    "1.27XA",
+                )
+
+                selected["extra_points"].update(
+                    {
+                        level: (b_idx, price)
+                        for level, price in clustered_levels.items()
+                        if price >= x
+                    }
+                )
+
+        x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmax()
+        x = pivots.loc[x_idx, "P"]
+
+    if selected:
+        selected.update(dict(sym=sym, pattern="BFLYD", alt_name=alt_name))
+
+    return selected
