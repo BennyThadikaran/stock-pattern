@@ -150,9 +150,16 @@ class Plotter:
 
         self.main_ax = axs[0]
 
+        y_min, y_max = plt.ylim()
+
+        # Calculate a threshold for line labels.
+        # If distance between lines if less than threshold, they can result in
+        # overlapping labels, which are too difficult to read.
+        self.threshold = y_max - y_min
+
         self._annotate_fn = functools.partial(
             axs[0].annotate,
-            textcoords="offset points",
+            textcoords="offset pixels",
             horizontalalignment="center",
             fontweight="bold",
             color=self.config.get("LABEL_COLOR", "midnightblue"),
@@ -342,7 +349,7 @@ class Plotter:
         hline_levels = []
         colors = []
         xmax = self.df.index.get_loc(last)
-        xmin = None
+        xmin = prev_line_price = prev_diff = None
 
         for label, point in points.items():
             x, y = point
@@ -355,15 +362,36 @@ class Plotter:
                     colors=self.config.get("BIAS_LINE_COLOR", "green"),
                 )
             else:
-                if not xmin:
+                if xmin is None:
                     xmin = self.df.index.get_loc(x)
+
+                diff = (
+                    self.threshold
+                    if prev_line_price is None
+                    else abs(prev_line_price - y)
+                )
+
+                prev_line_price = y
 
                 hline_levels.append(y)
 
                 colors.append(self.line_color)
 
+                x_offset = 0
+                y_offset = -10
+
+                # If labels are too close, adjust the label positions
+                if diff <= self.threshold:
+                    if prev_diff is None or prev_diff > self.threshold:
+                        y_offset = -30
+
+                prev_diff = diff
+
                 self._annotate_fn(
-                    text=f"{label} - {y:.2f}", xy=(xmin, y), xytext=(10, -10)
+                    text=f"{label} - {y:.2f}",
+                    xy=(xmin, y),
+                    xytext=(x_offset, y_offset),
+                    rotation=15,
                 )
 
         self.main_ax.hlines(hline_levels, xmin, xmax, colors=colors)
@@ -373,9 +401,9 @@ class Plotter:
             x, y = point
 
             if x == last:
-                text_loc = (10, -10)
+                text_loc = (15, 0)
             else:
-                text_loc = (0, 10 if y == self.df.at[x, "High"] else -10)
+                text_loc = (0, 15 if y == self.df.at[x, "High"] else -15)
 
             self._annotate_fn(
                 text=label,
