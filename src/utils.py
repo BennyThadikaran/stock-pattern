@@ -1973,7 +1973,7 @@ def find_bullish_bat(
         clustered_levels = {}
 
         xa_886_retrace = a - xa_diff * 0.886
-        xa_13_ext = c - xa_diff * 1.13
+        xa_13_ext = a - xa_diff * 1.13
 
         bc_2_ext = c - bc_diff * 2
         bc_618_ext = c - bc_diff * 1.618
@@ -2199,7 +2199,7 @@ def find_bearish_bat(
         clustered_levels = {}
 
         xa_886_retrace = a + xa_diff * 0.886
-        xa_13_ext = c + xa_diff * 1.13
+        xa_13_ext = a + xa_diff * 1.13
 
         bc_2_ext = c + bc_diff * 2
         bc_618_ext = c + bc_diff * 1.618
@@ -2809,8 +2809,8 @@ def find_bullish_crab(
         xa_618_ext = a - xa_diff * 1.618
 
         bc_3_14_ext = c - bc_diff * 3.14
-        ab_618_ext = a - ab_diff * 1.618
-        ab_27_ext = a - ab_diff * 1.27
+        ab_618_ext = c - ab_diff * 1.618
+        ab_27_ext = c - ab_diff * 1.27
 
         terminal_point = xa_618_ext
 
@@ -3023,9 +3023,8 @@ def find_bearish_crab(
         xa_618_ext = a + xa_diff * 1.618
 
         bc_3_14_ext = c + bc_diff * 3.14
-
-        ab_618_ext = a + ab_diff * 1.618
-        ab_27_ext = a + ab_diff * 1.27
+        ab_618_ext = c + ab_diff * 1.618
+        ab_27_ext = c + ab_diff * 1.27
 
         terminal_point = xa_618_ext
 
@@ -3229,7 +3228,7 @@ def find_bullish_butterfly(
             continue
 
         xa_27_ext = a - xa_diff * 1.27
-        ab_27_ext = a - ab_diff * 1.27
+        ab_27_ext = c - ab_diff * 1.27
 
         bc_618_ext = c - bc_diff * 1.618
 
@@ -3412,7 +3411,7 @@ def find_bearish_butterfly(
             continue
 
         xa_27_ext = a + xa_diff * 1.27
-        ab_27_ext = a + ab_diff * 1.27
+        ab_27_ext = c + ab_diff * 1.27
 
         bc_618_ext = c + bc_diff * 1.618
 
