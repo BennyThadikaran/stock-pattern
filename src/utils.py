@@ -2382,17 +2382,9 @@ def find_bullish_gartley(
         b_retrace = fib_ser.loc[(fib_ser - (ab_diff / xa_diff)).abs().idxmin()]
         c_retrace = fib_ser.loc[(fib_ser - (bc_diff / ab_diff)).abs().idxmin()]
 
-        lowest_close_after_c = df.loc[c_idx:, "Close"].min()
-        highest_high_after_c = df.loc[c_idx:, "High"].max()
-
         is_perfect = b_retrace == 0.618 and c_retrace == 0.618
 
-        if (
-            b_retrace != 0.618
-            or c_retrace < 0.382
-            or c_retrace > 0.886
-            or lowest_close_after_c < x
-        ):
+        if b_retrace != 0.618 or c_retrace < 0.382 or c_retrace > 0.886:
             x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmin()
             x = pivots.loc[x_idx, "P"]
             continue
@@ -2425,10 +2417,9 @@ def find_bullish_gartley(
         if (
             d < b
             and closes_below_terminal_point < 7
-            and c == highest_high_after_c
             and (
                 has_tested
-                and (df.index[-1] - lows_below_terminal_point.index[0]).days < 7
+                and (d_idx - lows_below_terminal_point.index[0]).days < 7
                 or not has_tested
             )
         ):
@@ -2576,17 +2567,9 @@ def find_bearish_gartley(
         b_retrace = fib_ser.loc[(fib_ser - (ab_diff / xa_diff)).abs().idxmin()]
         c_retrace = fib_ser.loc[(fib_ser - (bc_diff / ab_diff)).abs().idxmin()]
 
-        highest_close_after_c = df.loc[c_idx:, "Close"].max()
-        lowest_low_after_c = df.loc[c_idx:, "Low"].min()
-
         is_perfect = b_retrace == 0.618 and c_retrace == 0.618
 
-        if (
-            b_retrace != 0.618
-            or c_retrace < 0.382
-            or c_retrace > 0.886
-            or highest_close_after_c > x
-        ):
+        if b_retrace != 0.618 or c_retrace < 0.382 or c_retrace > 0.886:
             x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmax()
             x = pivots.loc[x_idx, "P"]
             continue
@@ -2619,10 +2602,9 @@ def find_bearish_gartley(
         if (
             d > b
             and closes_above_terminal_point < 7
-            and c == lowest_low_after_c
             and (
                 has_tested
-                and (df.index[-1] - highs_above_terminal_point.index[0]).days
+                and (d_idx - highs_above_terminal_point.index[0]).days
                 < 7
                 or not has_tested
             )
@@ -2793,9 +2775,8 @@ def find_bullish_crab(
 
         terminal_point = xa_618_ext
 
-        highest_high_after_c = df.loc[c_idx:, "High"].max()
-
         lows_after_c = df.loc[c_idx:, "Low"]
+
         lows_below_terminal_point = lows_after_c.loc[
             lows_after_c < terminal_point
         ]
@@ -2812,10 +2793,9 @@ def find_bullish_crab(
         if (
             d < b - (b - terminal_point) * 0.5
             and closes_below_terminal_point < 7
-            and c == highest_high_after_c
             and (
                 has_tested
-                and (df.index[-1] - lows_below_terminal_point.index[0]).days < 7
+                and (d_idx - lows_below_terminal_point.index[0]).days < 7
                 or not has_tested
             )
         ):
@@ -3007,8 +2987,6 @@ def find_bearish_crab(
 
         terminal_point = xa_618_ext
 
-        lowest_low_after_c = df.loc[c_idx:, "Low"].min()
-
         highs_after_c = df.loc[c_idx:, "High"]
 
         highs_above_terminal_point = highs_after_c[
@@ -3026,16 +3004,13 @@ def find_bearish_crab(
 
         if (
             closes_above_terminal_point < 7
-            and c == lowest_low_after_c
             and d > b + (terminal_point - b) * 0.5
             and (
                 has_tested
-                and (df.index[-1] - highs_above_terminal_point.index[0]).days
-                < 7
+                and (d_idx - highs_above_terminal_point.index[0]).days < 7
                 or not has_tested
             )
         ):
-
             selected = dict(
                 df_start=df.index[0],
                 df_end=df.index[-1],
