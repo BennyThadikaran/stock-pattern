@@ -2846,6 +2846,12 @@ def find_bullish_crab(
                         "1.618XA": xa_618_ext,
                         "1.27AB": ab_27_ext,
                         "1.618AB": ab_618_ext,
+                        "2.24BC": c - bc_diff * 2.24,
+                        "2.618BC": c - bc_diff * 2.618,
+                        "3.14BC": c - bc_diff * 3.14,
+                        "3.618BC": c - bc_diff * 3.618,
+                        "1.27AB": ab_27_ext,
+                        "1.618AB": ab_618_ext,
                     },
                     "1.618XA",
                 )
@@ -2854,7 +2860,7 @@ def find_bullish_crab(
                     {
                         level: (b_idx, price)
                         for level, price in clustered_levels.items()
-                        if price < x
+                        if price < x and price >= xa_618_ext
                     }
                 )
             else:
@@ -2864,6 +2870,8 @@ def find_bullish_crab(
                         "2.618BC": c - bc_diff * 2.618,
                         "3.14BC": c - bc_diff * 3.14,
                         "3.618BC": c - bc_diff * 3.618,
+                        "1.27AB": ab_27_ext,
+                        "1.618AB": ab_618_ext,
                     },
                     "1.618XA",
                 )
@@ -3037,6 +3045,8 @@ def find_bearish_crab(
                         "3.14BC": bc_3_14_ext,
                         "1.618XA": xa_618_ext,
                         "1.618AB": ab_618_ext,
+                        "1.27AB": ab_27_ext,
+                        "1.618AB": ab_618_ext,
                     },
                     "1.618XA",
                 )
@@ -3057,6 +3067,10 @@ def find_bearish_crab(
                         "1.618XA": xa_618_ext,
                         "1.27AB": ab_27_ext,
                         "1.618AB": ab_618_ext,
+                        "2.24BC": c + bc_diff * 2.24,
+                        "2.618BC": c + bc_diff * 2.618,
+                        "3.14BC": c + bc_diff * 3.14,
+                        "3.618BC": c + bc_diff * 3.618,
                     },
                     "1.618XA",
                 )
@@ -3065,7 +3079,7 @@ def find_bearish_crab(
                     {
                         level: (b_idx, price)
                         for level, price in clustered_levels.items()
-                        if price > x
+                        if price > x and price <= xa_618_ext
                     }
                 )
             else:
@@ -3075,6 +3089,8 @@ def find_bearish_crab(
                         "2.618BC": c + bc_diff * 2.618,
                         "3.14BC": c + bc_diff * 3.14,
                         "3.618BC": c + bc_diff * 3.618,
+                        "1.27AB": ab_27_ext,
+                        "1.618AB": ab_618_ext,
                     },
                     "1.618XA",
                 )
