@@ -1605,20 +1605,21 @@ def find_bullish_abcd(
         ab_27_ext = c - ab_diff * 1.27
         ab_618_ext = c - ab_diff * 1.618
 
-        lowest_close_after_c = df.loc[c_idx:, "Close"].min()
-        highest_high_after_c = df.loc[c_idx:, "High"].max()
+        lowest_close_from_c = df.loc[c_idx:, "Close"].min()
 
         is_perfect = c_retrace == 0.618 and ab_cd_ext <= bc_618_ext
-        is_alternate = lowest_close_after_c < max(ab_27_ext, ab_618_ext)
+
+        is_alternate = lowest_close_from_c < ab_cd_ext
 
         terminal_point = ab_cd_ext
 
         if is_perfect:
             terminal_point = ab_cd_ext
         elif is_alternate:
-            terminal_point = min(ab_27_ext, ab_618_ext)
+            terminal_point = ab_618_ext
 
         lows_after_c = df.loc[c_idx:, "Low"]
+
         lows_below_terminal_point = lows_after_c.loc[
             lows_after_c < terminal_point
         ]
@@ -1778,17 +1779,16 @@ def find_bearish_abcd(
         ab_618_ext = c + ab_diff * 1.618
 
         highest_close_after_c = df.loc[c_idx:, "Close"].max()
-        lowest_low_after_c = df.loc[c_idx:, "Low"].min()
 
         is_perfect = c_retrace == 0.618 and ab_cd_ext >= bc_618_ext
-        is_alternate = highest_close_after_c > min(ab_27_ext, ab_618_ext)
+        is_alternate = highest_close_after_c > ab_cd_ext
 
         terminal_point = ab_cd_ext
 
         if is_perfect:
             terminal_point = ab_cd_ext
         elif is_alternate:
-            terminal_point = max(ab_27_ext, ab_618_ext)
+            terminal_point = ab_618_ext
 
         highs_after_c = df.loc[c_idx:, "High"]
 
