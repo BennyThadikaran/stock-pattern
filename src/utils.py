@@ -1633,13 +1633,16 @@ def find_bullish_abcd(
             df.loc[c_idx:, "Close"] < terminal_point
         ).sum()
 
+        ab_completion = (b_idx - a_idx).days
+        cd_completion = (d_idx - c_idx).days
+
         if (
             d < b - (b - terminal_point) * 0.5
+            and cd_completion < ab_completion * 2
             and closes_below_terminal_point < 7
-            and c == highest_high_after_c
             and (
                 has_tested
-                and (df.index[-1] - lows_below_terminal_point.index[0]).days < 7
+                and (d_idx - lows_below_terminal_point.index[0]).days < 7
                 or not has_tested
             )
         ):
@@ -1805,14 +1808,16 @@ def find_bearish_abcd(
             df.loc[c_idx:, "Close"] > terminal_point
         ).sum()
 
+        ab_completion = (b_idx - a_idx).days
+        cd_completion = (d_idx - c_idx).days
+
         if (
             closes_above_terminal_point < 7
-            and c == lowest_low_after_c
+            and cd_completion < ab_completion * 2
             and d > b + (terminal_point - b) * 0.5
             and (
                 has_tested
-                and (df.index[-1] - highs_above_terminal_point.index[0]).days
-                < 7
+                and (d_idx - highs_above_terminal_point.index[0]).days < 7
                 or not has_tested
             )
         ):
