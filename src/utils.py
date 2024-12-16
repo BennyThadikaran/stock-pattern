@@ -1885,7 +1885,6 @@ def find_bullish_bat(
     """
     Bullish Bat harmonic pattern
     """
-    is_perfect_bat = is_alternate_bat = False
     alt_name = "Bull BAT"
     pivot_len = pivots.shape[0]
 
@@ -1958,26 +1957,23 @@ def find_bullish_bat(
         b_retrace = fib_ser.loc[(fib_ser - (ab_diff / xa_diff)).abs().idxmin()]
         c_retrace = fib_ser.loc[(fib_ser - (bc_diff / ab_diff)).abs().idxmin()]
 
-        lowest_close_after_c = df.loc[c_idx:, "Close"].min()
-        highest_high_after_c = df.loc[c_idx:, "High"].max()
-
-        is_perfect_bat = b_retrace == 0.5 and (
+        is_perfect = b_retrace == 0.5 and (
             c_retrace == 0.5 or c_retrace == 0.618
         )
 
-        is_alternate_bat = b_retrace == 0.382 and lowest_close_after_c < x
+        is_alternate = b_retrace == 0.382
 
         if (
             b_retrace < 0.382
             or b_retrace > 0.5
             or c_retrace < 0.382
             or c_retrace > 0.886
+            or not is_alternate
+            and df.loc[c_idx:, "Close"].min() < x
         ):
             x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmin()
             x = pivots.loc[x_idx, "P"]
             continue
-
-        clustered_levels = {}
 
         xa_886_retrace = a - xa_diff * 0.886
         xa_13_ext = a - xa_diff * 1.13
@@ -1987,46 +1983,12 @@ def find_bullish_bat(
 
         ab_27_ext = c - ab_diff * 1.27
 
-        if is_perfect_bat:
-            terminal_point = min(ab_27_ext, bc_2_ext, xa_886_retrace)
-        elif is_alternate_bat:
-            clustered_levels = get_relative_clusters(
-                {
-                    "1.13XA": xa_13_ext,
-                    "2BC": bc_2_ext,
-                    "2.618BC": c - bc_diff * 2.618,
-                    "3BC": c - bc_diff * 3,
-                    "3.618BC": c - bc_diff * 3.618,
-                    "1.618AB=CD": c - ab_diff * 1.618,
-                },
-                "1.13XA",
-            )
+        terminal_point = xa_13_ext if is_alternate else xa_886_retrace
 
-            lowest_var = min(
-                clustered_levels, key=lambda k: clustered_levels[k]
-            )
+        lows_from_c = df.loc[c_idx:, "Low"]
 
-            terminal_point = clustered_levels[lowest_var]
-        else:
-            clustered_levels = get_relative_clusters(
-                {
-                    "0.886XA": xa_886_retrace,
-                    "1.618BC": bc_618_ext,
-                    "2BC": bc_2_ext,
-                    "2.618BC": c - bc_diff * 2.618,
-                },
-                "0.886XA",
-            )
-
-            lowest_var = min(
-                clustered_levels, key=lambda k: clustered_levels[k]
-            )
-
-            terminal_point = clustered_levels[lowest_var]
-
-        lows_below_c = df.loc[c_idx:, "Low"]
-        lows_below_terminal_point = lows_below_c.loc[
-            lows_below_c < terminal_point
+        lows_below_terminal_point = lows_from_c.loc[
+            lows_from_c < terminal_point
         ]
 
         if lows_below_terminal_point.empty:
@@ -2040,11 +2002,10 @@ def find_bullish_bat(
 
         if (
             closes_below_terminal_point < 7
-            and c == highest_high_after_c
             and d < b - (b - terminal_point) * 0.5
             and (
                 has_tested
-                and (df.index[-1] - lows_below_terminal_point.index[0]).days < 7
+                and (d_idx - lows_below_terminal_point.index[0]).days < 7
                 or not has_tested
             )
         ):
@@ -2065,7 +2026,7 @@ def find_bullish_bat(
                 },
             )
 
-            if is_perfect_bat:
+            if is_perfect:
                 # Perfect BAT pattern
                 alt_name = "Bull Perfect BAT"
 
@@ -2076,18 +2037,43 @@ def find_bullish_bat(
                         "0.886XA": (b_idx, xa_886_retrace),
                     }
                 )
-            elif is_alternate_bat:
-                # Alternate BAT pattern
-                alt_name = "Bull Alternate BAT"
-
-                selected["extra_points"].update(
-                    {
-                        level: (b_idx, price)
-                        for level, price in clustered_levels.items()
-                        if price <= x
-                    }
-                )
             else:
+                if is_alternate:
+                    # Alternate BAT pattern
+                    alt_name = "Bull Alternate BAT"
+
+                    # alternate Bat reversal levels
+                    clustered_levels = get_relative_clusters(
+                        {
+                            "1.13XA": xa_13_ext,
+                            "2BC": bc_2_ext,
+                            "2.618BC": c - bc_diff * 2.618,
+                            "3BC": c - bc_diff * 3,
+                            "3.618BC": c - bc_diff * 3.618,
+                            "1.618AB=CD": c - ab_diff * 1.618,
+                        },
+                        "1.13XA",
+                    )
+
+                    selected["extra_points"].update(
+                        {
+                            level: (b_idx, price)
+                            for level, price in clustered_levels.items()
+                            if price <= x
+                        }
+                    )
+
+                # Bat reversal levels
+                clustered_levels = get_relative_clusters(
+                    {
+                        "0.886XA": xa_886_retrace,
+                        "1.618BC": bc_618_ext,
+                        "2BC": bc_2_ext,
+                        "2.618BC": c - bc_diff * 2.618,
+                    },
+                    "0.886XA",
+                )
+
                 selected["extra_points"].update(
                     {
                         level: (b_idx, price)
@@ -2111,7 +2097,6 @@ def find_bearish_bat(
     """
     Bearish Bat harmonic pattern
     """
-    is_perfect_bat = is_alternate_bat = False
     alt_name = "Bear BAT"
     pivot_len = pivots.shape[0]
 
@@ -2184,26 +2169,23 @@ def find_bearish_bat(
         b_retrace = fib_ser.loc[(fib_ser - (ab_diff / xa_diff)).abs().idxmin()]
         c_retrace = fib_ser.loc[(fib_ser - (bc_diff / ab_diff)).abs().idxmin()]
 
-        highest_close_after_c = df.loc[c_idx:, "Close"].max()
-        lowest_low_after_c = df.loc[c_idx:, "Low"].min()
-
-        is_perfect_bat = b_retrace == 0.5 and (
+        is_perfect = b_retrace == 0.5 and (
             c_retrace == 0.5 or c_retrace == 0.618
         )
 
-        is_alternate_bat = b_retrace == 0.382 and highest_close_after_c > x
+        is_alternate = b_retrace == 0.382
 
         if (
             b_retrace < 0.382
             or b_retrace > 0.5
             or c_retrace < 0.382
             or c_retrace > 0.886
+            or not is_alternate
+            and df.loc[c_idx:, "Close"].max() > x
         ):
             x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmax()
             x = pivots.loc[x_idx, "P"]
             continue
-
-        clustered_levels = {}
 
         xa_886_retrace = a + xa_diff * 0.886
         xa_13_ext = a + xa_diff * 1.13
@@ -2213,42 +2195,12 @@ def find_bearish_bat(
 
         ab_27_ext = c + ab_diff * 1.27
 
-        if is_perfect_bat:
-            terminal_point = max(ab_27_ext, bc_2_ext, xa_886_retrace)
-        elif is_alternate_bat:
-            clustered_levels = get_relative_clusters(
-                {
-                    "1.13XA": xa_13_ext,
-                    "1.618AB=CD": c + ab_diff * 1.618,
-                    "2BC": bc_2_ext,
-                    "2.618BC": c + bc_diff * 2.618,
-                    "3BC": c + bc_diff * 3,
-                    "3.618BC": c + bc_diff * 3.618,
-                },
-                "1.13XA",
-            )
+        terminal_point = xa_13_ext if is_alternate else xa_886_retrace
 
-            max_var = max(clustered_levels, key=lambda k: clustered_levels[k])
+        highs_from_c = df.loc[c_idx:, "High"]
 
-            terminal_point = clustered_levels[max_var]
-        else:
-            clustered_levels = get_relative_clusters(
-                {
-                    "0.886XA": xa_886_retrace,
-                    "1.618BC": bc_618_ext,
-                    "2BC": bc_2_ext,
-                    "2.618BC": c + bc_diff * 2.618,
-                },
-                "0.886XA",
-            )
-
-            max_var = max(clustered_levels, key=lambda k: clustered_levels[k])
-
-            terminal_point = clustered_levels[max_var]
-
-        highs_above_c = df.loc[c_idx:, "High"]
-        highs_above_terminal_point = highs_above_c.loc[
-            highs_above_c > terminal_point
+        highs_above_terminal_point = highs_from_c.loc[
+            highs_from_c > terminal_point
         ]
 
         if highs_above_terminal_point.empty:
@@ -2262,16 +2214,13 @@ def find_bearish_bat(
 
         if (
             closes_above_terminal_point < 7
-            and c == lowest_low_after_c
             and d > b + (terminal_point - b) * 0.5
             and (
                 has_tested
-                and (df.index[-1] - highs_above_terminal_point.index[0]).days
-                < 7
+                and (d_idx - highs_above_terminal_point.index[0]).days < 7
                 or not has_tested
             )
         ):
-
             selected = dict(
                 df_start=df.index[0],
                 df_end=df.index[-1],
@@ -2289,7 +2238,7 @@ def find_bearish_bat(
                 },
             )
 
-            if is_perfect_bat:
+            if is_perfect:
                 # Perfect BAT pattern
                 alt_name = "Bear Perfect BAT"
 
@@ -2300,18 +2249,41 @@ def find_bearish_bat(
                         "0.886XA": (b_idx, xa_886_retrace),
                     }
                 )
-            elif is_alternate_bat:
-                # Alternate BAT pattern
-                alt_name = "Bear Alternate BAT"
-
-                selected["extra_points"].update(
-                    {
-                        level: (b_idx, price)
-                        for level, price in clustered_levels.items()
-                        if price >= x
-                    }
-                )
             else:
+                if is_alternate:
+                    # Alternate BAT pattern
+                    alt_name = "Bear Alternate BAT"
+
+                    clustered_levels = get_relative_clusters(
+                        {
+                            "1.13XA": xa_13_ext,
+                            "1.618AB=CD": c + ab_diff * 1.618,
+                            "2BC": bc_2_ext,
+                            "2.618BC": c + bc_diff * 2.618,
+                            "3BC": c + bc_diff * 3,
+                            "3.618BC": c + bc_diff * 3.618,
+                        },
+                        "1.13XA",
+                    )
+
+                    selected["extra_points"].update(
+                        {
+                            level: (b_idx, price)
+                            for level, price in clustered_levels.items()
+                            if price >= x
+                        }
+                    )
+
+                clustered_levels = get_relative_clusters(
+                    {
+                        "0.886XA": xa_886_retrace,
+                        "1.618BC": bc_618_ext,
+                        "2BC": bc_2_ext,
+                        "2.618BC": c + bc_diff * 2.618,
+                    },
+                    "0.886XA",
+                )
+
                 # Normal BAT pattern
                 selected["extra_points"].update(
                     {
