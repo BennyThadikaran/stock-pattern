@@ -1671,16 +1671,17 @@ def find_bullish_abcd(
                         "1.618BC": (b_idx, bc_618_ext),
                     }
                 )
-            elif is_alternate:
-                alt_name = "Bull Alternate AB=CD"
-
-                selected["extra_points"].update(
-                    {
-                        "1.27AB=CD": (b_idx, ab_27_ext),
-                        "1.618AB=CD": (b_idx, ab_618_ext),
-                    }
-                )
             else:
+                if is_alternate:
+                    alt_name = "Bull Alternate AB=CD"
+
+                    selected["extra_points"].update(
+                        {
+                            "1.27AB=CD": (b_idx, ab_27_ext),
+                            "1.618AB=CD": (b_idx, ab_618_ext),
+                        }
+                    )
+
                 selected["extra_points"].update(
                     {
                         f"{c_fib_inverse:.3f}BC": (b_idx, bc_ext),
@@ -1846,16 +1847,17 @@ def find_bearish_abcd(
                         "1.618BC": (b_idx, bc_618_ext),
                     }
                 )
-            elif is_alternate:
-                alt_name = "Bear Alternate AB=CD"
-
-                selected["extra_points"].update(
-                    {
-                        "1.27AB=CD": (b_idx, ab_27_ext),
-                        "1.618AB=CD": (b_idx, ab_618_ext),
-                    }
-                )
             else:
+                if is_alternate:
+                    alt_name = "Bear Alternate AB=CD"
+
+                    selected["extra_points"].update(
+                        {
+                            "1.27AB=CD": (b_idx, ab_27_ext),
+                            "1.618AB=CD": (b_idx, ab_618_ext),
+                        }
+                    )
+
                 selected["extra_points"].update(
                     {
                         f"{c_fib_inverse:.3f}BC": (b_idx, bc_ext),
