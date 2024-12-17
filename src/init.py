@@ -71,6 +71,9 @@ def get_user_selection() -> Optional[str]:
                         "[GARTU] Gartley Harmonic", value="gartu"
                     ),
                     questionary.Choice("[CRABU] Crab Harmonic", value="crabu"),
+                    questionary.Choice(
+                        "[BFLYU] Butterfly Harmonic", value="bflyu"
+                    ),
                     questionary.Choice("Back to main", value="MAIN"),
                 ],
                 use_shortcuts=True,
@@ -90,6 +93,9 @@ def get_user_selection() -> Optional[str]:
                         "[GARTD] Gartley Harmonic", value="gartd"
                     ),
                     questionary.Choice("[CRABD] Crab Harmonic", value="crabd"),
+                    questionary.Choice(
+                        "[BFLYD] Butterfly Harmonic", value="bflyd"
+                    ),
                     questionary.Choice("Back to main", value="MAIN"),
                 ],
                 use_shortcuts=True,
@@ -348,7 +354,7 @@ def process(
 # Differentiate between the main thread and child threads on Windows
 # see https://stackoverflow.com/a/57811249
 if __name__ == "__main__":
-    version = "4.0.6"
+    version = "4.0.7"
 
     futures: List[concurrent.futures.Future] = []
 
@@ -382,6 +388,8 @@ if __name__ == "__main__":
         "gartd": utils.find_bearish_gartley,
         "crabu": utils.find_bullish_crab,
         "crabd": utils.find_bearish_crab,
+        "bflyu": utils.find_bullish_butterfly,
+        "bflyd": utils.find_bearish_butterfly,
     }
 
     # Parse CLI arguments
@@ -612,11 +620,11 @@ if __name__ == "__main__":
 
         fns = tuple(v for k, v in fn_dict.items() if k in bear_list)
     elif key == "bull_harm":
-        bull_list = ("abcdu", "batu", "gartu", "crabu")
+        bull_list = ("abcdu", "batu", "gartu", "crabu", "bflyu")
 
         fns = tuple(v for k, v in fn_dict.items() if k in bull_list)
     elif key == "bear_harm":
-        bear_list = ("abcdd", "batd", "gartd", "crabd")
+        bear_list = ("abcdd", "batd", "gartd", "crabd", "bflyd")
 
         fns = tuple(v for k, v in fn_dict.items() if k in bear_list)
     else:
@@ -645,7 +653,7 @@ if __name__ == "__main__":
         f"Got {count - 1} patterns for `{key}`.\n\nRun `py init.py --plot {fname}` to view results."
     )
 
-    if config.get("POST_SCAN_PLOT", True):
+    if config.get("POST_SCAN_PLOT", True) and not args.save:
         # last item in patterns is the meta data like timeframe, end_date etc
         # Pop it out as we don't require it here
         patterns.pop()
