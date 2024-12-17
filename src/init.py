@@ -653,7 +653,7 @@ if __name__ == "__main__":
         f"Got {count - 1} patterns for `{key}`.\n\nRun `py init.py --plot {fname}` to view results."
     )
 
-    if config.get("POST_SCAN_PLOT", True):
+    if config.get("POST_SCAN_PLOT", True) and not args.save:
         # last item in patterns is the meta data like timeframe, end_date etc
         # Pop it out as we don't require it here
         patterns.pop()
