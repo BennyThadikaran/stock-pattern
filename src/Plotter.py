@@ -382,6 +382,10 @@ class Plotter:
 
                 # If labels are too close, adjust the label positions
                 if diff <= self.threshold:
+                    if self.mode == "expand":
+                        y_offset = -50
+                        x_offset = -40
+
                     if prev_diff and prev_diff <= self.threshold:
                         y_offset = -30
 
