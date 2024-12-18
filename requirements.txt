@@ -1,5 +1,6 @@
 fast_csv_loader>=1.0.1
 mplfinance==0.12.10b0
-pandas==2.0.3
+pandas==2.0.3; python_version == "3.8"
+pandas==2.2.2; python_version > "3.8"
 questionary==2.0.1
 tqdm==4.66.5
