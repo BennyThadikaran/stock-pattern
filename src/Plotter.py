@@ -116,6 +116,12 @@ class Plotter:
         if df is None:
             raise ValueError(f"Unable to load data for {sym}")
 
+        if df.index.has_duplicates:
+            df = df.loc[~df.index.duplicated()]
+
+        if not df.index.is_monotonic_increasing:
+            df = df.sort_index(ascending=True)
+
         self.df = df
 
         if self.mode == "expand":
