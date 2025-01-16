@@ -61,6 +61,9 @@ def get_user_selection() -> Optional[str]:
                 message="Select a BULL pattern",
                 choices=[
                     questionary.Choice(
+                        "[FLAGU] High Pole and Flag", value="flagu"
+                    ),
+                    questionary.Choice(
                         "[VCPU] Volatility Contraction", value="vcpu"
                     ),
                     questionary.Choice("[DBOT] Double Bottom", value="dbot"),
@@ -82,6 +85,9 @@ def get_user_selection() -> Optional[str]:
             ptn_key = questionary.select(
                 message="Select a BEAR pattern",
                 choices=[
+                    questionary.Choice(
+                        "[FLAGD] High Pole and Flag", value="flagd"
+                    ),
                     questionary.Choice(
                         "[VCPD] Volatility Contraction", value="vcpd"
                     ),
@@ -149,9 +155,9 @@ def scan_pattern(
     if not df.index.is_monotonic_increasing:
         df = df.sort_index(ascending=True)
 
-    if pattern == "uptl":
+    if pattern == "uptl" or pattern == "flagu":
         pivot_type = "low"
-    elif pattern == "dntl":
+    elif pattern == "dntl" or pattern == "flagd":
         pivot_type = "high"
     else:
         pivot_type = "both"
@@ -354,7 +360,7 @@ def process(
 # Differentiate between the main thread and child threads on Windows
 # see https://stackoverflow.com/a/57811249
 if __name__ == "__main__":
-    version = "4.0.8"
+    version = "4.0.9"
 
     futures: List[concurrent.futures.Future] = []
 
@@ -371,6 +377,8 @@ if __name__ == "__main__":
     DIR = Path(__file__).parent
 
     fn_dict: Dict[str, Callable] = {
+        "flagu": utils.find_bullish_flag,
+        "flagd": utils.find_bearish_flag,
         "vcpu": utils.find_bullish_vcp,
         "dbot": utils.find_double_bottom,
         "hnsu": utils.find_reverse_hns,
@@ -612,11 +620,11 @@ if __name__ == "__main__":
     if key in fn_dict:
         fns = (fn_dict[key],)
     elif key == "bull":
-        bull_list = ("vcpu", "hnsu", "dbot")
+        bull_list = ("vcpu", "hnsu", "dbot", "flagu")
 
         fns = tuple(v for k, v in fn_dict.items() if k in bull_list)
     elif key == "bear":
-        bear_list = ("vcpd", "hnsd", "dtop")
+        bear_list = ("vcpd", "hnsd", "dtop", "flagd")
 
         fns = tuple(v for k, v in fn_dict.items() if k in bear_list)
     elif key == "bull_harm":
@@ -629,7 +637,17 @@ if __name__ == "__main__":
         fns = tuple(v for k, v in fn_dict.items() if k in bear_list)
     else:
         fns = tuple(
-            fn_dict[k] for k in ("vcpu", "hnsu", "dbot", "vcpd", "hnsd", "dtop")
+            fn_dict[k]
+            for k in (
+                "vcpu",
+                "hnsu",
+                "dbot",
+                "flagu",
+                "vcpd",
+                "hnsd",
+                "dtop",
+                "flagd",
+            )
         )
 
     try:
