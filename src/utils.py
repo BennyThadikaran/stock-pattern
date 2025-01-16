@@ -2820,18 +2820,22 @@ def find_bullish_crab(
     alt_name = "Bull Crab"
     pivot_len = pivots.shape[0]
 
-    x_idx = pivots["P"].idxmin()
-    x = pivots.at[x_idx, "P"]
-
     d_idx = df.index[-1]
     d = df.at[d_idx, "Close"]
 
     selected: Optional[dict] = None
 
     assert isinstance(pivots.index, pd.DatetimeIndex)
-    assert isinstance(x_idx, pd.Timestamp)
 
-    while True:
+    for x_idx in pivots.index:
+        x = pivots.at[x_idx, "P"]
+
+        if isinstance(x, pd.Series):
+            x = pivots.at[x_idx, "P"].min()
+
+        if x == df.at[x_idx, "High"]:
+            continue
+
         pos_after_x = get_next_index(pivots.index, x_idx)
 
         if pos_after_x >= pivot_len:
@@ -2839,6 +2843,9 @@ def find_bullish_crab(
 
         a_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmax()
         a = pivots.at[a_idx, "P"]
+
+        if df.loc[x_idx:a_idx, "Low"].min() != x:
+            continue
 
         pos_after_a = get_next_index(pivots.index, a_idx)
 
@@ -2876,14 +2883,11 @@ def find_bullish_crab(
             highest_high_xb != a
             or lowest_low_ac != b
             or highest_high_from_b != c
-            or x == df.at[x_idx, "High"]
             or a == df.at[a_idx, "Low"]
             or b == df.at[b_idx, "High"]
             or c == df.at[c_idx, "Low"]
         ):
             # Check that the pattern is well formed
-            x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmin()
-            x = pivots.loc[x_idx, "P"]
             continue
 
         b_retrace = fib_ser.loc[(fib_ser - (ab_diff / xa_diff)).abs().idxmin()]
@@ -2901,8 +2905,6 @@ def find_bullish_crab(
             or b_retrace < 0.382
             or (c_retrace < 0.382 or c_retrace > 0.886)
         ):
-            x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmin()
-            x = pivots.loc[x_idx, "P"]
             continue
 
         xa_618_ext = a - xa_diff * 1.618
@@ -3022,9 +3024,6 @@ def find_bullish_crab(
                     }
                 )
 
-        x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmin()
-        x = pivots.loc[x_idx, "P"]
-
     if selected:
         selected.update(dict(sym=sym, pattern="CRABU", alt_name=alt_name))
 
@@ -3040,18 +3039,22 @@ def find_bearish_crab(
     alt_name = "Bear Crab"
     pivot_len = pivots.shape[0]
 
-    x_idx = pivots["P"].idxmax()
-    x = pivots.at[x_idx, "P"]
-
     d_idx = df.index[-1]
     d = df.at[d_idx, "Close"]
 
     selected: Optional[dict] = None
 
     assert isinstance(pivots.index, pd.DatetimeIndex)
-    assert isinstance(x_idx, pd.Timestamp)
 
-    while True:
+    for x_idx in pivots.index:
+        x = pivots.at[x_idx, "P"]
+
+        if isinstance(x, pd.Series):
+            x = pivots.at[x_idx, "P"].max()
+
+        if x == df.at[x_idx, "Low"]:
+            continue
+
         pos_after_x = get_next_index(pivots.index, x_idx)
 
         if pos_after_x >= pivot_len:
@@ -3059,6 +3062,9 @@ def find_bearish_crab(
 
         a_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmin()
         a = pivots.at[a_idx, "P"]
+
+        if df.loc[x_idx:a_idx, "High"].max() != x:
+            continue
 
         pos_after_a = get_next_index(pivots.index, a_idx)
 
@@ -3096,14 +3102,11 @@ def find_bearish_crab(
             lowest_low_xb != a
             or highest_high_ac != b
             or lowest_low_from_b != c
-            or x == df.at[x_idx, "Low"]
             or a == df.at[a_idx, "High"]
             or b == df.at[b_idx, "Low"]
             or c == df.at[c_idx, "High"]
         ):
             # Check that the pattern is well formed
-            x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmax()
-            x = pivots.loc[x_idx, "P"]
             continue
 
         b_retrace = fib_ser.loc[(fib_ser - (ab_diff / xa_diff)).abs().idxmin()]
@@ -3121,8 +3124,6 @@ def find_bearish_crab(
             or b_retrace < 0.382
             or (c_retrace < 0.382 or c_retrace > 0.886)
         ):
-            x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmax()
-            x = pivots.loc[x_idx, "P"]
             continue
 
         xa_618_ext = a + xa_diff * 1.618
@@ -3241,9 +3242,6 @@ def find_bearish_crab(
                     }
                 )
 
-        x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmax()
-        x = pivots.loc[x_idx, "P"]
-
     if selected:
         selected.update(dict(sym=sym, pattern="CRABD", alt_name=alt_name))
 
@@ -3259,18 +3257,23 @@ def find_bullish_butterfly(
     alt_name = "Bull Butterfly"
     pivot_len = pivots.shape[0]
 
-    x_idx = pivots["P"].idxmin()
-    x = pivots.at[x_idx, "P"]
-
     d_idx = df.index[-1]
     d = df.at[d_idx, "Close"]
 
     selected: Optional[dict] = None
 
     assert isinstance(pivots.index, pd.DatetimeIndex)
-    assert isinstance(x_idx, pd.Timestamp)
 
-    while True:
+    for x_idx in pivots.index:
+
+        x = pivots.at[x_idx, "P"]
+
+        if isinstance(x, pd.Series):
+            x = pivots.at[x_idx, "P"].min()
+
+        if x == df.at[x_idx, "High"]:
+            continue
+
         pos_after_x = get_next_index(pivots.index, x_idx)
 
         if pos_after_x >= pivot_len:
@@ -3278,6 +3281,9 @@ def find_bullish_butterfly(
 
         a_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmax()
         a = pivots.at[a_idx, "P"]
+
+        if df.loc[x_idx:a_idx, "Low"].min() != x:
+            continue
 
         pos_after_a = get_next_index(pivots.index, a_idx)
 
@@ -3315,14 +3321,11 @@ def find_bullish_butterfly(
             highest_high_xb != a
             or lowest_low_ac != b
             or highest_high_from_b != c
-            or x == df.at[x_idx, "High"]
             or a == df.at[a_idx, "Low"]
             or b == df.at[b_idx, "High"]
             or c == df.at[c_idx, "Low"]
         ):
             # Check that the pattern is well formed
-            x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmin()
-            x = pivots.loc[x_idx, "P"]
             continue
 
         b_retrace = fib_ser.loc[(fib_ser - (ab_diff / xa_diff)).abs().idxmin()]
@@ -3331,8 +3334,6 @@ def find_bullish_butterfly(
         is_perfect = b_retrace == 0.786 and (0.5 <= c_retrace <= 0.886)
 
         if b_retrace != 0.786 or c_retrace < 0.382 or c_retrace > 0.886:
-            x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmin()
-            x = pivots.loc[x_idx, "P"]
             continue
 
         xa_27_ext = a - xa_diff * 1.27
@@ -3424,9 +3425,6 @@ def find_bullish_butterfly(
                     }
                 )
 
-        x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmin()
-        x = pivots.loc[x_idx, "P"]
-
     if selected:
         selected.update(dict(sym=sym, pattern="BFLYU", alt_name=alt_name))
 
@@ -3442,18 +3440,23 @@ def find_bearish_butterfly(
     alt_name = "Bear Butterfly"
     pivot_len = pivots.shape[0]
 
-    x_idx = pivots["P"].idxmax()
-    x = pivots.at[x_idx, "P"]
-
     d_idx = df.index[-1]
     d = df.at[d_idx, "Close"]
 
     selected: Optional[dict] = None
 
     assert isinstance(pivots.index, pd.DatetimeIndex)
-    assert isinstance(x_idx, pd.Timestamp)
 
-    while True:
+    for x_idx in pivots.index:
+
+        x = pivots.at[x_idx, "P"]
+
+        if isinstance(x, pd.Series):
+            x = pivots.at[x_idx, "P"].max()
+
+        if x == df.at[x_idx, "Low"]:
+            continue
+
         pos_after_x = get_next_index(pivots.index, x_idx)
 
         if pos_after_x >= pivot_len:
@@ -3461,6 +3464,9 @@ def find_bearish_butterfly(
 
         a_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmin()
         a = pivots.at[a_idx, "P"]
+
+        if df.loc[x_idx:a_idx, "High"].max() != x:
+            continue
 
         pos_after_a = get_next_index(pivots.index, a_idx)
 
@@ -3498,14 +3504,11 @@ def find_bearish_butterfly(
             lowest_low_xb != a
             or highest_high_ac != b
             or lowest_low_from_b != c
-            or x == df.at[x_idx, "Low"]
             or a == df.at[a_idx, "High"]
             or b == df.at[b_idx, "Low"]
             or c == df.at[c_idx, "High"]
         ):
             # Check that the pattern is well formed
-            x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmax()
-            x = pivots.loc[x_idx, "P"]
             continue
 
         b_retrace = fib_ser.loc[(fib_ser - (ab_diff / xa_diff)).abs().idxmin()]
@@ -3514,8 +3517,6 @@ def find_bearish_butterfly(
         is_perfect = b_retrace == 0.786 and (0.5 <= c_retrace <= 0.886)
 
         if b_retrace != 0.786 or c_retrace < 0.382 or c_retrace > 0.886:
-            x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmax()
-            x = pivots.loc[x_idx, "P"]
             continue
 
         xa_27_ext = a + xa_diff * 1.27
@@ -3542,7 +3543,7 @@ def find_bearish_butterfly(
 
         if (
             closes_above_terminal_point < 7
-            and d < b - (b - terminal_point) * 0.5
+            and d > b + (terminal_point - b) * 0.5
             and (
                 has_tested
                 and (d_idx - highs_above_terminal_point.index[0]).days < 7
@@ -3606,9 +3607,6 @@ def find_bearish_butterfly(
                         if price >= x
                     }
                 )
-
-        x_idx = pivots.loc[pivots.index[pos_after_x] :, "P"].idxmax()
-        x = pivots.loc[x_idx, "P"]
 
     if selected:
         selected.update(dict(sym=sym, pattern="BFLYD", alt_name=alt_name))
