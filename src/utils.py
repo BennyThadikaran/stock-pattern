@@ -2742,8 +2742,7 @@ def find_bearish_gartley(
             and closes_above_terminal_point < 7
             and (
                 has_tested
-                and (d_idx - highs_above_terminal_point.index[0]).days
-                < 7
+                and (d_idx - highs_above_terminal_point.index[0]).days < 7
                 or not has_tested
             )
         ):
