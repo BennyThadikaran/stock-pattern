@@ -66,6 +66,8 @@ def parse_cli_args():
         "trng",
         "uptl",
         "dntl",
+        "flagu",
+        "flagd",
         "abcdu",
         "abcdd",
         "batu",
@@ -192,6 +194,8 @@ def scan(
         "hnsu": utils.find_reverse_hns,
         "uptl": utils.find_uptrend_line,
         "dntl": utils.find_downtrend_line,
+        "flagu": utils.find_bullish_flag,
+        "flagd": utils.find_bearish_flag,
         "abcdu": utils.find_bullish_abcd,
         "abcdd": utils.find_bearish_abcd,
         "batu": utils.find_bullish_bat,
@@ -246,9 +250,9 @@ def scan(
 
     assert isinstance(scan_start_dt, pd.Timestamp)
 
-    if fn == "uptl":
+    if fn == "uptl" or fn == "flagu":
         pivot_type = "low"
-    elif fn == "dntl":
+    elif fn == "dntl" or fn == "flagd":
         pivot_type = "high"
     else:
         pivot_type = "both"
