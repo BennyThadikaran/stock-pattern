@@ -448,6 +448,144 @@ def generate_trend_line(
     )
 
 
+def find_bullish_flag(
+    sym: str, df: pd.DataFrame, pivots: pd.DataFrame
+) -> Optional[dict]:
+    """
+    Find Bullish High Pole and Flag pattern.
+
+    Returns None if no patterns found.
+    """
+
+    if len(df) < 50:
+        return
+
+    lastIdx = df.index[-1]
+
+    recent_high_idx = df.High.iloc[-7:].idxmax()
+
+    # Last candle is the weekly high
+    if recent_high_idx == lastIdx:
+        return
+
+    monthly_high = df.High.iloc[-30:].max()
+    three_month_high = df.High.iloc[-90:].max()
+
+    recent_high = df.at[recent_high_idx, "High"]
+    recent_low = df.loc[recent_high_idx:, "Low"].min()
+
+    # A new high formed in the last 7 days exeeds the 30 and 90 day high
+    if recent_high >= monthly_high and recent_high >= three_month_high:
+        sma20_ser = df.Close.rolling(20).mean()
+        sma50_ser = df.Close.rolling(50).mean()
+
+        close = df.at[df.index[-1], "Close"]
+        sma20 = sma20_ser.iloc[-1]
+        sma50 = sma50_ser.iloc[-1]
+
+        last_pivot_idx = pivots.index[-1]
+        last_pivot = pivots.at[last_pivot_idx, "P"]
+
+        fib_50 = last_pivot + (recent_high - last_pivot) / 2
+
+        flag_df = df.loc[recent_high_idx:, ["High", "Low"]]
+        flag_df["RANGE"] = flag_df.High - flag_df.Low
+
+        flag_start_range = flag_df.RANGE.iloc[1]
+        flag_max_range = flag_df.RANGE.iloc[2:].max()
+
+        if (
+            sma20 < sma50 * 1.08
+            or recent_low < fib_50
+            or flag_max_range > flag_start_range
+        ):
+            return
+
+        return dict(
+            sym=sym,
+            pattern="FLAGU",
+            start=last_pivot_idx,
+            end=lastIdx,
+            df_start=df.index[0],
+            df_end=lastIdx,
+            points=dict(
+                A=(last_pivot_idx, last_pivot),
+                B=(recent_high_idx, recent_high),
+                C=(lastIdx, close),
+            ),
+            extra_points=dict(direction=(recent_high_idx, recent_high)),
+        )
+
+
+def find_bearish_flag(
+    sym: str, df: pd.DataFrame, pivots: pd.DataFrame
+) -> Optional[dict]:
+    """
+    Find Bearish High Pole and Flag pattern.
+
+    Returns None if no patterns found.
+    """
+
+    if len(df) < 50:
+        return
+
+    lastIdx = df.index[-1]
+
+    recent_low_idx = df.Low.iloc[-7:].idxmin()
+
+    if recent_low_idx == lastIdx:
+        return
+
+    monthly_low = df.Low.iloc[-30:].min()
+    three_month_low = df.Low.iloc[-90:].min()
+
+    recent_low = df.at[recent_low_idx, "Low"]
+    recent_high = df.loc[recent_low_idx:, "High"].max()
+
+    # A new Low formed in the last 7 days exeeds the 30 and 90 day Low
+    if recent_low <= monthly_low and recent_low <= three_month_low:
+        sma20_ser = df.Close.rolling(20).mean()
+        sma50_ser = df.Close.rolling(50).mean()
+
+        close = df.at[df.index[-1], "Close"]
+
+        sma20 = sma20_ser.iloc[-1]
+        sma50 = sma50_ser.iloc[-1]
+
+        last_pivot_idx = pivots.index[-1]
+        last_pivot = pivots.at[last_pivot_idx, "P"]
+
+        fib_50 = last_pivot - (last_pivot - recent_low) / 2
+
+        flag_df = df.loc[recent_low_idx:, ["High", "Low"]]
+        flag_df["RANGE"] = flag_df.High - flag_df.Low
+
+        flag_start_range = flag_df.RANGE.iloc[1]
+        flag_max_range = flag_df.RANGE.iloc[2:].max()
+
+        if (
+            sma20 > sma50 * 0.92
+            or recent_high > fib_50
+            or flag_max_range > flag_start_range
+        ):
+            return
+
+        return dict(
+            sym=sym,
+            pattern="FLAGD",
+            start=last_pivot_idx,
+            end=lastIdx,
+            df_start=df.index[0],
+            df_end=lastIdx,
+            points=dict(
+                A=(last_pivot_idx, last_pivot),
+                B=(recent_low_idx, recent_low),
+                C=(lastIdx, close),
+            ),
+            extra_points=dict(direction=(recent_low_idx, close)),
+        )
+
+
 def find_bullish_vcp(
     sym: str, df: pd.DataFrame, pivots: pd.DataFrame
 ) -> Optional[dict]:
