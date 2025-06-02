@@ -312,7 +312,6 @@ def main(
 
     with concurrent.futures.ProcessPoolExecutor() as executor:
         for sym in sym_list:
-
             future = executor.submit(
                 scan,
                 loader,
@@ -370,9 +369,7 @@ if __name__ == "__main__":
         config_file = DIR / "user.json"
 
     if not config_file.exists():
-        logger.fatal(
-            "Missing user.json. Run setup-config.py to generate user.json"
-        )
+        logger.fatal("Missing user.json. Run setup-config.py to generate user.json")
         exit()
 
     config = json.loads(config_file.read_bytes())
@@ -394,9 +391,7 @@ if __name__ == "__main__":
     if args.plot:
         meta = args.plot.pop()
 
-        config = json.loads(
-            Path(meta["config"]).expanduser().resolve().read_bytes()
-        )
+        config = json.loads(Path(meta["config"]).expanduser().resolve().read_bytes())
 
         loader_class = get_loader_class(config)
 
