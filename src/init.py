@@ -186,7 +186,7 @@ def scan_pattern(
 
 
 def process(
-    sym_list: List,
+    sym_list: Tuple[str, ...],
     pattern: str,
     fns: Tuple[Callable, ...],
     futures: List[concurrent.futures.Future],
@@ -526,15 +526,17 @@ if __name__ == "__main__":
 
     sym_list = config["SYM_LIST"] if "SYM_LIST" in config else None
 
-    if sym_list is not None and not (
+    has_required_arg_set = (
         "-f" in sys.argv
         or "--file" in sys.argv
         or "--sym" in sys.argv
         or "-v" in sys.argv
         or "--version" in sys.argv
         or "--plot" in sys.argv
-    ):
-        sys.argv.extend(("-f", sym_list))
+    )
+
+    if not has_required_arg_set:
+        sys.argv.extend(("-f", sym_list if sym_list else config["DATA_PATH"]))
 
     args = parser.parse_args()
 
@@ -613,7 +615,12 @@ if __name__ == "__main__":
         f"Scanning `{key.upper()}` patterns on `{loader.tf}`. Press Ctrl - C to exit"
     )
 
-    data = args.file.read_text().strip().split("\n") if args.file else args.sym
+    if args.file and args.file.is_dir():
+        data = tuple(file.name[:-4] for file in args.file.iterdir())
+    else:
+        data = tuple(
+            args.file.read_text().strip().split("\n") if args.file else args.sym
+        )
 
     patterns: List[dict] = []
 
