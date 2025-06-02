@@ -76,14 +76,11 @@ def validate_ohlc_file(folder: Path) -> Union[bool, str]:
 
         i += 1
 
-    if date_column != b"Date":
-        return date_column.decode("utf-8")
-
     return True
 
 
 def validate_timestring(txt) -> bool:
-    if not ":" in txt:
+    if ":" not in txt:
         return False
 
     hour, min = txt.split(":")
@@ -162,7 +159,6 @@ def ask_market_hours():
 
 
 def ask_watchlist(user: Path) -> Path:
-
     watchlist_path = questionary.path(
         """Please provide the filepath to the watchlist file.
     A text or CSV file with symbol names (one on each line).
@@ -191,9 +187,7 @@ def main() -> Tuple[Path, dict]:
         style=notice_color,
     )
 
-    questionary.print(
-        f"# Filepaths are relative to: {user}\n", style=notice_color
-    )
+    questionary.print(f"# Filepaths are relative to: {user}\n", style=notice_color)
 
     # DEFAULT OR CUSTOM CONFIG
     if config_file.exists():
@@ -320,9 +314,7 @@ def main() -> Tuple[Path, dict]:
             config["EXCHANGE_START_TIME"] = exchange_start_time
 
     # DEFAULT WATCHLIST FILE
-    needs_watchlist = questionary.confirm(
-        "Add a default watchlist to scan?"
-    ).ask()
+    needs_watchlist = questionary.confirm("Add a default watchlist to scan?").ask()
 
     if needs_watchlist:
         watchlist_path = ask_watchlist(user)
@@ -340,7 +332,6 @@ def main() -> Tuple[Path, dict]:
 
 
 if __name__ == "__main__":
-
     warning_color = "fg:red"
     success_color = "fg:green"
     notice_color = "fg:yellow"

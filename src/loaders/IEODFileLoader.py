@@ -53,7 +53,6 @@ class IEODFileLoader(AbstractLoader):
         end_date: Optional[datetime] = None,
         period: int = 160,
     ):
-
         # No need to call close method on this class
         self.closed = True
 
@@ -71,9 +70,7 @@ class IEODFileLoader(AbstractLoader):
             )
 
         if self.default_tf not in self.timeframes:
-            raise ValueError(
-                f"`DEFAULT_TF` in config must be one of {valid_values}"
-            )
+            raise ValueError(f"`DEFAULT_TF` in config must be one of {valid_values}")
 
         if tf is None:
             tf = str(self.default_tf)
@@ -96,7 +93,6 @@ class IEODFileLoader(AbstractLoader):
         )
 
     def get(self, symbol: str) -> Optional[pd.DataFrame]:
-
         file = self.data_path / f"{symbol.lower()}.csv"
 
         if not file.exists():
@@ -124,9 +120,7 @@ class IEODFileLoader(AbstractLoader):
             hour, minute = self.start_time.split(":")
             start_ts = df.index[0].replace(hour=int(hour), minute=int(minute))
 
-            return self._resample_df(
-                df, self.offset_str, self.ohlc_dict, start_ts
-            )
+            return self._resample_df(df, self.offset_str, self.ohlc_dict, start_ts)
 
         df = (
             df.resample(self.offset_str, origin="start_day")
@@ -162,9 +156,7 @@ class IEODFileLoader(AbstractLoader):
             raise ValueError("Timeframe cannot be less than default timeframe.")
 
         if tf % default_tf != 0:
-            raise ValueError(
-                f"Resampling {default_tf}min to {tf}min wont be accurate."
-            )
+            raise ValueError(f"Resampling {default_tf}min to {tf}min wont be accurate.")
 
         return tf // default_tf * period
 
