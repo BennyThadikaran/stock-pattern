@@ -179,14 +179,14 @@ class IEODFileLoader(AbstractLoader):
             if dt not in df.index:
                 continue
 
-            slice_df = df.loc[
-                dt : dt.replace(
-                    hour=23,
-                    minute=59,
-                    second=59,
-                    microsecond=10**6 - 1,
-                )
-            ]
+            end_dt = dt.replace(
+                hour=23,
+                minute=59,
+                second=59,
+                microsecond=10**6 - 1,
+            )
+
+            slice_df = df.loc[(df.index >= dt) & (df.index <= end_dt)]
 
             lst.append(slice_df.resample(target_tf, origin=dt).agg(ohlc_dict))
 
