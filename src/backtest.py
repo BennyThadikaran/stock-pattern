@@ -5,6 +5,7 @@ import json
 import logging
 import sys
 from datetime import datetime
+from importlib.metadata import metadata
 from pathlib import Path
 from typing import List, Union
 
@@ -14,6 +15,9 @@ from tqdm import tqdm
 import utils
 from loaders.AbstractLoader import AbstractLoader
 from Plotter import Plotter
+
+if metadata("fast_csv_loader")["version"] != "2.0.0":
+    exit("fast_csv_loader v2.0.0 is required. Run `pip install -U fast_csv_loader")
 
 """
 Backtest.py | Copyright (C) 2023 Benny Thadikaran
