@@ -491,13 +491,13 @@ def find_bullish_flag(
         flag_df = df.loc[recent_high_idx:, ["High", "Low"]]
         flag_df["RANGE"] = flag_df.High - flag_df.Low
 
-        flag_start_range = flag_df.RANGE.iloc[1]
-        flag_max_range = flag_df.RANGE.iloc[2:].max()
+        # flag_start_range = flag_df.RANGE.iloc[1]
+        # flag_max_range = flag_df.RANGE.iloc[2:].max()
 
         if (
             sma20 < sma50 * 1.08
             or recent_low < fib_50
-            or flag_max_range > flag_start_range
+            # or flag_max_range > flag_start_range
         ):
             return
 
@@ -560,13 +560,12 @@ def find_bearish_flag(
         flag_df = df.loc[recent_low_idx:, ["High", "Low"]]
         flag_df["RANGE"] = flag_df.High - flag_df.Low
 
-        flag_start_range = flag_df.RANGE.iloc[1]
-        flag_max_range = flag_df.RANGE.iloc[2:].max()
+        # flag_start_range = flag_df.RANGE.iloc[1]
+        # flag_max_range = flag_df.RANGE.iloc[2:].max()
 
         if (
-            sma20 > sma50 * 0.92
-            or recent_high > fib_50
-            or flag_max_range > flag_start_range
+            sma20 > sma50 * 0.92 or recent_high > fib_50
+            # or flag_max_range > flag_start_range
         ):
             return
 
