@@ -5,6 +5,7 @@ import logging
 import sys
 from argparse import ArgumentParser
 from datetime import datetime
+from importlib.metadata import metadata
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Tuple
 
@@ -18,6 +19,9 @@ try:
     from tqdm import tqdm
 except ModuleNotFoundError:
     exit("tqdm is required. Run `pip install tqdm` to install")
+
+if metadata("fast_csv_loader")["version"] != "2.0.0":
+    exit("fast_csv_loader v2.0.0 is required. Run `pip install -U fast_csv_loader")
 
 
 def uncaught_exception_handler(*args):
