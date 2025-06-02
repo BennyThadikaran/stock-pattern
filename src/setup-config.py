@@ -27,14 +27,13 @@ def validate_ohlc_file(folder: Path) -> Union[bool, str]:
     """
     Check for invalid date formats, invalid columns headings
 
-    Returns False on errors or a date column name if not Date
+    Returns False on errors
     """
     i = 0
 
     expected_columns = (b"Open", b"High", b"Low", b"Close", b"Volume")
     missing_cols = "Files must have Open, High, Low, Close and Volume columns"
     invalid_date_format = "Date format is not valid."
-    date_column = b"Date"
 
     for file in folder.iterdir():
         # validate only three files
@@ -47,9 +46,6 @@ def validate_ohlc_file(folder: Path) -> Union[bool, str]:
         with file.open("rb") as f:
             # Check the column names are correct
             columns = f.readline().strip().split(b",")
-
-            if columns[0] != b"Date":
-                date_column = columns[0]
 
             for col in expected_columns:
                 if col in columns:
@@ -278,11 +274,8 @@ def main() -> Tuple[Path, dict]:
 
     csv_check_result = validate_ohlc_file(user / data_path)
 
-    if csv_check_result == False:
+    if not csv_check_result:
         exit("Please correct the issues with the OHLC file and try again.")
-
-    if isinstance(csv_check_result, str):
-        config["DATE_COLUMN"] = csv_check_result
 
     questionary.print("✓ Passed validation", style=success_color)
 
