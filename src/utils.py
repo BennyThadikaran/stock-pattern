@@ -581,7 +581,7 @@ def find_bearish_flag(
                 B=(recent_low_idx, recent_low),
                 C=(lastIdx, close),
             ),
-            extra_points=dict(direction=(recent_low_idx, close)),
+            extra_points=dict(direction=(recent_low_idx, recent_low)),
         )
 
 
