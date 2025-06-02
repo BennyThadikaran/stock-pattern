@@ -299,7 +299,7 @@ def scan(
 
 
 def main(
-    sym_list: List[str],
+    sym_list: tuple[str, ...],
     out_file: Path,
     loader: AbstractLoader,
     end_date: datetime,
@@ -379,13 +379,15 @@ if __name__ == "__main__":
 
     sym_list = config["SYM_LIST"] if "SYM_LIST" in config else None
 
-    if sym_list is not None and not (
+    has_required_args_set = (
         "-f" in sys.argv
         or "--file" in sys.argv
         or "--sym" in sys.argv
         or "--plot" in sys.argv
-    ):
-        sys.argv.extend(("-f", sym_list))
+    )
+
+    if not has_required_args_set:
+        sys.argv.extend(("-f", sym_list if sym_list else config["DATA_PATH"]))
 
     args = parse_cli_args()
 
@@ -428,7 +430,10 @@ if __name__ == "__main__":
     )
 
     if args.file:
-        sym_list = args.file.read_text().strip().split("\n")
+        if args.file.is_dir():
+            sym_list = tuple(file.name[:-4] for file in args.file.iterdir())
+        else:
+            sym_list = args.file.read_text().strip().split("\n")
     elif args.sym:
         sym_list = args.sym
     else:
