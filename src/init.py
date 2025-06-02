@@ -591,12 +591,13 @@ if __name__ == "__main__":
         f"Scanning `{key.upper()}` patterns on `{loader.tf}`. Press Ctrl - C to exit"
     )
 
-    if args.file and args.file.is_dir():
-        data = tuple(file.name[:-4] for file in args.file.iterdir())
+    if args.file:
+        if args.file.is_dir():
+            data = tuple(file.name[:-4] for file in args.file.iterdir())
+        else:
+            data = tuple(args.file.read_text().strip().split("\n"))
     else:
-        data = tuple(
-            args.file.read_text().strip().split("\n") if args.file else args.sym
-        )
+        data = tuple(args.sym)
 
     patterns: List[dict] = []
 
