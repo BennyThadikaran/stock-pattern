@@ -338,7 +338,7 @@ def process(
 # Differentiate between the main thread and child threads on Windows
 # see https://stackoverflow.com/a/57811249
 if __name__ == "__main__":
-    version = "4.0.9"
+    version = "4.0.10"
 
     futures: List[concurrent.futures.Future] = []
 
