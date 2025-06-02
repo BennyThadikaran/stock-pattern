@@ -60,23 +60,15 @@ def get_user_selection() -> Optional[str]:
             ptn_key = questionary.select(
                 message="Select a BULL pattern",
                 choices=[
-                    questionary.Choice(
-                        "[FLAGU] High Pole and Flag", value="flagu"
-                    ),
-                    questionary.Choice(
-                        "[VCPU] Volatility Contraction", value="vcpu"
-                    ),
+                    questionary.Choice("[FLAGU] High Pole and Flag", value="flagu"),
+                    questionary.Choice("[VCPU] Volatility Contraction", value="vcpu"),
                     questionary.Choice("[DBOT] Double Bottom", value="dbot"),
                     questionary.Choice("[HSNU] Head & Shoulders", value="hnsu"),
                     questionary.Choice("[ABCDU] AB=CD Harmonic", value="abcdu"),
                     questionary.Choice("[BATU] BAT Harmonic", value="batu"),
-                    questionary.Choice(
-                        "[GARTU] Gartley Harmonic", value="gartu"
-                    ),
+                    questionary.Choice("[GARTU] Gartley Harmonic", value="gartu"),
                     questionary.Choice("[CRABU] Crab Harmonic", value="crabu"),
-                    questionary.Choice(
-                        "[BFLYU] Butterfly Harmonic", value="bflyu"
-                    ),
+                    questionary.Choice("[BFLYU] Butterfly Harmonic", value="bflyu"),
                     questionary.Choice("Back to main", value="MAIN"),
                 ],
                 use_shortcuts=True,
@@ -85,23 +77,15 @@ def get_user_selection() -> Optional[str]:
             ptn_key = questionary.select(
                 message="Select a BEAR pattern",
                 choices=[
-                    questionary.Choice(
-                        "[FLAGD] High Pole and Flag", value="flagd"
-                    ),
-                    questionary.Choice(
-                        "[VCPD] Volatility Contraction", value="vcpd"
-                    ),
+                    questionary.Choice("[FLAGD] High Pole and Flag", value="flagd"),
+                    questionary.Choice("[VCPD] Volatility Contraction", value="vcpd"),
                     questionary.Choice("[DTOP] Double Top", value="dtop"),
                     questionary.Choice("[HNSD] Head & Shoulders", value="hnsd"),
                     questionary.Choice("[ABCDD] AB=CD Harmonic", value="abcdd"),
                     questionary.Choice("[BATD] BAT Harmonic", value="batd"),
-                    questionary.Choice(
-                        "[GARTD] Gartley Harmonic", value="gartd"
-                    ),
+                    questionary.Choice("[GARTD] Gartley Harmonic", value="gartd"),
                     questionary.Choice("[CRABD] Crab Harmonic", value="crabd"),
-                    questionary.Choice(
-                        "[BFLYD] Butterfly Harmonic", value="bflyd"
-                    ),
+                    questionary.Choice("[BFLYD] Butterfly Harmonic", value="bflyd"),
                     questionary.Choice("Back to main", value="MAIN"),
                 ],
                 use_shortcuts=True,
@@ -186,7 +170,7 @@ def scan_pattern(
 
 
 def process(
-    sym_list: List,
+    sym_list: Tuple[str, ...],
     pattern: str,
     fns: Tuple[Callable, ...],
     futures: List[concurrent.futures.Future],
@@ -225,7 +209,6 @@ def process(
     # begin scan process
     with concurrent.futures.ProcessPoolExecutor() as executor:
         for sym in sym_list:
-
             future = executor.submit(
                 scan_pattern,
                 sym,
@@ -247,9 +230,7 @@ def process(
                 result = future.result()
             except Exception as e:
                 cleanup(loader, futures)
-                logger.exception(
-                    "Error in Future - scaning patterns", exc_info=e
-                )
+                logger.exception("Error in Future - scaning patterns", exc_info=e)
                 return []
 
             patterns.extend(result)
@@ -271,7 +252,7 @@ def process(
 
             for dct in patterns:
                 # unique identifier
-                key = f'{dct["sym"]}-{dct["pattern"]}'
+                key = f"{dct['sym']}-{dct['pattern']}"
 
                 detected.add(key)
 
@@ -318,7 +299,6 @@ def process(
 
         # Save the images if required
         if save_folder:
-
             plotter = Plotter(
                 patterns_to_output,
                 loader,
@@ -339,9 +319,7 @@ def process(
                     future.result()
                 except Exception as e:
                     cleanup(loader, futures)
-                    logger.exception(
-                        "Error in Futures - Saving images ", exc_info=e
-                    )
+                    logger.exception("Error in Futures - Saving images ", exc_info=e)
                     return []
 
     patterns_to_output.append(
@@ -360,7 +338,7 @@ def process(
 # Differentiate between the main thread and child threads on Windows
 # see https://stackoverflow.com/a/57811249
 if __name__ == "__main__":
-    version = "4.0.9"
+    version = "4.0.10"
 
     futures: List[concurrent.futures.Future] = []
 
@@ -526,15 +504,17 @@ if __name__ == "__main__":
 
     sym_list = config["SYM_LIST"] if "SYM_LIST" in config else None
 
-    if sym_list is not None and not (
+    has_required_arg_set = (
         "-f" in sys.argv
         or "--file" in sys.argv
         or "--sym" in sys.argv
         or "-v" in sys.argv
         or "--version" in sys.argv
         or "--plot" in sys.argv
-    ):
-        sys.argv.extend(("-f", sym_list))
+    )
+
+    if not has_required_arg_set:
+        sys.argv.extend(("-f", sym_list if sym_list else config["DATA_PATH"]))
 
     args = parser.parse_args()
 
@@ -560,9 +540,7 @@ if __name__ == "__main__":
         # Last item contains meta data about the timeframe used, end_date etc
         meta = data.pop()
 
-        config = json.loads(
-            Path(meta["config"]).expanduser().resolve().read_bytes()
-        )
+        config = json.loads(Path(meta["config"]).expanduser().resolve().read_bytes())
 
         loader_class = get_loader_class(config)
 
@@ -613,7 +591,13 @@ if __name__ == "__main__":
         f"Scanning `{key.upper()}` patterns on `{loader.tf}`. Press Ctrl - C to exit"
     )
 
-    data = args.file.read_text().strip().split("\n") if args.file else args.sym
+    if args.file:
+        if args.file.is_dir():
+            data = tuple(file.name[:-4] for file in args.file.iterdir())
+        else:
+            data = tuple(args.file.read_text().strip().split("\n"))
+    else:
+        data = tuple(args.sym)
 
     patterns: List[dict] = []
 

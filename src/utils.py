@@ -76,9 +76,7 @@ def make_serializable(obj: T) -> T:
     def serialize(obj: Any) -> Any:
         if isinstance(obj, (pd.Timestamp, np.generic)):
             # Convert Pandas Timestamp to Python datetime or NumPy item
-            return (
-                obj.isoformat() if isinstance(obj, pd.Timestamp) else obj.item()
-            )
+            return obj.isoformat() if isinstance(obj, pd.Timestamp) else obj.item()
         elif isinstance(obj, (list, tuple)):
             # Recursively convert lists and tuples
             return tuple(serialize(item) for item in obj)
@@ -97,14 +95,10 @@ def has_time_component(datetime_index: pd.DatetimeIndex) -> bool:
        Datetime(2023, 12, 10, 0, 0)     ->  `00:00:00` (Midnight time)
        Datetime(2023, 12, 10, 12, 10)   ->  `12:10:00`
     """
-    return any(
-        datetime_index.to_series().dt.time != pd.Timestamp("00:00:00").time()
-    )
+    return any(datetime_index.to_series().dt.time != pd.Timestamp("00:00:00").time())
 
 
-def get_atr(
-    high: pd.Series, low: pd.Series, close: pd.Series, window=15
-) -> pd.Series:
+def get_atr(high: pd.Series, low: pd.Series, close: pd.Series, window=15) -> pd.Series:
     # Calculate true range
     tr = pd.DataFrame(index=high.index)
     tr["h-l"] = high - low
@@ -343,7 +337,6 @@ def is_bullish_vcp(
 def get_max_min(
     df: pd.DataFrame, barsLeft=6, barsRight=6, pivot_type="both"
 ) -> pd.DataFrame:
-
     window = barsLeft + 1 + barsRight
 
     local_max_dt = []
@@ -491,13 +484,12 @@ def find_bullish_flag(
         flag_df = df.loc[recent_high_idx:, ["High", "Low"]]
         flag_df["RANGE"] = flag_df.High - flag_df.Low
 
-        flag_start_range = flag_df.RANGE.iloc[1]
-        flag_max_range = flag_df.RANGE.iloc[2:].max()
+        # flag_start_range = flag_df.RANGE.iloc[1]
+        # flag_max_range = flag_df.RANGE.iloc[2:].max()
 
         if (
-            sma20 < sma50 * 1.08
-            or recent_low < fib_50
-            or flag_max_range > flag_start_range
+            sma20 < sma50 * 1.08 or recent_low < fib_50
+            # or flag_max_range > flag_start_range
         ):
             return
 
@@ -560,13 +552,12 @@ def find_bearish_flag(
         flag_df = df.loc[recent_low_idx:, ["High", "Low"]]
         flag_df["RANGE"] = flag_df.High - flag_df.Low
 
-        flag_start_range = flag_df.RANGE.iloc[1]
-        flag_max_range = flag_df.RANGE.iloc[2:].max()
+        # flag_start_range = flag_df.RANGE.iloc[1]
+        # flag_max_range = flag_df.RANGE.iloc[2:].max()
 
         if (
-            sma20 > sma50 * 0.92
-            or recent_high > fib_50
-            or flag_max_range > flag_start_range
+            sma20 > sma50 * 0.92 or recent_high > fib_50
+            # or flag_max_range > flag_start_range
         ):
             return
 
@@ -582,7 +573,7 @@ def find_bearish_flag(
                 B=(recent_low_idx, recent_low),
                 C=(lastIdx, close),
             ),
-            extra_points=dict(direction=(recent_low_idx, close)),
+            extra_points=dict(direction=(recent_low_idx, recent_low)),
         )
 
 
@@ -870,9 +861,7 @@ def find_double_bottom(
                 end=d_idx,
                 df_start=df.index[0],
                 df_end=df.index[-1],
-                points=dict(
-                    A=(a_idx, a), B=(b_idx, b), C=(c_idx, c), D=(d_idx, d)
-                ),
+                points=dict(A=(a_idx, a), B=(b_idx, b), C=(c_idx, c), D=(d_idx, d)),
                 extra_points=dict(direction=(b_idx, b)),
             )
 
@@ -967,18 +956,14 @@ def find_double_top(
                 end=d_idx,
                 df_start=df.index[0],
                 df_end=df.index[-1],
-                points=dict(
-                    A=(a_idx, a), B=(b_idx, b), C=(c_idx, c), D=(d_idx, d)
-                ),
+                points=dict(A=(a_idx, a), B=(b_idx, b), C=(c_idx, c), D=(d_idx, d)),
                 extra_points=dict(direction=(b_idx, b)),
             )
 
         a_idx, a, aVol = c_idx, c, cVol
 
 
-def find_triangles(
-    sym: str, df: pd.DataFrame, pivots: pd.DataFrame
-) -> Optional[dict]:
+def find_triangles(sym: str, df: pd.DataFrame, pivots: pd.DataFrame) -> Optional[dict]:
     """Find Triangles - Symmetric, Ascending, Descending.
 
     Returns None if no patterns found.
@@ -1065,19 +1050,13 @@ def find_triangles(
             if upper.line.end.y < lower.line.end.y:
                 break
 
-            if triangle == "Ascending" and (
-                upper.slope > 0.1 and lower.slope < 0.2
-            ):
+            if triangle == "Ascending" and (upper.slope > 0.1 and lower.slope < 0.2):
                 break
 
-            if triangle == "Descending" and (
-                lower.slope < -0.1 and upper.slope > -0.2
-            ):
+            if triangle == "Descending" and (lower.slope < -0.1 and upper.slope > -0.2):
                 break
 
-            if triangle == "Symmetric" and (
-                upper.slope > -0.2 and lower.slope < 0.2
-            ):
+            if triangle == "Symmetric" and (upper.slope > -0.2 and lower.slope < 0.2):
                 break
 
             # Check if trendlines have been breached
@@ -1491,12 +1470,8 @@ def find_downtrend_line(
             # if touch count is same, check for lower scores
             if selected is None or (
                 touch_count > selected["touches"]
-                or (
-                    touch_count == selected["touches"]
-                    and score < selected["score"]
-                )
+                or (touch_count == selected["touches"] and score < selected["score"])
             ):
-
                 touch_points = line_pivots.loc[diff <= threshold]
                 str_keys = ascii_upper[: len(touch_points)]
 
@@ -1508,9 +1483,7 @@ def find_downtrend_line(
                     y_intercept=tline.y_int,
                     y_close=y_close,
                     points=dict(zip(str_keys, tuple(touch_points.items()))),
-                    extra_points=dict(
-                        start=tline.line.start, end=tline.line.end
-                    ),
+                    extra_points=dict(start=tline.line.start, end=tline.line.end),
                     score=score,
                 )
 
@@ -1558,7 +1531,6 @@ def find_uptrend_line(
     assert isinstance(a_idx, pd.Timestamp)
 
     while True:
-
         pos_after_a = get_next_index(pivots.index, a_idx)
 
         if pos_after_a >= pivots_len:
@@ -1628,10 +1600,7 @@ def find_uptrend_line(
             # if touch count is same, check for lower scores
             if selected is None or (
                 touch_count > selected["touches"]
-                or (
-                    touch_count == selected["touches"]
-                    and score < selected["score"]
-                )
+                or (touch_count == selected["touches"] and score < selected["score"])
             ):
                 touch_points = line_pivots.loc[diff <= threshold]
                 str_keys = ascii_upper[: len(touch_points)]
@@ -1644,9 +1613,7 @@ def find_uptrend_line(
                     y_intercept=tline.y_int,
                     y_close=y_close,
                     points=dict(zip(str_keys, tuple(touch_points.items()))),
-                    extra_points=dict(
-                        start=tline.line.start, end=tline.line.end
-                    ),
+                    extra_points=dict(start=tline.line.start, end=tline.line.end),
                     score=score,
                 )
 
@@ -1758,18 +1725,14 @@ def find_bullish_abcd(
 
         lows_after_c = df.loc[c_idx:, "Low"]
 
-        lows_below_terminal_point = lows_after_c.loc[
-            lows_after_c < terminal_point
-        ]
+        lows_below_terminal_point = lows_after_c.loc[lows_after_c < terminal_point]
 
         if lows_below_terminal_point.empty:
             has_tested = False
         else:
             has_tested = True
 
-        closes_below_terminal_point = (
-            df.loc[c_idx:, "Close"] < terminal_point
-        ).sum()
+        closes_below_terminal_point = (df.loc[c_idx:, "Close"] < terminal_point).sum()
 
         ab_completion = (b_idx - a_idx).days
         cd_completion = (d_idx - c_idx).days
@@ -1934,18 +1897,14 @@ def find_bearish_abcd(
 
         highs_after_c = df.loc[c_idx:, "High"]
 
-        highs_above_terminal_point = highs_after_c[
-            highs_after_c > terminal_point
-        ]
+        highs_above_terminal_point = highs_after_c[highs_after_c > terminal_point]
 
         if highs_above_terminal_point.empty:
             has_tested = False
         else:
             has_tested = True
 
-        closes_above_terminal_point = (
-            df.loc[c_idx:, "Close"] > terminal_point
-        ).sum()
+        closes_above_terminal_point = (df.loc[c_idx:, "Close"] > terminal_point).sum()
 
         ab_completion = (b_idx - a_idx).days
         cd_completion = (d_idx - c_idx).days
@@ -2095,9 +2054,7 @@ def find_bullish_bat(
         b_retrace = fib_ser.loc[(fib_ser - (ab_diff / xa_diff)).abs().idxmin()]
         c_retrace = fib_ser.loc[(fib_ser - (bc_diff / ab_diff)).abs().idxmin()]
 
-        is_perfect = b_retrace == 0.5 and (
-            c_retrace == 0.5 or c_retrace == 0.618
-        )
+        is_perfect = b_retrace == 0.5 and (c_retrace == 0.5 or c_retrace == 0.618)
 
         is_alternate = b_retrace == 0.382
 
@@ -2125,18 +2082,14 @@ def find_bullish_bat(
 
         lows_from_c = df.loc[c_idx:, "Low"]
 
-        lows_below_terminal_point = lows_from_c.loc[
-            lows_from_c < terminal_point
-        ]
+        lows_below_terminal_point = lows_from_c.loc[lows_from_c < terminal_point]
 
         if lows_below_terminal_point.empty:
             has_tested = False
         else:
             has_tested = True
 
-        closes_below_terminal_point = (
-            df.loc[c_idx:, "Close"] < terminal_point
-        ).sum()
+        closes_below_terminal_point = (df.loc[c_idx:, "Close"] < terminal_point).sum()
 
         if (
             closes_below_terminal_point < 7
@@ -2307,9 +2260,7 @@ def find_bearish_bat(
         b_retrace = fib_ser.loc[(fib_ser - (ab_diff / xa_diff)).abs().idxmin()]
         c_retrace = fib_ser.loc[(fib_ser - (bc_diff / ab_diff)).abs().idxmin()]
 
-        is_perfect = b_retrace == 0.5 and (
-            c_retrace == 0.5 or c_retrace == 0.618
-        )
+        is_perfect = b_retrace == 0.5 and (c_retrace == 0.5 or c_retrace == 0.618)
 
         is_alternate = b_retrace == 0.382
 
@@ -2337,18 +2288,14 @@ def find_bearish_bat(
 
         highs_from_c = df.loc[c_idx:, "High"]
 
-        highs_above_terminal_point = highs_from_c.loc[
-            highs_from_c > terminal_point
-        ]
+        highs_above_terminal_point = highs_from_c.loc[highs_from_c > terminal_point]
 
         if highs_above_terminal_point.empty:
             has_tested = False
         else:
             has_tested = True
 
-        closes_above_terminal_point = (
-            df.loc[c_idx:, "Close"] > terminal_point
-        ).sum()
+        closes_above_terminal_point = (df.loc[c_idx:, "Close"] > terminal_point).sum()
 
         if (
             closes_above_terminal_point < 7
@@ -2537,15 +2484,11 @@ def find_bullish_gartley(
 
         terminal_point = xa_786_retrace
 
-        closes_below_terminal_point = (
-            df.loc[c_idx:, "Close"] < terminal_point
-        ).sum()
+        closes_below_terminal_point = (df.loc[c_idx:, "Close"] < terminal_point).sum()
 
         lows_after_c = df.loc[c_idx:, "Low"]
 
-        lows_below_terminal_point = lows_after_c.loc[
-            lows_after_c < terminal_point
-        ]
+        lows_below_terminal_point = lows_after_c.loc[lows_after_c < terminal_point]
 
         if lows_below_terminal_point.empty:
             has_tested = False
@@ -2724,18 +2667,14 @@ def find_bearish_gartley(
 
         highs_after_c = df.loc[c_idx:, "High"]
 
-        highs_above_terminal_point = highs_after_c[
-            highs_after_c > terminal_point
-        ]
+        highs_above_terminal_point = highs_after_c[highs_after_c > terminal_point]
 
         if highs_above_terminal_point.empty:
             has_tested = False
         else:
             has_tested = True
 
-        closes_above_terminal_point = (
-            df.loc[c_idx:, "Close"] > terminal_point
-        ).sum()
+        closes_above_terminal_point = (df.loc[c_idx:, "Close"] > terminal_point).sum()
 
         if (
             d > b
@@ -2916,18 +2855,14 @@ def find_bullish_crab(
 
         lows_after_c = df.loc[c_idx:, "Low"]
 
-        lows_below_terminal_point = lows_after_c.loc[
-            lows_after_c < terminal_point
-        ]
+        lows_below_terminal_point = lows_after_c.loc[lows_after_c < terminal_point]
 
         if lows_below_terminal_point.empty:
             has_tested = False
         else:
             has_tested = True
 
-        closes_below_terminal_point = (
-            df.loc[c_idx:, "Close"] < terminal_point
-        ).sum()
+        closes_below_terminal_point = (df.loc[c_idx:, "Close"] < terminal_point).sum()
 
         if (
             d < b - (b - terminal_point) * 0.5
@@ -2938,7 +2873,6 @@ def find_bullish_crab(
                 or not has_tested
             )
         ):
-
             selected = dict(
                 df_start=df.index[0],
                 df_end=df.index[-1],
@@ -3135,18 +3069,14 @@ def find_bearish_crab(
 
         highs_after_c = df.loc[c_idx:, "High"]
 
-        highs_above_terminal_point = highs_after_c[
-            highs_after_c > terminal_point
-        ]
+        highs_above_terminal_point = highs_after_c[highs_after_c > terminal_point]
 
         if highs_above_terminal_point.empty:
             has_tested = False
         else:
             has_tested = True
 
-        closes_above_terminal_point = (
-            df.loc[c_idx:, "Close"] > terminal_point
-        ).sum()
+        closes_above_terminal_point = (df.loc[c_idx:, "Close"] > terminal_point).sum()
 
         if (
             closes_above_terminal_point < 7
@@ -3264,7 +3194,6 @@ def find_bullish_butterfly(
     assert isinstance(pivots.index, pd.DatetimeIndex)
 
     for x_idx in pivots.index:
-
         x = pivots.at[x_idx, "P"]
 
         if isinstance(x, pd.Series):
@@ -3344,18 +3273,14 @@ def find_bullish_butterfly(
 
         lows_below_c = df.loc[c_idx:, "Low"]
 
-        lows_below_terminal_point = lows_below_c.loc[
-            lows_below_c < terminal_point
-        ]
+        lows_below_terminal_point = lows_below_c.loc[lows_below_c < terminal_point]
 
         if lows_below_terminal_point.empty:
             has_tested = False
         else:
             has_tested = True
 
-        closes_below_terminal_point = (
-            df.loc[c_idx:, "Close"] < terminal_point
-        ).sum()
+        closes_below_terminal_point = (df.loc[c_idx:, "Close"] < terminal_point).sum()
 
         if (
             closes_below_terminal_point < 7
@@ -3447,7 +3372,6 @@ def find_bearish_butterfly(
     assert isinstance(pivots.index, pd.DatetimeIndex)
 
     for x_idx in pivots.index:
-
         x = pivots.at[x_idx, "P"]
 
         if isinstance(x, pd.Series):
@@ -3527,18 +3451,14 @@ def find_bearish_butterfly(
 
         highs_after_c = df.loc[c_idx:, "Low"]
 
-        highs_above_terminal_point = highs_after_c.loc[
-            highs_after_c > terminal_point
-        ]
+        highs_above_terminal_point = highs_after_c.loc[highs_after_c > terminal_point]
 
         if highs_above_terminal_point.empty:
             has_tested = False
         else:
             has_tested = True
 
-        closes_above_terminal_point = (
-            df.loc[c_idx:, "Close"] > terminal_point
-        ).sum()
+        closes_above_terminal_point = (df.loc[c_idx:, "Close"] > terminal_point).sum()
 
         if (
             closes_above_terminal_point < 7

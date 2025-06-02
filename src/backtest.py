@@ -299,7 +299,7 @@ def scan(
 
 
 def main(
-    sym_list: List[str],
+    sym_list: tuple[str, ...],
     out_file: Path,
     loader: AbstractLoader,
     end_date: datetime,
@@ -312,7 +312,6 @@ def main(
 
     with concurrent.futures.ProcessPoolExecutor() as executor:
         for sym in sym_list:
-
             future = executor.submit(
                 scan,
                 loader,
@@ -370,31 +369,29 @@ if __name__ == "__main__":
         config_file = DIR / "user.json"
 
     if not config_file.exists():
-        logger.fatal(
-            "Missing user.json. Run setup-config.py to generate user.json"
-        )
+        logger.fatal("Missing user.json. Run setup-config.py to generate user.json")
         exit()
 
     config = json.loads(config_file.read_bytes())
 
     sym_list = config["SYM_LIST"] if "SYM_LIST" in config else None
 
-    if sym_list is not None and not (
+    has_required_args_set = (
         "-f" in sys.argv
         or "--file" in sys.argv
         or "--sym" in sys.argv
         or "--plot" in sys.argv
-    ):
-        sys.argv.extend(("-f", sym_list))
+    )
+
+    if not has_required_args_set:
+        sys.argv.extend(("-f", sym_list if sym_list else config["DATA_PATH"]))
 
     args = parse_cli_args()
 
     if args.plot:
         meta = args.plot.pop()
 
-        config = json.loads(
-            Path(meta["config"]).expanduser().resolve().read_bytes()
-        )
+        config = json.loads(Path(meta["config"]).expanduser().resolve().read_bytes())
 
         loader_class = get_loader_class(config)
 
@@ -428,7 +425,10 @@ if __name__ == "__main__":
     )
 
     if args.file:
-        sym_list = args.file.read_text().strip().split("\n")
+        if args.file.is_dir():
+            sym_list = tuple(file.name[:-4] for file in args.file.iterdir())
+        else:
+            sym_list = args.file.read_text().strip().split("\n")
     elif args.sym:
         sym_list = args.sym
     else:

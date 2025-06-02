@@ -27,14 +27,13 @@ def validate_ohlc_file(folder: Path) -> Union[bool, str]:
     """
     Check for invalid date formats, invalid columns headings
 
-    Returns False on errors or a date column name if not Date
+    Returns False on errors
     """
     i = 0
 
     expected_columns = (b"Open", b"High", b"Low", b"Close", b"Volume")
     missing_cols = "Files must have Open, High, Low, Close and Volume columns"
     invalid_date_format = "Date format is not valid."
-    date_column = b"Date"
 
     for file in folder.iterdir():
         # validate only three files
@@ -47,9 +46,6 @@ def validate_ohlc_file(folder: Path) -> Union[bool, str]:
         with file.open("rb") as f:
             # Check the column names are correct
             columns = f.readline().strip().split(b",")
-
-            if columns[0] != b"Date":
-                date_column = columns[0]
 
             for col in expected_columns:
                 if col in columns:
@@ -76,14 +72,11 @@ def validate_ohlc_file(folder: Path) -> Union[bool, str]:
 
         i += 1
 
-    if date_column != b"Date":
-        return date_column.decode("utf-8")
-
     return True
 
 
 def validate_timestring(txt) -> bool:
-    if not ":" in txt:
+    if ":" not in txt:
         return False
 
     hour, min = txt.split(":")
@@ -162,7 +155,6 @@ def ask_market_hours():
 
 
 def ask_watchlist(user: Path) -> Path:
-
     watchlist_path = questionary.path(
         """Please provide the filepath to the watchlist file.
     A text or CSV file with symbol names (one on each line).
@@ -191,9 +183,7 @@ def main() -> Tuple[Path, dict]:
         style=notice_color,
     )
 
-    questionary.print(
-        f"# Filepaths are relative to: {user}\n", style=notice_color
-    )
+    questionary.print(f"# Filepaths are relative to: {user}\n", style=notice_color)
 
     # DEFAULT OR CUSTOM CONFIG
     if config_file.exists():
@@ -284,11 +274,8 @@ def main() -> Tuple[Path, dict]:
 
     csv_check_result = validate_ohlc_file(user / data_path)
 
-    if csv_check_result == False:
+    if not csv_check_result:
         exit("Please correct the issues with the OHLC file and try again.")
-
-    if isinstance(csv_check_result, str):
-        config["DATE_COLUMN"] = csv_check_result
 
     questionary.print("✓ Passed validation", style=success_color)
 
@@ -320,9 +307,7 @@ def main() -> Tuple[Path, dict]:
             config["EXCHANGE_START_TIME"] = exchange_start_time
 
     # DEFAULT WATCHLIST FILE
-    needs_watchlist = questionary.confirm(
-        "Add a default watchlist to scan?"
-    ).ask()
+    needs_watchlist = questionary.confirm("Add a default watchlist to scan?").ask()
 
     if needs_watchlist:
         watchlist_path = ask_watchlist(user)
@@ -340,7 +325,6 @@ def main() -> Tuple[Path, dict]:
 
 
 if __name__ == "__main__":
-
     warning_color = "fg:red"
     success_color = "fg:green"
     notice_color = "fg:yellow"
