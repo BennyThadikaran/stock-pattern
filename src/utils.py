@@ -1002,10 +1002,7 @@ def find_triangles(sym: str, df: pd.DataFrame, pivots: pd.DataFrame) -> Optional
         if pos_after_b >= pivot_len:
             break
 
-        d_idx = pivots.loc[pivots.index[pos_after_b] :, "P"].idxmin()
-        d = pivots.at[d_idx, "P"]
-
-        c_idx = pivots.loc[pivots.index[pos_after_a] :, "P"].idxmax()
+        c_idx = pivots.loc[pivots.index[pos_after_b] :, "P"].idxmax()
         c = pivots.at[c_idx, "P"]
 
         pos_after_c = get_next_index(pivots.index, c_idx)
@@ -1013,7 +1010,15 @@ def find_triangles(sym: str, df: pd.DataFrame, pivots: pd.DataFrame) -> Optional
         if pos_after_c >= pivot_len:
             break
 
-        e_idx = pivots.loc[pivots.index[pos_after_c] :, "P"].idxmax()
+        d_idx = pivots.loc[pivots.index[pos_after_c] :, "P"].idxmin()
+        d = pivots.at[d_idx, "P"]
+
+        pos_after_d = get_next_index(pivots.index, d_idx)
+
+        if pos_after_d >= pivot_len:
+            break
+
+        e_idx = pivots.loc[pivots.index[pos_after_d] :, "P"].idxmax()
         e = pivots.at[e_idx, "P"]
 
         if pivots.index.has_duplicates:
