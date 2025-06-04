@@ -1002,10 +1002,7 @@ def find_triangles(sym: str, df: pd.DataFrame, pivots: pd.DataFrame) -> Optional
         if pos_after_b >= pivot_len:
             break
 
-        d_idx = pivots.loc[pivots.index[pos_after_b] :, "P"].idxmin()
-        d = pivots.at[d_idx, "P"]
-
-        c_idx = pivots.loc[pivots.index[pos_after_a] :, "P"].idxmax()
+        c_idx = pivots.loc[pivots.index[pos_after_b] :, "P"].idxmax()
         c = pivots.at[c_idx, "P"]
 
         pos_after_c = get_next_index(pivots.index, c_idx)
@@ -1013,7 +1010,15 @@ def find_triangles(sym: str, df: pd.DataFrame, pivots: pd.DataFrame) -> Optional
         if pos_after_c >= pivot_len:
             break
 
-        e_idx = pivots.loc[pivots.index[pos_after_c] :, "P"].idxmax()
+        d_idx = pivots.loc[pivots.index[pos_after_c] :, "P"].idxmin()
+        d = pivots.at[d_idx, "P"]
+
+        pos_after_d = get_next_index(pivots.index, d_idx)
+
+        if pos_after_d >= pivot_len:
+            break
+
+        e_idx = pivots.loc[pivots.index[pos_after_d] :, "P"].idxmax()
         e = pivots.at[e_idx, "P"]
 
         if pivots.index.has_duplicates:
@@ -1039,7 +1044,25 @@ def find_triangles(sym: str, df: pd.DataFrame, pivots: pd.DataFrame) -> Optional
 
         if triangle is not None:
             # Check if A is indeed the pivot high
-            if a == df.at[a_idx, "Low"]:
+            if (
+                a == df.at[a_idx, "Low"]
+                or b == df.at[b_idx, "High"]
+                or c == df.at[c_idx, "Low"]
+                or d == df.at[d_idx, "High"]
+                or e == df.at[e_idx, "Low"]
+            ):
+                a_idx, a = c_idx, c
+                continue
+
+            upper_duration = (f_idx - a_idx).days
+            lower_duration = (f_idx - b_idx).days
+
+            if (
+                max(upper_duration, lower_duration)
+                / min(upper_duration, lower_duration)
+                > 1.8
+            ):
+                # Ensure a 2:1 ratio in start duration of upper and lower lines
                 a_idx, a = c_idx, c
                 continue
 
