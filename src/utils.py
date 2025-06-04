@@ -1044,7 +1044,25 @@ def find_triangles(sym: str, df: pd.DataFrame, pivots: pd.DataFrame) -> Optional
 
         if triangle is not None:
             # Check if A is indeed the pivot high
-            if a == df.at[a_idx, "Low"]:
+            if (
+                a == df.at[a_idx, "Low"]
+                or b == df.at[b_idx, "High"]
+                or c == df.at[c_idx, "Low"]
+                or d == df.at[d_idx, "High"]
+                or e == df.at[e_idx, "Low"]
+            ):
+                a_idx, a = c_idx, c
+                continue
+
+            upper_duration = (f_idx - a_idx).days
+            lower_duration = (f_idx - b_idx).days
+
+            if (
+                max(upper_duration, lower_duration)
+                / min(upper_duration, lower_duration)
+                > 1.8
+            ):
+                # Ensure a 2:1 ratio in start duration of upper and lower lines
                 a_idx, a = c_idx, c
                 continue
 
