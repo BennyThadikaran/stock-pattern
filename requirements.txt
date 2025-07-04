@@ -8,7 +8,8 @@ mplfinance==0.12.10b0
 numpy==2.2.6
 packaging==25.0
 pandas==2.0.3; python_version == "3.8"
-pandas==2.2.2; python_version > "3.8"
+pandas==2.2.2; python_version > "3.8" and python_version < "3.13"
+pandas==2.2.3; python_version >= "3.13"
 pillow==11.2.1
 prompt-toolkit==3.0.36
 pyparsing==3.2.3

@@ -479,6 +479,9 @@ def find_bullish_flag(
         last_pivot_idx = pivots.index[-1]
         last_pivot = pivots.at[last_pivot_idx, "P"]
 
+        if isinstance(last_pivot, pd.Series):
+            last_pivot = last_pivot.max()
+
         fib_50 = last_pivot + (recent_high - last_pivot) / 2
 
         flag_df = df.loc[recent_high_idx:, ["High", "Low"]]
@@ -546,6 +549,9 @@ def find_bearish_flag(
 
         last_pivot_idx = pivots.index[-1]
         last_pivot = pivots.at[last_pivot_idx, "P"]
+
+        if isinstance(last_pivot, pd.Series):
+            last_pivot = last_pivot.min()
 
         fib_50 = last_pivot - (last_pivot - recent_low) / 2
 
