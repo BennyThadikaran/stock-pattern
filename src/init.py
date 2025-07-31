@@ -640,16 +640,7 @@ if __name__ == "__main__":
 
         fns = tuple(
             fn_dict[k]
-            for k in (
-                "vcpu",
-                "hnsu",
-                "dbot",
-                "flagu",
-                "vcpd",
-                "hnsd",
-                "dtop",
-                "flagd",
-            )
+            for k in ("vcpu", "hnsu", "dbot", "flagu", "vcpd", "hnsd", "dtop", "flagd")
         )
 
     try:
