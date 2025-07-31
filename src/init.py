@@ -416,9 +416,7 @@ if __name__ == "__main__":
         "--pattern",
         type=str,
         metavar="str",
-        choices=tuple(fn_dict.keys())
-        + ("all", "bull", "bear", "bull_harm", "bear_harm"),
-        help=f"String pattern. One of {', '.join(fn_dict.keys())}",
+        help=f"String pattern. One of {', '.join(fn_dict.keys())} or bull, bear, bull_harm, bear_harm.",
     )
 
     parser.add_argument(
