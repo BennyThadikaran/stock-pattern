@@ -342,7 +342,7 @@ def process(
 # Differentiate between the main thread and child threads on Windows
 # see https://stackoverflow.com/a/57811249
 if __name__ == "__main__":
-    version = "4.0.12"
+    version = "4.0.13"
 
     futures: List[concurrent.futures.Future] = []
 
@@ -416,9 +416,7 @@ if __name__ == "__main__":
         "--pattern",
         type=str,
         metavar="str",
-        choices=tuple(fn_dict.keys())
-        + ("all", "bull", "bear", "bull_harm", "bear_harm"),
-        help=f"String pattern. One of {', '.join(fn_dict.keys())}",
+        help=f"String pattern. One of {', '.join(fn_dict.keys())} or bull, bear, bull_harm, bear_harm.",
     )
 
     parser.add_argument(
@@ -580,6 +578,9 @@ if __name__ == "__main__":
         logger.exception("", exc_info=e)
         exit()
 
+    # Check if user is using the interactive prompt
+    interactive_mode = not bool(args.pattern)
+
     if args.pattern:
         key = args.pattern
     else:
@@ -605,7 +606,17 @@ if __name__ == "__main__":
 
     patterns: List[dict] = []
 
-    if key in fn_dict:
+    if "PATTERNS" in config and key in config["PATTERNS"]:
+        custom_list = config["PATTERNS"][key]
+        fns = []
+
+        for k in custom_list:
+            if k not in fn_dict:
+                raise KeyError(f"No such pattern defined: {k}")
+            fns.append(fn_dict[k])
+
+        fns = tuple(fns)
+    elif key in fn_dict:
         fns = (fn_dict[key],)
     elif key == "bull":
         bull_list = ("vcpu", "hnsu", "dbot", "flagu")
@@ -624,18 +635,12 @@ if __name__ == "__main__":
 
         fns = tuple(v for k, v in fn_dict.items() if k in bear_list)
     else:
+        if not interactive_mode:
+            raise KeyError(f"{key} did not match any defined patterns.")
+
         fns = tuple(
             fn_dict[k]
-            for k in (
-                "vcpu",
-                "hnsu",
-                "dbot",
-                "flagu",
-                "vcpd",
-                "hnsd",
-                "dtop",
-                "flagd",
-            )
+            for k in ("vcpu", "hnsu", "dbot", "flagu", "vcpd", "hnsd", "dtop", "flagd")
         )
 
     try:
