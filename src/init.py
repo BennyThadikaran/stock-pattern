@@ -605,7 +605,17 @@ if __name__ == "__main__":
 
     patterns: List[dict] = []
 
-    if key in fn_dict:
+    if "PATTERNS" in config and key in config["PATTERNS"]:
+        custom_list = config["PATTERNS"][key]
+        fns = []
+
+        for k in custom_list:
+            if k not in fn_dict:
+                raise KeyError(f"No such pattern defined: {k}")
+            fns.append(fn_dict[k])
+
+        fns = tuple(fns)
+    elif key in fn_dict:
         fns = (fn_dict[key],)
     elif key == "bull":
         bull_list = ("vcpu", "hnsu", "dbot", "flagu")
