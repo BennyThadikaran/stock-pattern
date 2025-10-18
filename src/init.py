@@ -127,6 +127,7 @@ def scan_pattern(
     fns: Tuple[Callable, ...],
     loader: AbstractLoader,
     logger: logging.Logger,
+    config: dict,
     bars_left=6,
     bars_right=6,
 ):
@@ -162,7 +163,7 @@ def scan_pattern(
             raise TypeError(f"Expected callable. Got {type(fn)}")
 
         try:
-            result = fn(sym, df, pivots)
+            result = fn(sym, df, pivots, config)
         except Exception as e:
             logger.exception(f"SYMBOL name: {sym}", exc_info=e)
             return patterns
@@ -220,6 +221,7 @@ def process(
                 fns,
                 loader,
                 logger,
+                config,
                 bars_left=args.left,
                 bars_right=args.right,
             )
