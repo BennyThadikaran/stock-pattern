@@ -458,7 +458,9 @@ def find_bullish_flag(
     recent_high_idx = df.High.iloc[-7:].idxmax()
 
     # Last candle is the weekly high
-    if recent_high_idx == lastIdx:
+    if recent_high_idx == lastIdx or len(df.loc[recent_high_idx:]) < config.get(
+        "FLAG_MAX_BARS", 5
+    ):
         return
 
     monthly_high = df.High.iloc[-30:].max()
@@ -528,7 +530,9 @@ def find_bearish_flag(
 
     recent_low_idx = df.Low.iloc[-7:].idxmin()
 
-    if recent_low_idx == lastIdx:
+    if recent_low_idx == lastIdx or len(df.loc[recent_low_idx:]) < config.get(
+        "FLAG_MAX_BARS", 5
+    ):
         return
 
     monthly_low = df.Low.iloc[-30:].min()
