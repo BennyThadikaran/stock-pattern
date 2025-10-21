@@ -442,7 +442,7 @@ def generate_trend_line(
 
 
 def find_bullish_flag(
-    sym: str, df: pd.DataFrame, pivots: pd.DataFrame
+    sym: str, df: pd.DataFrame, pivots: pd.DataFrame, config
 ) -> Optional[dict]:
     """
     Find Bullish High Pole and Flag pattern.
@@ -458,7 +458,9 @@ def find_bullish_flag(
     recent_high_idx = df.High.iloc[-7:].idxmax()
 
     # Last candle is the weekly high
-    if recent_high_idx == lastIdx:
+    if recent_high_idx == lastIdx or len(df.loc[recent_high_idx:]) < config.get(
+        "FLAG_MAX_BARS", 5
+    ):
         return
 
     monthly_high = df.High.iloc[-30:].max()
@@ -513,7 +515,7 @@ def find_bullish_flag(
 
 
 def find_bearish_flag(
-    sym: str, df: pd.DataFrame, pivots: pd.DataFrame
+    sym: str, df: pd.DataFrame, pivots: pd.DataFrame, config
 ) -> Optional[dict]:
     """
     Find Bearish High Pole and Flag pattern.
@@ -528,7 +530,9 @@ def find_bearish_flag(
 
     recent_low_idx = df.Low.iloc[-7:].idxmin()
 
-    if recent_low_idx == lastIdx:
+    if recent_low_idx == lastIdx or len(df.loc[recent_low_idx:]) < config.get(
+        "FLAG_MAX_BARS", 5
+    ):
         return
 
     monthly_low = df.Low.iloc[-30:].min()
@@ -584,7 +588,7 @@ def find_bearish_flag(
 
 
 def find_bullish_vcp(
-    sym: str, df: pd.DataFrame, pivots: pd.DataFrame
+    sym: str, df: pd.DataFrame, pivots: pd.DataFrame, config
 ) -> Optional[dict]:
     """Find Volatilty Contraction Pattern Bullish.
 
@@ -680,9 +684,7 @@ def find_bullish_vcp(
 
 
 def find_bearish_vcp(
-    sym: str,
-    df: pd.DataFrame,
-    pivots: pd.DataFrame,
+    sym: str, df: pd.DataFrame, pivots: pd.DataFrame, config
 ) -> Optional[dict]:
     """Find Volatilty Contraction Pattern Bearish.
 
@@ -776,9 +778,7 @@ def find_bearish_vcp(
 
 
 def find_double_bottom(
-    sym: str,
-    df: pd.DataFrame,
-    pivots: pd.DataFrame,
+    sym: str, df: pd.DataFrame, pivots: pd.DataFrame, config
 ) -> Optional[dict]:
     """Find Double bottom.
 
@@ -875,9 +875,7 @@ def find_double_bottom(
 
 
 def find_double_top(
-    sym: str,
-    df: pd.DataFrame,
-    pivots: pd.DataFrame,
+    sym: str, df: pd.DataFrame, pivots: pd.DataFrame, config
 ) -> Optional[dict]:
     """Find Double Top.
 
@@ -969,7 +967,9 @@ def find_double_top(
         a_idx, a, aVol = c_idx, c, cVol
 
 
-def find_triangles(sym: str, df: pd.DataFrame, pivots: pd.DataFrame) -> Optional[dict]:
+def find_triangles(
+    sym: str, df: pd.DataFrame, pivots: pd.DataFrame, config
+) -> Optional[dict]:
     """Find Triangles - Symmetric, Ascending, Descending.
 
     Returns None if no patterns found.
@@ -1131,9 +1131,7 @@ def find_triangles(sym: str, df: pd.DataFrame, pivots: pd.DataFrame) -> Optional
 
 
 def find_hns(
-    sym: str,
-    df: pd.DataFrame,
-    pivots: pd.DataFrame,
+    sym: str, df: pd.DataFrame, pivots: pd.DataFrame, config
 ) -> Optional[dict]:
     """Find Head and Shoulders - Bearish
 
@@ -1267,9 +1265,7 @@ def find_hns(
 
 
 def find_reverse_hns(
-    sym: str,
-    df: pd.DataFrame,
-    pivots: pd.DataFrame,
+    sym: str, df: pd.DataFrame, pivots: pd.DataFrame, config
 ) -> Optional[dict]:
     """Find Head and Shoulders - Bullish
 
@@ -1403,7 +1399,7 @@ def find_reverse_hns(
 
 
 def find_downtrend_line(
-    sym: str, df: pd.DataFrame, pivots: pd.DataFrame
+    sym: str, df: pd.DataFrame, pivots: pd.DataFrame, config
 ) -> Optional[dict]:
     """Downtrend line detection"""
 
@@ -1532,7 +1528,7 @@ def find_downtrend_line(
 
 
 def find_uptrend_line(
-    sym: str, df: pd.DataFrame, pivots: pd.DataFrame
+    sym: str, df: pd.DataFrame, pivots: pd.DataFrame, config
 ) -> Optional[dict]:
     """Uptrend line detection"""
 
@@ -1662,7 +1658,7 @@ def find_uptrend_line(
 
 
 def find_bullish_abcd(
-    sym: str, df: pd.DataFrame, pivots: pd.DataFrame
+    sym: str, df: pd.DataFrame, pivots: pd.DataFrame, config
 ) -> Optional[dict]:
     """
     Bullish AB = CD harmonic pattern
@@ -1834,7 +1830,7 @@ def find_bullish_abcd(
 
 
 def find_bearish_abcd(
-    sym: str, df: pd.DataFrame, pivots: pd.DataFrame
+    sym: str, df: pd.DataFrame, pivots: pd.DataFrame, config
 ) -> Optional[dict]:
     """
     Bearish AB = CD harmonic pattern
@@ -2006,7 +2002,7 @@ def find_bearish_abcd(
 
 
 def find_bullish_bat(
-    sym: str, df: pd.DataFrame, pivots: pd.DataFrame
+    sym: str, df: pd.DataFrame, pivots: pd.DataFrame, config
 ) -> Optional[dict]:
     """
     Bullish Bat harmonic pattern
@@ -2212,7 +2208,7 @@ def find_bullish_bat(
 
 
 def find_bearish_bat(
-    sym: str, df: pd.DataFrame, pivots: pd.DataFrame
+    sym: str, df: pd.DataFrame, pivots: pd.DataFrame, config
 ) -> Optional[dict]:
     """
     Bearish Bat harmonic pattern
@@ -2417,7 +2413,7 @@ def find_bearish_bat(
 
 
 def find_bullish_gartley(
-    sym: str, df: pd.DataFrame, pivots: pd.DataFrame
+    sym: str, df: pd.DataFrame, pivots: pd.DataFrame, config
 ) -> Optional[dict]:
     """
     Bullish Gartley harmonic pattern
@@ -2598,7 +2594,7 @@ def find_bullish_gartley(
 
 
 def find_bearish_gartley(
-    sym: str, df: pd.DataFrame, pivots: pd.DataFrame
+    sym: str, df: pd.DataFrame, pivots: pd.DataFrame, config
 ) -> Optional[dict]:
     """
     Bearish Gartley harmonic pattern
@@ -2779,7 +2775,7 @@ def find_bearish_gartley(
 
 
 def find_bullish_crab(
-    sym: str, df: pd.DataFrame, pivots: pd.DataFrame
+    sym: str, df: pd.DataFrame, pivots: pd.DataFrame, config
 ) -> Optional[dict]:
     """
     Bullish Crab harmonic pattern
@@ -2993,7 +2989,7 @@ def find_bullish_crab(
 
 
 def find_bearish_crab(
-    sym: str, df: pd.DataFrame, pivots: pd.DataFrame
+    sym: str, df: pd.DataFrame, pivots: pd.DataFrame, config
 ) -> Optional[dict]:
     """
     Bearish Crab harmonic pattern
@@ -3207,7 +3203,7 @@ def find_bearish_crab(
 
 
 def find_bullish_butterfly(
-    sym: str, df: pd.DataFrame, pivots: pd.DataFrame
+    sym: str, df: pd.DataFrame, pivots: pd.DataFrame, config
 ) -> Optional[dict]:
     """
     Bullish Butterfly harmonic pattern
@@ -3385,7 +3381,7 @@ def find_bullish_butterfly(
 
 
 def find_bearish_butterfly(
-    sym: str, df: pd.DataFrame, pivots: pd.DataFrame
+    sym: str, df: pd.DataFrame, pivots: pd.DataFrame, config
 ) -> Optional[dict]:
     """
     Bearish Butterfly harmonic pattern
