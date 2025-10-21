@@ -580,9 +580,6 @@ if __name__ == "__main__":
         logger.exception("", exc_info=e)
         exit()
 
-    # Check if user is using the interactive prompt
-    interactive_mode = not bool(args.pattern)
-
     if args.pattern:
         key = args.pattern
     else:
@@ -636,14 +633,13 @@ if __name__ == "__main__":
         bear_list = ("abcdd", "batd", "gartd", "crabd", "bflyd")
 
         fns = tuple(v for k, v in fn_dict.items() if k in bear_list)
-    else:
-        if not interactive_mode:
-            raise KeyError(f"{key} did not match any defined patterns.")
-
+    elif key == "all":
         fns = tuple(
             fn_dict[k]
             for k in ("vcpu", "hnsu", "dbot", "flagu", "vcpd", "hnsd", "dtop", "flagd")
         )
+    else:
+        raise KeyError(f"{key} did not match any defined patterns.")
 
     try:
         patterns = process(data, key, fns, futures)
