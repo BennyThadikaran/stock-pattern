@@ -6,6 +6,12 @@ A Python CLI scanner to detect and plot common chart patterns. Includes Harmonic
 
 If you :heart: my work so far, please :star2: this repo.
 
+---
+
+✨ [Precise-Patterns](https://github.com/BennyThadikaran/precise-patterns) has just been released. 🚀 It is currently in initial development and reimagines the pattern detection process from the ground up, with many new improvements. 🔍💡
+
+See the [initial announcement and further discussions here](https://github.com/BennyThadikaran/stock-pattern/discussions/128). 📣
+
 ![stock-pattern-cli-1](https://res.cloudinary.com/doyu4uovr/image/upload/s--HjrsEmtc--/c_scale,f_auto,w_500/v1732622055/stock-pattern/stock-pattern-ui-1_agjjxp.png)
 
 ![stock-pattern-cli-2](https://res.cloudinary.com/doyu4uovr/image/upload/s--qoHrLTS---/c_scale,f_auto,w_500/v1732622054/stock-pattern/stock-pattern-ui-2_jwpvv1.png)
