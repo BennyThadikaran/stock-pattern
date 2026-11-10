@@ -386,7 +386,7 @@ def get_prev_index(index: pd.DatetimeIndex, idx: pd.Timestamp) -> int:
     pos = index.get_loc(idx)
 
     if isinstance(pos, slice):
-        return pos.stop
+        return pos.start - 1
 
     if isinstance(pos, int):
         return pos - 1
